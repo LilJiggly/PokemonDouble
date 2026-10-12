@@ -347,6 +347,13 @@ export function moveTeamMember(run, uid, delta) {
   [run.team[i], run.team[j]] = [run.team[j], run.team[i]];
 }
 
+// Swap a team member with whoever is in another slot (team slot buttons)
+export function swapTeamMember(run, uid, index) {
+  const i = run.team.findIndex((m) => m.uid === uid);
+  if (i < 0 || index < 0 || index >= run.team.length || i === index) return;
+  [run.team[i], run.team[index]] = [run.team[index], run.team[i]];
+}
+
 // Move a team member to a new position (drag & drop)
 export function moveTeamMemberTo(run, uid, index) {
   const i = run.team.findIndex((m) => m.uid === uid);

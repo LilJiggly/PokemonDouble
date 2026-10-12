@@ -631,12 +631,14 @@ button { touch-action: manipulation; }
 .target-btn.ally { background: #e0ecf8; }
 
 /* Party menu */
+/* 2 columns × 3 rows: the whole team on one screen */
 .party-grid {
   flex: 1;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  grid-auto-rows: 1fr;
+  grid-template-rows: repeat(3, minmax(0, 1fr));
   gap: 1.8cqw;
+  min-height: 0;
 }
 .party-card {
   display: grid;
@@ -744,7 +746,7 @@ button { touch-action: manipulation; }
 .tp-pill.big { font-size: var(--fs-xl); padding: 6px 14px; align-self: center; }
 
 /* Choices (radio / checkbox chips) */
-.choice-row { display: flex; gap: var(--gap-sm); flex-wrap: wrap; }
+.choice-row { display: flex; gap: var(--gap-sm); flex-wrap: wrap; margin-top: var(--gap-md); }
 .choice {
   display: flex; align-items: center; gap: var(--gap-sm);
   padding: 8px 14px;
@@ -916,6 +918,28 @@ button { touch-action: manipulation; }
 .mon-item { display: flex; align-items: center; gap: var(--gap-xs); font-size: 13px; }
 .mon-item img { width: 24px; height: 24px; }
 .mon-actions { display: flex; gap: var(--gap-xs); flex-wrap: wrap; }
+/* Team position: one button per slot, tap to swap */
+.slot-strip { display: flex; align-items: center; gap: var(--gap-xs); flex-wrap: wrap; }
+.slot-label { font-family: var(--font-info); font-size-adjust: 0.62; font-size: var(--fs-sm); color: var(--ink-soft); margin-right: 2px; }
+.slot {
+  display: inline-flex; align-items: center; justify-content: center; gap: 2px;
+  min-width: 30px; height: 30px; padding: 0 6px;
+  background: var(--paper);
+  border: 2px solid var(--paper-edge);
+  border-radius: 8px;
+  font: inherit; font-size: 13px; font-weight: 700; color: var(--ink);
+  cursor: pointer;
+  transition: border-color 0.1s, transform 0.1s;
+}
+.slot.lead { border-color: var(--accent); }
+.slot:hover:not(:disabled) { transform: translateY(-2px); border-color: var(--accent-dark); }
+.slot.current { background: var(--accent); border-color: var(--accent-dark); cursor: default; opacity: 1; }
+.slot img { width: 32px; height: 32px; margin: -4px -2px; }
+/* In the details window: bigger, with the Pokémon in each slot */
+.details .slot-strip { background: var(--surface-sunken); border-radius: var(--r-md); padding: 6px 8px; }
+.details .slot-label { color: var(--text-muted); }
+.details .slot { height: 40px; padding: 0 6px 0 2px; }
+
 .held-chip {
   display: inline-flex; align-items: center; gap: var(--gap-xs);
   padding: 1px 8px 1px 2px;
@@ -1192,6 +1216,23 @@ button.bag-entry:hover { box-shadow: 0 0 0 2px var(--accent); }
 .modal-backdrop.details .modal { width: min(100%, 760px); }
 .modal .action-options { flex-direction: row; flex-wrap: wrap; gap: 6px; }
 .modal-label { font-size: var(--fs-md); color: var(--accent); }
+/* ◀ title ▶ (flip through your Pokémon) */
+.modal-nav { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: var(--gap-sm); }
+.modal-nav h2 { text-align: center; }
+.modal .nav-btn { min-width: 40px; height: 36px; font-size: var(--fs-md); }
+.modal-count { font-family: var(--font-info); font-size-adjust: 0.62; font-size: var(--fs-md); font-weight: 400; color: var(--text-muted); }
+/* Who a move dialog is for */
+.dialog-mon {
+  display: flex; align-items: center; gap: var(--gap-md);
+  padding: 6px 12px;
+  background: var(--paper); color: var(--ink);
+  border-radius: var(--r-md);
+}
+.dialog-mon img { width: 64px; height: 64px; }
+.dialog-mon b { font-size: var(--fs-lg); }
+.dialog-mon small { margin-left: 8px; color: var(--ink-soft); }
+.dialog-moves { font-family: var(--font-info); font-size-adjust: 0.62; font-size: var(--fs-sm); color: var(--ink-soft); }
+.dialog-mon + p { margin-top: var(--gap-sm); }
 
 /* Move cards as choices */
 .modal .card-options { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap-md); }
@@ -1354,16 +1395,6 @@ button.bag-entry:hover { box-shadow: 0 0 0 2px var(--accent); }
   .mc-stats { font-size: 17px; padding: 5px 2px 6px; }
   .mc-stats small { font-size: 12px; }
   .mc-desc { font-size: 15px; }
-}
-
-/* Battle on a phone held upright: the menu screen fills the rest of the height,
-   so the buttons get bigger */
-@media (max-width: 600px) and (orientation: portrait) {
-  .app {
-    width: 100%;
-    min-height: calc(100dvh - 20px);
-  }
-  .screen-bottom { aspect-ratio: auto; flex: 1 1 auto; min-height: 75cqw; max-height: 125vw; }
 }
 
 /* Touch screens: no hover lifts, bigger tap targets */

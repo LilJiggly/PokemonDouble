@@ -582,6 +582,7 @@ export class BattleScreen {
   }
 
   // Pick a team member. Returns teamIndex or null (cancelled).
+  // All six fit on one screen: 2 columns × 3 rows.
   partyMenu({ title, options, canCancel }) {
     const side = this.battle.state.sides[PLAYER];
     return new Promise((resolve) => {
@@ -604,7 +605,7 @@ export class BattleScreen {
         ${canCancel ? `<div class="menu-footer"><button class="btn" data-back>◀ Back</button></div>` : ""}`);
       menu.onclick = (ev) => {
         const btn = ev.target.closest("button");
-        if (!btn) return;
+        if (!btn || btn.disabled) return;
         if (btn.hasAttribute("data-back")) { resolve(null); return; }
         resolve(Number(btn.dataset.team));
       };

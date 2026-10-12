@@ -8,4 +8,4 @@
 //   major (0.x → 1.0.0): first complete release
 // =====================================================
 
-export const VERSION = "0.1.0";
+export const VERSION = "0.1.2";

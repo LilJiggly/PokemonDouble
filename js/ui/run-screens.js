@@ -325,14 +325,23 @@ export class RunUI {
 
   // Generic choice dialog → resolves with an option's value, or null when cancelled
   // layout "cards": options are shown as a 2-column grid of cards (e.g. move cards)
+  // nav: shows ◀ ▶ around the title (also arrow keys and swipe); resolves with { nav: -1 | 1 }
+  // Buttons inside the body with data-result='{"…":…}' close the dialog with that object.
   // onOpen(dialogElement): runs once the dialog is on screen (e.g. to wire up tabs)
-  modal({ title, body = "", options = [], cancel = "Cancel", layout = "list", wide = false, onOpen = null }) {
+  modal({ title, body = "", options = [], cancel = "Cancel", layout = "list", wide = false, nav = false, onOpen = null }) {
     return new Promise((resolve) => {
       const backdrop = document.createElement("div");
       backdrop.className = `modal-backdrop ${layout === "cards" || wide ? "wide" : ""} ${layout === "actions" ? "details" : ""}`;
+      const heading = nav
+        ? `<div class="modal-nav">
+            <button class="btn small nav-btn" data-nav="-1" aria-label="Previous Pokémon">◀</button>
+            <h2>${title}</h2>
+            <button class="btn small nav-btn" data-nav="1" aria-label="Next Pokémon">▶</button>
+          </div>`
+        : `<h2>${title}</h2>`;
       backdrop.innerHTML = `
         <div class="modal" role="dialog" aria-modal="true">
-          <h2>${title}</h2>
+          ${heading}
           ${body ? `<div>${body}</div>` : ""}
           <div class="options ${layout === "cards" ? "card-options" : layout === "actions" ? "action-options" : ""}">
             ${options.map((o, i) => `<button class="${layout === "cards" ? "card-choice" : layout === "actions" ? "btn small" : "btn"}" data-i="${i}" ${o.disabled ? "disabled" : ""}>${o.html ?? o.label}</button>`).join("")}
@@ -340,22 +349,70 @@ export class RunUI {
           ${cancel ? `<button class="btn" data-cancel>${cancel}</button>` : ""}
         </div>`;
       const close = (value) => { backdrop.remove(); document.removeEventListener("keydown", onKey); resolve(value); };
-      const onKey = (e) => { if (e.key === "Escape" && cancel) close(null); };
+      const onKey = (e) => {
+        if (e.key === "Escape" && cancel) close(null);
+        if (nav && (e.key === "ArrowLeft" || e.key === "ArrowRight")) close({ nav: e.key === "ArrowLeft" ? -1 : 1 });
+      };
       document.addEventListener("keydown", onKey);
       backdrop.onclick = (e) => {
         if (e.target === backdrop && cancel) return close(null);
         const btn = e.target.closest("button");
-        if (!btn) return;
+        if (!btn || btn.disabled) return;
         if (btn.hasAttribute("data-cancel")) return close(null);
+        if (btn.dataset.nav) return close({ nav: Number(btn.dataset.nav) });
+        if (btn.dataset.result) return close(JSON.parse(btn.dataset.result));
         if (btn.dataset.i === undefined) return; // buttons inside the body (e.g. effect toggles)
         close(options[Number(btn.dataset.i)].value);
       };
+      // Swipe left / right on phones to flip through Pokémon
+      if (nav) {
+        let start = null;
+        backdrop.addEventListener("touchstart", (e) => { start = e.touches[0]; }, { passive: true });
+        backdrop.addEventListener("touchend", (e) => {
+          if (!start) return;
+          const dx = e.changedTouches[0].clientX - start.clientX;
+          const dy = e.changedTouches[0].clientY - start.clientY;
+          start = null;
+          if (Math.abs(dx) > 70 && Math.abs(dy) < 50) close({ nav: dx > 0 ? -1 : 1 });
+        });
+      }
       document.body.appendChild(backdrop);
       // Focus the first button without scrolling the window down to it
       backdrop.querySelector("button:not(:disabled)")?.focus({ preventScroll: true });
       backdrop.querySelector(".modal").scrollTop = 0;
       onOpen?.(backdrop.querySelector(".modal"));
     });
+  }
+
+  // "Who is this for" row at the top of move dialogs
+  dialogMon(mon) {
+    const i = this.run.team.indexOf(mon);
+    return `<div class="dialog-mon"><img src="${this.sprite(mon)}" alt="">
+      <div><b>${this.monName(mon)}</b><small>Lv ${mon.level} · ${i + 1}/${this.run.team.length}</small>
+      <div class="dialog-moves">Knows: ${mon.moves.map((m) => this.ctx.data.moves[m].name).join(", ")}</div></div></div>`;
+  }
+
+  // Team member next to this one (wraps around): for ◀ ▶ in dialogs
+  neighbour(mon, step) {
+    const team = this.run.team;
+    const i = team.indexOf(mon);
+    return team[(i + step + team.length) % team.length];
+  }
+
+  // Row of team slots: tap one to swap places with whoever is there.
+  // dialog: buttons close the details window (data-result); otherwise hub actions (data-act).
+  slotStrip(mon, { dialog = false } = {}) {
+    const team = this.run.team;
+    const here = team.indexOf(mon);
+    return `<div class="slot-strip" role="group" aria-label="Team position">
+      <span class="slot-label">Position</span>
+      ${team.map((m, j) => {
+        const attrs = dialog ? `data-result='{"slot":${j}}'` : `data-act="slot" data-uid="${mon.uid}" data-slot="${j}"`;
+        const who = j === here ? "here" : `swap with ${this.ctx.data.pokemonByKey[m.species].name}`;
+        return `<button class="slot ${j === here ? "current" : ""} ${j < 2 ? "lead" : ""}" ${attrs} ${j === here ? "aria-current=\"true\" disabled" : ""}
+          title="Slot ${j + 1}${j < 2 ? " (lead)" : ""}: ${who}">${dialog ? `<img src="${this.sprite(m)}" alt="">` : ""}<span>${j + 1}</span></button>`;
+      }).join("")}
+    </div>`;
   }
 
   // ===============================
@@ -628,9 +685,8 @@ export class RunUI {
           ${this.abilityList(m)}
           <div class="mon-item">${m.item ? `<span class="held-chip" draggable="true" data-drag="held" data-uid="${m.uid}" title="Drag to another Pokémon or back to the Bag">${this.itemImg(m.item)} ${itemInfo(m.item).name}</span>` : `<span class="mon-sub">No held item</span>`}</div>
           ${this.moveGrid(m.moves, { toggle: true, keyPrefix: m.uid })}
+          ${run.team.length > 1 ? this.slotStrip(m) : ""}
           <div class="mon-actions">
-            <button class="btn small" data-act="left" data-uid="${m.uid}" ${i === 0 ? "disabled" : ""} title="Move earlier">◀</button>
-            <button class="btn small" data-act="right" data-uid="${m.uid}" ${i === run.team.length - 1 ? "disabled" : ""} title="Move later">▶</button>
             <button class="btn small" data-act="item" data-uid="${m.uid}">Item</button>
             <button class="btn small" data-act="moves" data-uid="${m.uid}" ${relearn ? "" : "disabled"}>Moves</button>
             ${evo.length ? `<button class="btn small ${evoReady ? "ready" : ""}" data-act="evolve" data-uid="${m.uid}">Evolve${evoReady ? "!" : ""}</button>` : ""}
@@ -927,6 +983,7 @@ export class RunUI {
             <div class="tile-sub">Held item: ${mon.item ? `${this.itemImg(mon.item)} ${itemInfo(mon.item).name}` : "none"}</div>
           </div>
         </div>
+        ${run.team.length > 1 ? this.slotStrip(mon, { dialog: true }) : ""}
         <div class="tabs details-tabs" role="tablist" aria-label="Details">${DETAIL_TABS.map((t) => `
           <button class="tab ${t.id === (this.detailsTab ?? "stats") ? "active" : ""}" role="tab" data-tab="${t.id}"
             aria-selected="${t.id === (this.detailsTab ?? "stats")}"><img src="images/items/${t.icon}.png" alt=""> ${t.label}</button>`).join("")}
@@ -937,13 +994,12 @@ export class RunUI {
         <section data-tab-panel="moves">${this.moveGrid(mon.moves)}</section>
       </div>`;
     const action = await this.modal({
-      title: `${p.name}${i < 2 ? " · Lead" : ""}`,
+      title: `${p.name} <small class="modal-count">${i + 1}/${run.team.length}${i < 2 ? " · Lead" : ""}</small>`,
       body,
       layout: "actions",
       wide: true,
+      nav: run.team.length > 1,
       options: [
-        { value: "left", label: "◀ Earlier", disabled: i === 0 },
-        { value: "right", label: "Later ▶", disabled: i === run.team.length - 1 },
         { value: "item", label: "Item" },
         { value: "moves", label: "Moves", disabled: !Run.relearnableMoves(ctx, mon).length },
         ...(evo.length ? [{ value: "evolve", label: evo.some((o) => o.ready) ? "Evolve!" : "Evolve" }] : []),
@@ -968,7 +1024,8 @@ export class RunUI {
       },
     });
     if (!action) return;
-    if (action === "left" || action === "right") Run.moveTeamMember(run, uid, action === "left" ? -1 : 1);
+    if (action.nav) return this.detailsDialog(this.neighbour(mon, action.nav).uid);
+    if (action.slot !== undefined) Run.swapTeamMember(run, uid, action.slot);
     if (action === "item") await this.itemDialog(mon);
     if (action === "moves") await this.relearnDialog(mon);
     if (action === "evolve") await this.evolveDialog(mon);
@@ -1072,7 +1129,7 @@ export class RunUI {
       this.playBattle(result.battle, { initialEvents: result.events });
       return;
     }
-    if (act === "left" || act === "right") Run.moveTeamMember(run, uid, act === "left" ? -1 : 1);
+    if (act === "slot") Run.swapTeamMember(run, uid, Number(btn.dataset.slot));
     if (act === "item") await this.itemDialog(mon);
     if (act === "moves") await this.relearnDialog(mon);
     if (act === "evolve") await this.evolveDialog(mon);
@@ -1157,11 +1214,14 @@ export class RunUI {
     const { run, ctx } = this;
     const moves = Run.relearnableMoves(ctx, mon);
     const move = await this.modal({
-      title: `Move Relearner · ${ctx.data.pokemonByKey[mon.species].name}`,
-      body: `<p>Any level-up move up to level ${mon.level}. Free. Pick a move to learn.</p>`,
+      title: `Move Relearner`,
+      body: `${this.dialogMon(mon)}
+        <p>${moves.length ? `Any level-up move up to level ${mon.level}. Free. Pick a move to learn.` : "No moves to relearn right now."}</p>`,
       layout: "cards",
+      nav: run.team.length > 1,
       options: moves.map((id) => ({ value: id, html: this.moveCard(id) })),
     });
+    if (move?.nav) return this.relearnDialog(this.neighbour(mon, move.nav));
     if (!move) return;
     let replace = null;
     if (mon.moves.length >= 4) {
@@ -1231,11 +1291,14 @@ export class RunUI {
     const { run, ctx } = this;
     const moves = Run.teachableTMs(run, ctx, mon);
     const move = preselected ?? await this.modal({
-      title: `Teach a TM to ${ctx.data.pokemonByKey[mon.species].name}`,
-      body: `<p>TMs are reusable: teaching one doesn't use it up.</p>`,
+      title: `Teach a TM`,
+      body: `${this.dialogMon(mon)}
+        <p>${moves.length ? "TMs are reusable: teaching one doesn't use it up." : "None of your TMs fit this Pokémon."}</p>`,
       layout: "cards",
+      nav: !preselected && run.team.length > 1,
       options: moves.map((id) => ({ value: id, html: this.moveCard(id) })),
     });
+    if (move?.nav) return this.tmDialog(this.neighbour(mon, move.nav));
     if (!move) return;
     let replace = null;
     if (mon.moves.length >= 4) {
