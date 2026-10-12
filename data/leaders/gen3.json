@@ -1,0 +1,129 @@
+{
+ "gen": 3,
+ "region": "Hoenn",
+ "basedOn": "Emerald",
+ "opponents": [
+  {
+   "order": 1,
+   "id": "roxanne",
+   "name": "Roxanne",
+   "title": "Gym Leader",
+   "theme": "rock",
+   "sets": []
+  },
+  {
+   "order": 2,
+   "id": "brawly",
+   "name": "Brawly",
+   "title": "Gym Leader",
+   "theme": "fighting",
+   "sets": []
+  },
+  {
+   "order": 3,
+   "id": "wattson",
+   "name": "Wattson",
+   "title": "Gym Leader",
+   "theme": "electric",
+   "sets": []
+  },
+  {
+   "order": 4,
+   "id": "flannery",
+   "name": "Flannery",
+   "title": "Gym Leader",
+   "theme": "fire",
+   "sets": []
+  },
+  {
+   "order": 5,
+   "id": "norman",
+   "name": "Norman",
+   "title": "Gym Leader",
+   "theme": "normal",
+   "sets": []
+  },
+  {
+   "order": 6,
+   "id": "winona",
+   "name": "Winona",
+   "title": "Gym Leader",
+   "theme": "flying",
+   "sets": []
+  },
+  {
+   "order": 7,
+   "id": "tate-and-liza",
+   "name": "Tate & Liza",
+   "title": "Gym Leader",
+   "theme": "psychic",
+   "sets": []
+  },
+  {
+   "order": 8,
+   "id": "juan",
+   "name": "Juan",
+   "title": "Gym Leader",
+   "theme": "water",
+   "sets": []
+  },
+  {
+   "order": 9,
+   "id": "sidney",
+   "name": "Sidney",
+   "title": "Elite Four",
+   "theme": "dark",
+   "sets": []
+  },
+  {
+   "order": 10,
+   "id": "phoebe",
+   "name": "Phoebe",
+   "title": "Elite Four",
+   "theme": "ghost",
+   "sets": []
+  },
+  {
+   "order": 11,
+   "id": "glacia",
+   "name": "Glacia",
+   "title": "Elite Four",
+   "theme": "ice",
+   "sets": []
+  },
+  {
+   "order": 12,
+   "id": "drake",
+   "name": "Drake",
+   "title": "Elite Four",
+   "theme": "dragon",
+   "sets": []
+  },
+  {
+   "order": 13,
+   "id": "wallace",
+   "name": "Wallace",
+   "title": "Champion",
+   "theme": "water",
+   "sets": []
+  },
+  {
+   "order": 14,
+   "id": "rival",
+   "name": "Rival",
+   "title": "Rival",
+   "theme": null,
+   "sets": [],
+   "options": [
+    {
+     "id": "brendan",
+     "name": "Brendan"
+    },
+    {
+     "id": "may",
+     "name": "May"
+    }
+   ]
+  }
+ ]
+}

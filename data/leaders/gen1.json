@@ -1,0 +1,438 @@
+{
+ "gen": 1,
+ "region": "Kanto",
+ "basedOn": "FireRed / LeafGreen",
+ "opponents": [
+  {
+   "order": 1,
+   "id": "brock",
+   "name": "Brock",
+   "title": "Gym Leader",
+   "theme": "rock",
+   "sets": [
+    {
+     "name": "Burn for Power",
+     "notes": "Solrock burns its own Larvitar to trigger Guts, then supports with Helping Hand.",
+     "script": [
+      {
+       "turn": 1,
+       "species": "solrock",
+       "move": "will-o-wisp",
+       "target": "ally"
+      }
+     ],
+     "team": [
+      {
+       "species": "solrock",
+       "ability": "levitate",
+       "nature": "modest",
+       "item": "sitrus-berry",
+       "moves": [
+        "will-o-wisp",
+        "helping-hand",
+        "rock-throw",
+        "confusion"
+       ]
+      },
+      {
+       "species": "larvitar",
+       "ability": "guts",
+       "nature": "adamant",
+       "item": "oran-berry",
+       "moves": [
+        "facade",
+        "rock-slide",
+        "bite",
+        "protect"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "Sandstorm",
+     "notes": "Nosepass sets sand: Rock types get +50% Sp. Def, Sand Force boosts Rock moves.",
+     "script": [
+      {
+       "turn": 1,
+       "species": "nosepass",
+       "move": "sandstorm"
+      }
+     ],
+     "team": [
+      {
+       "species": "nosepass",
+       "ability": "sand-force",
+       "nature": "impish",
+       "item": "smooth-rock",
+       "moves": [
+        "sandstorm",
+        "thunder-wave",
+        "rock-tomb",
+        "protect"
+       ]
+      },
+      {
+       "species": "cranidos",
+       "ability": "sheer-force",
+       "nature": "adamant",
+       "item": "hard-stone",
+       "moves": [
+        "headbutt",
+        "rock-slide",
+        "pursuit",
+        "protect"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "Rain Fossils",
+     "notes": "Omanyte sets rain: Swift Swim doubles both fossils' Speed.",
+     "script": [
+      {
+       "turn": 1,
+       "species": "omanyte",
+       "move": "rain-dance"
+      }
+     ],
+     "team": [
+      {
+       "species": "omanyte",
+       "ability": "swift-swim",
+       "nature": "modest",
+       "item": "damp-rock",
+       "moves": [
+        "rain-dance",
+        "water-gun",
+        "bite",
+        "protect"
+       ]
+      },
+      {
+       "species": "kabuto",
+       "ability": "swift-swim",
+       "nature": "adamant",
+       "item": "oran-berry",
+       "moves": [
+        "rock-slide",
+        "absorb",
+        "leer",
+        "protect"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "Classic Onix",
+     "notes": "Onix Screeches a target, Geodude Rock Polishes and hits that target.",
+     "script": [
+      {
+       "turn": 1,
+       "species": "onix",
+       "move": "screech",
+       "target": "foe"
+      },
+      {
+       "turn": 1,
+       "species": "geodude",
+       "move": "rock-polish"
+      }
+     ],
+     "team": [
+      {
+       "species": "onix",
+       "ability": "sturdy",
+       "nature": "impish",
+       "item": "sitrus-berry",
+       "moves": [
+        "screech",
+        "rock-throw",
+        "rock-tomb",
+        "protect"
+       ]
+      },
+      {
+       "species": "geodude",
+       "ability": "rock-head",
+       "nature": "adamant",
+       "item": "hard-stone",
+       "moves": [
+        "rock-polish",
+        "rock-slide",
+        "rollout",
+        "protect"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "Shatter Shields",
+     "notes": "Shieldon uses Metal Sound on Lunatone's target. Taunt stops setup.",
+     "script": [
+      {
+       "turn": 1,
+       "species": "shieldon",
+       "move": "metal-sound",
+       "target": "foe"
+      }
+     ],
+     "team": [
+      {
+       "species": "shieldon",
+       "ability": "sturdy",
+       "nature": "impish",
+       "item": "oran-berry",
+       "moves": [
+        "metal-sound",
+        "taunt",
+        "rock-tomb",
+        "protect"
+       ]
+      },
+      {
+       "species": "lunatone",
+       "ability": "levitate",
+       "nature": "modest",
+       "item": "twisted-spoon",
+       "moves": [
+        "confusion",
+        "hypnosis",
+        "rock-throw",
+        "protect"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "Lightning Rod Guard",
+     "notes": "Rhyhorn draws Electric moves away from Relicanth. Relicanth Yawns the biggest threat.",
+     "script": [],
+     "team": [
+      {
+       "species": "rhyhorn",
+       "ability": "lightning-rod",
+       "nature": "adamant",
+       "item": "sitrus-berry",
+       "moves": [
+        "stomp",
+        "rock-slide",
+        "horn-attack",
+        "protect"
+       ]
+      },
+      {
+       "species": "relicanth",
+       "ability": "sturdy",
+       "nature": "adamant",
+       "item": "mystic-water",
+       "moves": [
+        "water-gun",
+        "rock-tomb",
+        "yawn",
+        "protect"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "Sun Shield",
+     "notes": "Solrock sets sun (Water moves halved). Lileep's Storm Drain absorbs Water moves.",
+     "script": [
+      {
+       "turn": 1,
+       "species": "solrock",
+       "move": "sunny-day"
+      }
+     ],
+     "team": [
+      {
+       "species": "solrock",
+       "ability": "levitate",
+       "nature": "modest",
+       "item": "heat-rock",
+       "moves": [
+        "sunny-day",
+        "fire-spin",
+        "rock-throw",
+        "protect"
+       ]
+      },
+      {
+       "species": "lileep",
+       "ability": "storm-drain",
+       "nature": "modest",
+       "item": "miracle-seed",
+       "moves": [
+        "giga-drain",
+        "ancient-power",
+        "confuse-ray",
+        "protect"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "Speed Boost Duo",
+     "notes": "Aron Rock Polishes while Lunatone uses Hypnosis, then Helping Hand on Aron.",
+     "script": [
+      {
+       "turn": 1,
+       "species": "aron",
+       "move": "rock-polish"
+      },
+      {
+       "turn": 1,
+       "species": "lunatone",
+       "move": "hypnosis",
+       "target": "foe"
+      }
+     ],
+     "team": [
+      {
+       "species": "aron",
+       "ability": "rock-head",
+       "nature": "adamant",
+       "item": "sitrus-berry",
+       "moves": [
+        "rock-polish",
+        "headbutt",
+        "rock-slide",
+        "metal-claw"
+       ]
+      },
+      {
+       "species": "lunatone",
+       "ability": "levitate",
+       "nature": "bold",
+       "item": "oran-berry",
+       "moves": [
+        "helping-hand",
+        "hypnosis",
+        "confusion",
+        "protect"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "order": 2,
+   "id": "misty",
+   "name": "Misty",
+   "title": "Gym Leader",
+   "theme": "water",
+   "sets": []
+  },
+  {
+   "order": 3,
+   "id": "lt-surge",
+   "name": "Lt. Surge",
+   "title": "Gym Leader",
+   "theme": "electric",
+   "sets": []
+  },
+  {
+   "order": 4,
+   "id": "erika",
+   "name": "Erika",
+   "title": "Gym Leader",
+   "theme": "grass",
+   "sets": []
+  },
+  {
+   "order": 5,
+   "id": "koga",
+   "name": "Koga",
+   "title": "Gym Leader",
+   "theme": "poison",
+   "sets": []
+  },
+  {
+   "order": 6,
+   "id": "sabrina",
+   "name": "Sabrina",
+   "title": "Gym Leader",
+   "theme": "psychic",
+   "sets": []
+  },
+  {
+   "order": 7,
+   "id": "blaine",
+   "name": "Blaine",
+   "title": "Gym Leader",
+   "theme": "fire",
+   "sets": []
+  },
+  {
+   "order": 8,
+   "id": "giovanni",
+   "name": "Giovanni",
+   "title": "Gym Leader",
+   "theme": "ground",
+   "sets": []
+  },
+  {
+   "order": 9,
+   "id": "lorelei",
+   "name": "Lorelei",
+   "title": "Elite Four",
+   "theme": "ice",
+   "sets": []
+  },
+  {
+   "order": 10,
+   "id": "bruno",
+   "name": "Bruno",
+   "title": "Elite Four",
+   "theme": "fighting",
+   "sets": []
+  },
+  {
+   "order": 11,
+   "id": "agatha",
+   "name": "Agatha",
+   "title": "Elite Four",
+   "theme": "ghost",
+   "sets": []
+  },
+  {
+   "order": 12,
+   "id": "lance",
+   "name": "Lance",
+   "title": "Elite Four",
+   "theme": "dragon",
+   "sets": []
+  },
+  {
+   "order": 13,
+   "id": "blue",
+   "name": "Blue",
+   "title": "Champion",
+   "theme": null,
+   "sets": []
+  },
+  {
+   "order": 14,
+   "id": "rival",
+   "name": "Rival",
+   "title": "Rival",
+   "theme": null,
+   "sets": [],
+   "options": [
+    {
+     "id": "red",
+     "name": "Red"
+    },
+    {
+     "id": "blue",
+     "name": "Blue"
+    },
+    {
+     "id": "green",
+     "name": "Green"
+    }
+   ]
+  }
+ ]
+}

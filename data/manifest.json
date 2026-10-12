@@ -1,0 +1,12 @@
+{
+ "builtOn": "2026-10-09",
+ "source": "PokeAPI (https://pokeapi.co)",
+ "rules": "Gen 4 types, base stats, normal abilities and move values; Hidden Abilities from latest data; learnsets from Platinum + HeartGold/SoulSilver",
+ "counts": {
+  "pokemon": 493,
+  "moves": 466,
+  "abilities": 158,
+  "evolutionLinks": 247
+ },
+ "missingSprites": []
+}

@@ -1,0 +1,129 @@
+{
+ "gen": 2,
+ "region": "Johto",
+ "basedOn": "HeartGold / SoulSilver",
+ "opponents": [
+  {
+   "order": 1,
+   "id": "falkner",
+   "name": "Falkner",
+   "title": "Gym Leader",
+   "theme": "flying",
+   "sets": []
+  },
+  {
+   "order": 2,
+   "id": "bugsy",
+   "name": "Bugsy",
+   "title": "Gym Leader",
+   "theme": "bug",
+   "sets": []
+  },
+  {
+   "order": 3,
+   "id": "whitney",
+   "name": "Whitney",
+   "title": "Gym Leader",
+   "theme": "normal",
+   "sets": []
+  },
+  {
+   "order": 4,
+   "id": "morty",
+   "name": "Morty",
+   "title": "Gym Leader",
+   "theme": "ghost",
+   "sets": []
+  },
+  {
+   "order": 5,
+   "id": "chuck",
+   "name": "Chuck",
+   "title": "Gym Leader",
+   "theme": "fighting",
+   "sets": []
+  },
+  {
+   "order": 6,
+   "id": "jasmine",
+   "name": "Jasmine",
+   "title": "Gym Leader",
+   "theme": "steel",
+   "sets": []
+  },
+  {
+   "order": 7,
+   "id": "pryce",
+   "name": "Pryce",
+   "title": "Gym Leader",
+   "theme": "ice",
+   "sets": []
+  },
+  {
+   "order": 8,
+   "id": "clair",
+   "name": "Clair",
+   "title": "Gym Leader",
+   "theme": "dragon",
+   "sets": []
+  },
+  {
+   "order": 9,
+   "id": "will",
+   "name": "Will",
+   "title": "Elite Four",
+   "theme": "psychic",
+   "sets": []
+  },
+  {
+   "order": 10,
+   "id": "koga",
+   "name": "Koga",
+   "title": "Elite Four",
+   "theme": "poison",
+   "sets": []
+  },
+  {
+   "order": 11,
+   "id": "bruno",
+   "name": "Bruno",
+   "title": "Elite Four",
+   "theme": "fighting",
+   "sets": []
+  },
+  {
+   "order": 12,
+   "id": "karen",
+   "name": "Karen",
+   "title": "Elite Four",
+   "theme": "dark",
+   "sets": []
+  },
+  {
+   "order": 13,
+   "id": "lance",
+   "name": "Lance",
+   "title": "Champion",
+   "theme": "dragon",
+   "sets": []
+  },
+  {
+   "order": 14,
+   "id": "rival",
+   "name": "Rival",
+   "title": "Rival",
+   "theme": null,
+   "sets": [],
+   "options": [
+    {
+     "id": "silver",
+     "name": "Silver"
+    },
+    {
+     "id": "gold",
+     "name": "Gold"
+    }
+   ]
+  }
+ ]
+}

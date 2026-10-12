@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>Pokémon Double</title>
+		<link rel="preconnect" href="https://fonts.googleapis.com">
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+		<link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600;700&family=VT323&display=swap" rel="stylesheet">
+		<link rel="stylesheet" href="./css/styles.css" />
+	</head>
+
+	<body>
+		<!-- Everything outside battles: title, draft, hub, offers… -->
+		<main id="hub" class="hub" hidden></main>
+
+		<main id="app" class="app" hidden>
+			<!-- Top screen: the battle -->
+			<section class="screen screen-top" aria-label="Battle">
+				<div class="scene" id="scene">
+					<div class="weather-layer"></div>
+					<div class="platform platform-foe"></div>
+					<div class="platform platform-player"></div>
+
+					<img class="sprite foe s1" data-pos="1-1" alt="">
+					<img class="sprite foe s0" data-pos="1-0" alt="">
+					<img class="sprite player s1" data-pos="0-1" alt="">
+					<img class="sprite player s0" data-pos="0-0" alt="">
+
+					<div class="hpbox foe s0" data-pos="1-0"></div>
+					<div class="hpbox foe s1" data-pos="1-1"></div>
+					<div class="hpbox player s0" data-pos="0-0"></div>
+					<div class="hpbox player s1" data-pos="0-1"></div>
+
+					<div class="turn-badge" id="turnBadge"></div>
+					<div class="textbox" id="textbox">
+						<p id="text"></p>
+						<span class="advance" aria-hidden="true">▼</span>
+					</div>
+				</div>
+			</section>
+
+			<!-- Bottom screen: menus -->
+			<section class="screen screen-bottom" aria-label="Menu">
+				<div class="menu" id="menu"></div>
+			</section>
+		</main>
+
+		<script type="module" src="./js/main.js"></script>
+	</body>
+</html>

@@ -1,0 +1,8 @@
+# macOS
+.DS_Store
+
+# PokeAPI download cache used by tools/build-data.mjs (~150 MB, rebuilt on demand)
+tools/.cache/
+
+# Local tool settings
+.claude/

@@ -1,0 +1,950 @@
+{
+ "stench": {
+  "id": 1,
+  "name": "Stench",
+  "gen": 3,
+  "shortEffect": "Has a 10% chance of making target Pokémon flinch with each hit."
+ },
+ "drizzle": {
+  "id": 2,
+  "name": "Drizzle",
+  "gen": 3,
+  "shortEffect": "Summons rain that lasts indefinitely upon entering battle."
+ },
+ "speed-boost": {
+  "id": 3,
+  "name": "Speed Boost",
+  "gen": 3,
+  "shortEffect": "Raises Speed one stage after each turn."
+ },
+ "battle-armor": {
+  "id": 4,
+  "name": "Battle Armor",
+  "gen": 3,
+  "shortEffect": "Protects against critical hits."
+ },
+ "sturdy": {
+  "id": 5,
+  "name": "Sturdy",
+  "gen": 3,
+  "shortEffect": "Prevents being KOed from full HP, leaving 1 HP instead. Protects against the one-hit KO moves regardless of HP."
+ },
+ "damp": {
+  "id": 6,
+  "name": "Damp",
+  "gen": 3,
+  "shortEffect": "Prevents Self-Destruct, Explosion, and Aftermath from working while the Pokémon is in battle."
+ },
+ "limber": {
+  "id": 7,
+  "name": "Limber",
+  "gen": 3,
+  "shortEffect": "Prevents paralysis."
+ },
+ "sand-veil": {
+  "id": 8,
+  "name": "Sand Veil",
+  "gen": 3,
+  "shortEffect": "Increases evasion to 1.25× during a sandstorm. Protects against sandstorm damage."
+ },
+ "static": {
+  "id": 9,
+  "name": "Static",
+  "gen": 3,
+  "shortEffect": "Has a 30% chance of paralyzing attacking Pokémon on contact."
+ },
+ "volt-absorb": {
+  "id": 10,
+  "name": "Volt Absorb",
+  "gen": 3,
+  "shortEffect": "Absorbs Electric moves, healing for 1/4 max HP."
+ },
+ "water-absorb": {
+  "id": 11,
+  "name": "Water Absorb",
+  "gen": 3,
+  "shortEffect": "Absorbs Water moves, healing for 1/4 max HP."
+ },
+ "oblivious": {
+  "id": 12,
+  "name": "Oblivious",
+  "gen": 3,
+  "shortEffect": "Prevents infatuation and protects against Captivate."
+ },
+ "cloud-nine": {
+  "id": 13,
+  "name": "Cloud Nine",
+  "gen": 3,
+  "shortEffect": "Negates all effects of weather, but does not prevent the weather itself."
+ },
+ "compound-eyes": {
+  "id": 14,
+  "name": "Compound Eyes",
+  "gen": 3,
+  "shortEffect": "Increases moves' accuracy to 1.3×."
+ },
+ "insomnia": {
+  "id": 15,
+  "name": "Insomnia",
+  "gen": 3,
+  "shortEffect": "Prevents sleep."
+ },
+ "color-change": {
+  "id": 16,
+  "name": "Color Change",
+  "gen": 3,
+  "shortEffect": "Changes type to match when hit by a damaging move."
+ },
+ "immunity": {
+  "id": 17,
+  "name": "Immunity",
+  "gen": 3,
+  "shortEffect": "Prevents poison."
+ },
+ "flash-fire": {
+  "id": 18,
+  "name": "Flash Fire",
+  "gen": 3,
+  "shortEffect": "Protects against Fire moves. Once one has been blocked, the Pokémon's own Fire moves inflict 1.5× damage until it leaves battle."
+ },
+ "shield-dust": {
+  "id": 19,
+  "name": "Shield Dust",
+  "gen": 3,
+  "shortEffect": "Protects against incoming moves' extra effects."
+ },
+ "own-tempo": {
+  "id": 20,
+  "name": "Own Tempo",
+  "gen": 3,
+  "shortEffect": "Prevents confusion."
+ },
+ "suction-cups": {
+  "id": 21,
+  "name": "Suction Cups",
+  "gen": 3,
+  "shortEffect": "Prevents being forced out of battle by other Pokémon's moves."
+ },
+ "intimidate": {
+  "id": 22,
+  "name": "Intimidate",
+  "gen": 3,
+  "shortEffect": "Lowers opponents' Attack one stage upon entering battle."
+ },
+ "shadow-tag": {
+  "id": 23,
+  "name": "Shadow Tag",
+  "gen": 3,
+  "shortEffect": "Prevents opponents from fleeing or switching out."
+ },
+ "rough-skin": {
+  "id": 24,
+  "name": "Rough Skin",
+  "gen": 3,
+  "shortEffect": "Damages attacking Pokémon for 1/8 their max HP on contact."
+ },
+ "wonder-guard": {
+  "id": 25,
+  "name": "Wonder Guard",
+  "gen": 3,
+  "shortEffect": "Protects against damaging moves that are not super effective."
+ },
+ "levitate": {
+  "id": 26,
+  "name": "Levitate",
+  "gen": 3,
+  "shortEffect": "Evades Ground moves."
+ },
+ "effect-spore": {
+  "id": 27,
+  "name": "Effect Spore",
+  "gen": 3,
+  "shortEffect": "Has a 30% chance of inflcting either paralysis, poison, or sleep on attacking Pokémon on contact."
+ },
+ "synchronize": {
+  "id": 28,
+  "name": "Synchronize",
+  "gen": 3,
+  "shortEffect": "Copies burns, paralysis, and poison received onto the Pokémon that inflicted them."
+ },
+ "clear-body": {
+  "id": 29,
+  "name": "Clear Body",
+  "gen": 3,
+  "shortEffect": "Prevents stats from being lowered by other Pokémon."
+ },
+ "natural-cure": {
+  "id": 30,
+  "name": "Natural Cure",
+  "gen": 3,
+  "shortEffect": "Cures any major status ailment upon switching out."
+ },
+ "lightning-rod": {
+  "id": 31,
+  "name": "Lightning Rod",
+  "gen": 3,
+  "shortEffect": "Redirects single-target Electric moves to this Pokémon where possible. Absorbs Electric moves, raising Special Attack one stage."
+ },
+ "serene-grace": {
+  "id": 32,
+  "name": "Serene Grace",
+  "gen": 3,
+  "shortEffect": "Doubles the chance of moves' extra effects occurring."
+ },
+ "swift-swim": {
+  "id": 33,
+  "name": "Swift Swim",
+  "gen": 3,
+  "shortEffect": "Doubles Speed during rain."
+ },
+ "chlorophyll": {
+  "id": 34,
+  "name": "Chlorophyll",
+  "gen": 3,
+  "shortEffect": "Doubles Speed during strong sunlight."
+ },
+ "illuminate": {
+  "id": 35,
+  "name": "Illuminate",
+  "gen": 3,
+  "shortEffect": "Doubles the wild encounter rate."
+ },
+ "trace": {
+  "id": 36,
+  "name": "Trace",
+  "gen": 3,
+  "shortEffect": "Copies an opponent's ability upon entering battle."
+ },
+ "huge-power": {
+  "id": 37,
+  "name": "Huge Power",
+  "gen": 3,
+  "shortEffect": "Doubles Attack in battle."
+ },
+ "poison-point": {
+  "id": 38,
+  "name": "Poison Point",
+  "gen": 3,
+  "shortEffect": "Has a 30% chance of poisoning attacking Pokémon on contact."
+ },
+ "inner-focus": {
+  "id": 39,
+  "name": "Inner Focus",
+  "gen": 3,
+  "shortEffect": "Prevents flinching."
+ },
+ "magma-armor": {
+  "id": 40,
+  "name": "Magma Armor",
+  "gen": 3,
+  "shortEffect": "Prevents freezing."
+ },
+ "water-veil": {
+  "id": 41,
+  "name": "Water Veil",
+  "gen": 3,
+  "shortEffect": "Prevents burns."
+ },
+ "magnet-pull": {
+  "id": 42,
+  "name": "Magnet Pull",
+  "gen": 3,
+  "shortEffect": "Prevents Steel opponents from fleeing or switching out."
+ },
+ "soundproof": {
+  "id": 43,
+  "name": "Soundproof",
+  "gen": 3,
+  "shortEffect": "Protects against sound-based moves."
+ },
+ "rain-dish": {
+  "id": 44,
+  "name": "Rain Dish",
+  "gen": 3,
+  "shortEffect": "Heals for 1/16 max HP after each turn during rain."
+ },
+ "sand-stream": {
+  "id": 45,
+  "name": "Sand Stream",
+  "gen": 3,
+  "shortEffect": "Summons a sandstorm that lasts indefinitely upon entering battle."
+ },
+ "pressure": {
+  "id": 46,
+  "name": "Pressure",
+  "gen": 3,
+  "shortEffect": "Increases the PP cost of moves targetting the Pokémon by one."
+ },
+ "thick-fat": {
+  "id": 47,
+  "name": "Thick Fat",
+  "gen": 3,
+  "shortEffect": "Halves damage from Fire and Ice moves."
+ },
+ "early-bird": {
+  "id": 48,
+  "name": "Early Bird",
+  "gen": 3,
+  "shortEffect": "Makes sleep pass twice as quickly."
+ },
+ "flame-body": {
+  "id": 49,
+  "name": "Flame Body",
+  "gen": 3,
+  "shortEffect": "Has a 30% chance of burning attacking Pokémon on contact."
+ },
+ "run-away": {
+  "id": 50,
+  "name": "Run Away",
+  "gen": 3,
+  "shortEffect": "Ensures success fleeing from wild battles."
+ },
+ "keen-eye": {
+  "id": 51,
+  "name": "Keen Eye",
+  "gen": 3,
+  "shortEffect": "Prevents accuracy from being lowered."
+ },
+ "hyper-cutter": {
+  "id": 52,
+  "name": "Hyper Cutter",
+  "gen": 3,
+  "shortEffect": "Prevents Attack from being lowered by other Pokémon."
+ },
+ "pickup": {
+  "id": 53,
+  "name": "Pickup",
+  "gen": 3,
+  "shortEffect": "Picks up other Pokémon's used and Flung held items. May also pick up an item after battle."
+ },
+ "truant": {
+  "id": 54,
+  "name": "Truant",
+  "gen": 3,
+  "shortEffect": "Skips every second turn."
+ },
+ "hustle": {
+  "id": 55,
+  "name": "Hustle",
+  "gen": 3,
+  "shortEffect": "Strengthens physical moves to inflict 1.5× damage, but decreases their accuracy to 0.8×."
+ },
+ "cute-charm": {
+  "id": 56,
+  "name": "Cute Charm",
+  "gen": 3,
+  "shortEffect": "Has a 30% chance of infatuating attacking Pokémon on contact."
+ },
+ "plus": {
+  "id": 57,
+  "name": "Plus",
+  "gen": 3,
+  "shortEffect": "Increases Special Attack to 1.5× when a friendly Pokémon has Plus or Minus."
+ },
+ "minus": {
+  "id": 58,
+  "name": "Minus",
+  "gen": 3,
+  "shortEffect": "Increases Special Attack to 1.5× when a friendly Pokémon has Plus or Minus."
+ },
+ "forecast": {
+  "id": 59,
+  "name": "Forecast",
+  "gen": 3,
+  "shortEffect": "Changes Castform's type and form to match the weather."
+ },
+ "sticky-hold": {
+  "id": 60,
+  "name": "Sticky Hold",
+  "gen": 3,
+  "shortEffect": "Prevents a held item from being removed by other Pokémon."
+ },
+ "shed-skin": {
+  "id": 61,
+  "name": "Shed Skin",
+  "gen": 3,
+  "shortEffect": "Has a 33% chance of curing any major status ailment after each turn."
+ },
+ "guts": {
+  "id": 62,
+  "name": "Guts",
+  "gen": 3,
+  "shortEffect": "Increases Attack to 1.5× with a major status ailment."
+ },
+ "marvel-scale": {
+  "id": 63,
+  "name": "Marvel Scale",
+  "gen": 3,
+  "shortEffect": "Increases Defense to 1.5× with a major status ailment."
+ },
+ "liquid-ooze": {
+  "id": 64,
+  "name": "Liquid Ooze",
+  "gen": 3,
+  "shortEffect": "Damages opponents using leeching moves for as much as they would heal."
+ },
+ "overgrow": {
+  "id": 65,
+  "name": "Overgrow",
+  "gen": 3,
+  "shortEffect": "Strengthens Grass moves to inflict 1.5× damage at 1/3 max HP or less."
+ },
+ "blaze": {
+  "id": 66,
+  "name": "Blaze",
+  "gen": 3,
+  "shortEffect": "Strengthens Fire moves to inflict 1.5× damage at 1/3 max HP or less."
+ },
+ "torrent": {
+  "id": 67,
+  "name": "Torrent",
+  "gen": 3,
+  "shortEffect": "Strengthens Water moves to inflict 1.5× damage at 1/3 max HP or less."
+ },
+ "swarm": {
+  "id": 68,
+  "name": "Swarm",
+  "gen": 3,
+  "shortEffect": "Strengthens Bug moves to inflict 1.5× damage at 1/3 max HP or less."
+ },
+ "rock-head": {
+  "id": 69,
+  "name": "Rock Head",
+  "gen": 3,
+  "shortEffect": "Protects against recoil damage."
+ },
+ "drought": {
+  "id": 70,
+  "name": "Drought",
+  "gen": 3,
+  "shortEffect": "Summons strong sunlight that lasts indefinitely upon entering battle."
+ },
+ "arena-trap": {
+  "id": 71,
+  "name": "Arena Trap",
+  "gen": 3,
+  "shortEffect": "Prevents opponents from fleeing or switching out. Eluded by Flying-types and Pokémon in the air."
+ },
+ "vital-spirit": {
+  "id": 72,
+  "name": "Vital Spirit",
+  "gen": 3,
+  "shortEffect": "Prevents sleep."
+ },
+ "white-smoke": {
+  "id": 73,
+  "name": "White Smoke",
+  "gen": 3,
+  "shortEffect": "Prevents stats from being lowered by other Pokémon."
+ },
+ "pure-power": {
+  "id": 74,
+  "name": "Pure Power",
+  "gen": 3,
+  "shortEffect": "Doubles Attack in battle."
+ },
+ "shell-armor": {
+  "id": 75,
+  "name": "Shell Armor",
+  "gen": 3,
+  "shortEffect": "Protects against critical hits."
+ },
+ "air-lock": {
+  "id": 76,
+  "name": "Air Lock",
+  "gen": 3,
+  "shortEffect": "Negates all effects of weather, but does not prevent the weather itself."
+ },
+ "tangled-feet": {
+  "id": 77,
+  "name": "Tangled Feet",
+  "gen": 4,
+  "shortEffect": "Doubles evasion when confused."
+ },
+ "motor-drive": {
+  "id": 78,
+  "name": "Motor Drive",
+  "gen": 4,
+  "shortEffect": "Absorbs Electric moves, raising Speed one stage."
+ },
+ "rivalry": {
+  "id": 79,
+  "name": "Rivalry",
+  "gen": 4,
+  "shortEffect": "Increases damage inflicted to 1.25× against Pokémon of the same gender, but decreases damage to 0.75× against the opposite gender."
+ },
+ "steadfast": {
+  "id": 80,
+  "name": "Steadfast",
+  "gen": 4,
+  "shortEffect": "Raises Speed one stage upon flinching."
+ },
+ "snow-cloak": {
+  "id": 81,
+  "name": "Snow Cloak",
+  "gen": 4,
+  "shortEffect": "Increases evasion to 1.25× during hail. Protects against hail damage."
+ },
+ "gluttony": {
+  "id": 82,
+  "name": "Gluttony",
+  "gen": 4,
+  "shortEffect": "Makes the Pokémon eat any held Berry triggered by low HP below 1/2 its max HP."
+ },
+ "anger-point": {
+  "id": 83,
+  "name": "Anger Point",
+  "gen": 4,
+  "shortEffect": "Raises Attack to the maximum of six stages upon receiving a critical hit."
+ },
+ "unburden": {
+  "id": 84,
+  "name": "Unburden",
+  "gen": 4,
+  "shortEffect": "Doubles Speed upon using or losing a held item."
+ },
+ "heatproof": {
+  "id": 85,
+  "name": "Heatproof",
+  "gen": 4,
+  "shortEffect": "Halves damage from Fire moves and burns."
+ },
+ "simple": {
+  "id": 86,
+  "name": "Simple",
+  "gen": 4,
+  "shortEffect": "Doubles the Pokémon's stat modifiers. These doubled modifiers are still capped at -6 or 6 stages."
+ },
+ "dry-skin": {
+  "id": 87,
+  "name": "Dry Skin",
+  "gen": 4,
+  "shortEffect": "Causes 1/8 max HP in damage each turn during strong sunlight, but heals for 1/8 max HP during rain. Increases damage from Fire moves to 1.25×, but absorbs Water moves, healing for 1/4 max HP."
+ },
+ "download": {
+  "id": 88,
+  "name": "Download",
+  "gen": 4,
+  "shortEffect": "Raises the attack stat corresponding to the opponents' weaker defense one stage upon entering battle."
+ },
+ "iron-fist": {
+  "id": 89,
+  "name": "Iron Fist",
+  "gen": 4,
+  "shortEffect": "Strengthens punch-based moves to 1.2× their power."
+ },
+ "poison-heal": {
+  "id": 90,
+  "name": "Poison Heal",
+  "gen": 4,
+  "shortEffect": "Heals for 1/8 max HP after each turn when poisoned in place of damage."
+ },
+ "adaptability": {
+  "id": 91,
+  "name": "Adaptability",
+  "gen": 4,
+  "shortEffect": "Increases the same-type attack bonus from 1.5× to 2×."
+ },
+ "skill-link": {
+  "id": 92,
+  "name": "Skill Link",
+  "gen": 4,
+  "shortEffect": "Extends two-to-five-hit moves and Triple Kick to their full length every time."
+ },
+ "hydration": {
+  "id": 93,
+  "name": "Hydration",
+  "gen": 4,
+  "shortEffect": "Cures any major status ailment after each turn during rain."
+ },
+ "solar-power": {
+  "id": 94,
+  "name": "Solar Power",
+  "gen": 4,
+  "shortEffect": "Increases Special Attack to 1.5× but costs 1/8 max HP after each turn during strong sunlight."
+ },
+ "quick-feet": {
+  "id": 95,
+  "name": "Quick Feet",
+  "gen": 4,
+  "shortEffect": "Increases Speed to 1.5× with a major status ailment."
+ },
+ "normalize": {
+  "id": 96,
+  "name": "Normalize",
+  "gen": 4,
+  "shortEffect": "Makes the Pokémon's moves all act Normal-type."
+ },
+ "sniper": {
+  "id": 97,
+  "name": "Sniper",
+  "gen": 4,
+  "shortEffect": "Strengthens critical hits to inflict 3× damage rather than 2×."
+ },
+ "magic-guard": {
+  "id": 98,
+  "name": "Magic Guard",
+  "gen": 4,
+  "shortEffect": "Protects against damage not directly caused by a move."
+ },
+ "no-guard": {
+  "id": 99,
+  "name": "No Guard",
+  "gen": 4,
+  "shortEffect": "Ensures all moves used by and against the Pokémon hit."
+ },
+ "stall": {
+  "id": 100,
+  "name": "Stall",
+  "gen": 4,
+  "shortEffect": "Makes the Pokémon move last within its move's priority bracket."
+ },
+ "technician": {
+  "id": 101,
+  "name": "Technician",
+  "gen": 4,
+  "shortEffect": "Strengthens moves of 60 base power or less to 1.5× their power."
+ },
+ "leaf-guard": {
+  "id": 102,
+  "name": "Leaf Guard",
+  "gen": 4,
+  "shortEffect": "Protects against major status ailments during strong sunlight."
+ },
+ "klutz": {
+  "id": 103,
+  "name": "Klutz",
+  "gen": 4,
+  "shortEffect": "Prevents the Pokémon from using its held item in battle."
+ },
+ "mold-breaker": {
+  "id": 104,
+  "name": "Mold Breaker",
+  "gen": 4,
+  "shortEffect": "Bypasses targets' abilities if they could hinder or prevent a move."
+ },
+ "super-luck": {
+  "id": 105,
+  "name": "Super Luck",
+  "gen": 4,
+  "shortEffect": "Raises moves' critical hit rates one stage."
+ },
+ "aftermath": {
+  "id": 106,
+  "name": "Aftermath",
+  "gen": 4,
+  "shortEffect": "Damages the attacker for 1/4 its max HP when knocked out by a contact move."
+ },
+ "anticipation": {
+  "id": 107,
+  "name": "Anticipation",
+  "gen": 4,
+  "shortEffect": "Notifies all trainers upon entering battle if an opponent has a super-effective move, Self-Destruct, Explosion, or a one-hit KO move."
+ },
+ "forewarn": {
+  "id": 108,
+  "name": "Forewarn",
+  "gen": 4,
+  "shortEffect": "Reveals the opponents' strongest move upon entering battle."
+ },
+ "unaware": {
+  "id": 109,
+  "name": "Unaware",
+  "gen": 4,
+  "shortEffect": "Ignores other Pokémon's stat modifiers for damage and accuracy calculation."
+ },
+ "tinted-lens": {
+  "id": 110,
+  "name": "Tinted Lens",
+  "gen": 4,
+  "shortEffect": "Doubles damage inflicted with not-very-effective moves."
+ },
+ "filter": {
+  "id": 111,
+  "name": "Filter",
+  "gen": 4,
+  "shortEffect": "Decreases damage taken from super-effective moves by 1/4."
+ },
+ "slow-start": {
+  "id": 112,
+  "name": "Slow Start",
+  "gen": 4,
+  "shortEffect": "Halves Attack and Speed for five turns upon entering battle."
+ },
+ "scrappy": {
+  "id": 113,
+  "name": "Scrappy",
+  "gen": 4,
+  "shortEffect": "Lets the Pokémon's Normal and Fighting moves hit Ghost Pokémon."
+ },
+ "storm-drain": {
+  "id": 114,
+  "name": "Storm Drain",
+  "gen": 4,
+  "shortEffect": "Redirects single-target Water moves to this Pokémon where possible. Absorbs Water moves, raising Special Attack one stage."
+ },
+ "ice-body": {
+  "id": 115,
+  "name": "Ice Body",
+  "gen": 4,
+  "shortEffect": "Heals for 1/16 max HP after each turn during hail. Protects against hail damage."
+ },
+ "solid-rock": {
+  "id": 116,
+  "name": "Solid Rock",
+  "gen": 4,
+  "shortEffect": "Decreases damage taken from super-effective moves by 1/4."
+ },
+ "snow-warning": {
+  "id": 117,
+  "name": "Snow Warning",
+  "gen": 4,
+  "shortEffect": "Summons hail that lasts indefinitely upon entering battle."
+ },
+ "honey-gather": {
+  "id": 118,
+  "name": "Honey Gather",
+  "gen": 4,
+  "shortEffect": "The Pokémon may pick up Honey after battle."
+ },
+ "frisk": {
+  "id": 119,
+  "name": "Frisk",
+  "gen": 4,
+  "shortEffect": "Reveals an opponent's held item upon entering battle."
+ },
+ "reckless": {
+  "id": 120,
+  "name": "Reckless",
+  "gen": 4,
+  "shortEffect": "Strengthens recoil moves to 1.2× their power."
+ },
+ "multitype": {
+  "id": 121,
+  "name": "Multitype",
+  "gen": 4,
+  "shortEffect": "Changes Arceus's type and form to match its held Plate."
+ },
+ "flower-gift": {
+  "id": 122,
+  "name": "Flower Gift",
+  "gen": 4,
+  "shortEffect": "Increases friendly Pokémon's Attack and Special Defense to 1.5× during strong sunlight."
+ },
+ "bad-dreams": {
+  "id": 123,
+  "name": "Bad Dreams",
+  "gen": 4,
+  "shortEffect": "Damages sleeping opponents for 1/8 their max HP after each turn."
+ },
+ "pickpocket": {
+  "id": 124,
+  "name": "Pickpocket",
+  "gen": 5,
+  "shortEffect": "Steals attacking Pokémon's held items on contact."
+ },
+ "sheer-force": {
+  "id": 125,
+  "name": "Sheer Force",
+  "gen": 5,
+  "shortEffect": "Strengthens moves with extra effects to 1.3× their power, but prevents their extra effects."
+ },
+ "contrary": {
+  "id": 126,
+  "name": "Contrary",
+  "gen": 5,
+  "shortEffect": "Inverts stat changes."
+ },
+ "unnerve": {
+  "id": 127,
+  "name": "Unnerve",
+  "gen": 5,
+  "shortEffect": "Prevents opposing Pokémon from eating held Berries."
+ },
+ "defiant": {
+  "id": 128,
+  "name": "Defiant",
+  "gen": 5,
+  "shortEffect": "Raises Attack two stages upon having any stat lowered."
+ },
+ "cursed-body": {
+  "id": 130,
+  "name": "Cursed Body",
+  "gen": 5,
+  "shortEffect": "Has a 30% chance of Disabling any move that hits the Pokémon."
+ },
+ "healer": {
+  "id": 131,
+  "name": "Healer",
+  "gen": 5,
+  "shortEffect": "Has a 30% chance of curing each adjacent ally of any major status ailment after each turn."
+ },
+ "friend-guard": {
+  "id": 132,
+  "name": "Friend Guard",
+  "gen": 5,
+  "shortEffect": "Decreases all direct damage taken by friendly Pokémon to 0.75×."
+ },
+ "weak-armor": {
+  "id": 133,
+  "name": "Weak Armor",
+  "gen": 5,
+  "shortEffect": "Raises Speed and lowers Defense by one stage each upon being hit by a physical move."
+ },
+ "heavy-metal": {
+  "id": 134,
+  "name": "Heavy Metal",
+  "gen": 5,
+  "shortEffect": "Doubles the Pokémon's weight."
+ },
+ "light-metal": {
+  "id": 135,
+  "name": "Light Metal",
+  "gen": 5,
+  "shortEffect": "Halves the Pokémon's weight."
+ },
+ "multiscale": {
+  "id": 136,
+  "name": "Multiscale",
+  "gen": 5,
+  "shortEffect": "Halves damage taken from full HP."
+ },
+ "toxic-boost": {
+  "id": 137,
+  "name": "Toxic Boost",
+  "gen": 5,
+  "shortEffect": "Increases Attack to 1.5× when poisoned."
+ },
+ "flare-boost": {
+  "id": 138,
+  "name": "Flare Boost",
+  "gen": 5,
+  "shortEffect": "Increases Special Attack to 1.5× when burned."
+ },
+ "harvest": {
+  "id": 139,
+  "name": "Harvest",
+  "gen": 5,
+  "shortEffect": "Has a 50% chance of restoring a used Berry after each turn if the Pokémon has held no items in the meantime."
+ },
+ "telepathy": {
+  "id": 140,
+  "name": "Telepathy",
+  "gen": 5,
+  "shortEffect": "Protects against friendly Pokémon's damaging moves."
+ },
+ "moody": {
+  "id": 141,
+  "name": "Moody",
+  "gen": 5,
+  "shortEffect": "Raises a random stat two stages and lowers another one stage after each turn."
+ },
+ "overcoat": {
+  "id": 142,
+  "name": "Overcoat",
+  "gen": 5,
+  "shortEffect": "Protects against damage from weather."
+ },
+ "poison-touch": {
+  "id": 143,
+  "name": "Poison Touch",
+  "gen": 5,
+  "shortEffect": "Has a 30% chance of poisoning target Pokémon upon contact."
+ },
+ "regenerator": {
+  "id": 144,
+  "name": "Regenerator",
+  "gen": 5,
+  "shortEffect": "Heals for 1/3 max HP upon switching out."
+ },
+ "big-pecks": {
+  "id": 145,
+  "name": "Big Pecks",
+  "gen": 5,
+  "shortEffect": "Protects against Defense drops."
+ },
+ "sand-rush": {
+  "id": 146,
+  "name": "Sand Rush",
+  "gen": 5,
+  "shortEffect": "Doubles Speed during a sandstorm. Protects against sandstorm damage."
+ },
+ "wonder-skin": {
+  "id": 147,
+  "name": "Wonder Skin",
+  "gen": 5,
+  "shortEffect": "Lowers incoming non-damaging moves' base accuracy to exactly 50%."
+ },
+ "analytic": {
+  "id": 148,
+  "name": "Analytic",
+  "gen": 5,
+  "shortEffect": "Strengthens moves to 1.3× their power when moving last."
+ },
+ "imposter": {
+  "id": 150,
+  "name": "Imposter",
+  "gen": 5,
+  "shortEffect": "Transforms upon entering battle."
+ },
+ "infiltrator": {
+  "id": 151,
+  "name": "Infiltrator",
+  "gen": 5,
+  "shortEffect": "Bypasses Light Screen, Reflect, and Safeguard."
+ },
+ "moxie": {
+  "id": 153,
+  "name": "Moxie",
+  "gen": 5,
+  "shortEffect": "Raises Attack one stage upon KOing a Pokémon."
+ },
+ "justified": {
+  "id": 154,
+  "name": "Justified",
+  "gen": 5,
+  "shortEffect": "Raises Attack one stage upon taking damage from a Dark move."
+ },
+ "rattled": {
+  "id": 155,
+  "name": "Rattled",
+  "gen": 5,
+  "shortEffect": "Raises Speed one stage upon being hit by a Dark, Ghost, or Bug move."
+ },
+ "magic-bounce": {
+  "id": 156,
+  "name": "Magic Bounce",
+  "gen": 5,
+  "shortEffect": "Reflects most non-damaging moves back at their user."
+ },
+ "sap-sipper": {
+  "id": 157,
+  "name": "Sap Sipper",
+  "gen": 5,
+  "shortEffect": "Absorbs Grass moves, raising Attack one stage."
+ },
+ "prankster": {
+  "id": 158,
+  "name": "Prankster",
+  "gen": 5,
+  "shortEffect": "Raises non-damaging moves' priority by one stage."
+ },
+ "sand-force": {
+  "id": 159,
+  "name": "Sand Force",
+  "gen": 5,
+  "shortEffect": "Strengthens Rock, Ground, and Steel moves to 1.3× their power during a sandstorm. Protects against sandstorm damage."
+ },
+ "protean": {
+  "id": 168,
+  "name": "Protean",
+  "gen": 6,
+  "shortEffect": "Changes the bearer's type to match each move it uses."
+ },
+ "competitive": {
+  "id": 172,
+  "name": "Competitive",
+  "gen": 6,
+  "shortEffect": "Raises Special Attack by two stages upon having any stat lowered."
+ }
+}

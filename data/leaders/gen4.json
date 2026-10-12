@@ -1,0 +1,133 @@
+{
+ "gen": 4,
+ "region": "Sinnoh",
+ "basedOn": "Platinum",
+ "opponents": [
+  {
+   "order": 1,
+   "id": "roark",
+   "name": "Roark",
+   "title": "Gym Leader",
+   "theme": "rock",
+   "sets": []
+  },
+  {
+   "order": 2,
+   "id": "gardenia",
+   "name": "Gardenia",
+   "title": "Gym Leader",
+   "theme": "grass",
+   "sets": []
+  },
+  {
+   "order": 3,
+   "id": "fantina",
+   "name": "Fantina",
+   "title": "Gym Leader",
+   "theme": "ghost",
+   "sets": []
+  },
+  {
+   "order": 4,
+   "id": "maylene",
+   "name": "Maylene",
+   "title": "Gym Leader",
+   "theme": "fighting",
+   "sets": []
+  },
+  {
+   "order": 5,
+   "id": "crasher-wake",
+   "name": "Crasher Wake",
+   "title": "Gym Leader",
+   "theme": "water",
+   "sets": []
+  },
+  {
+   "order": 6,
+   "id": "byron",
+   "name": "Byron",
+   "title": "Gym Leader",
+   "theme": "steel",
+   "sets": []
+  },
+  {
+   "order": 7,
+   "id": "candice",
+   "name": "Candice",
+   "title": "Gym Leader",
+   "theme": "ice",
+   "sets": []
+  },
+  {
+   "order": 8,
+   "id": "volkner",
+   "name": "Volkner",
+   "title": "Gym Leader",
+   "theme": "electric",
+   "sets": []
+  },
+  {
+   "order": 9,
+   "id": "aaron",
+   "name": "Aaron",
+   "title": "Elite Four",
+   "theme": "bug",
+   "sets": []
+  },
+  {
+   "order": 10,
+   "id": "bertha",
+   "name": "Bertha",
+   "title": "Elite Four",
+   "theme": "ground",
+   "sets": []
+  },
+  {
+   "order": 11,
+   "id": "flint",
+   "name": "Flint",
+   "title": "Elite Four",
+   "theme": "fire",
+   "sets": []
+  },
+  {
+   "order": 12,
+   "id": "lucian",
+   "name": "Lucian",
+   "title": "Elite Four",
+   "theme": "psychic",
+   "sets": []
+  },
+  {
+   "order": 13,
+   "id": "cynthia",
+   "name": "Cynthia",
+   "title": "Champion",
+   "theme": null,
+   "sets": []
+  },
+  {
+   "order": 14,
+   "id": "rival",
+   "name": "Rival",
+   "title": "Rival",
+   "theme": null,
+   "sets": [],
+   "options": [
+    {
+     "id": "dawn",
+     "name": "Dawn"
+    },
+    {
+     "id": "lucas",
+     "name": "Lucas"
+    },
+    {
+     "id": "barry",
+     "name": "Barry"
+    }
+   ]
+  }
+ ]
+}

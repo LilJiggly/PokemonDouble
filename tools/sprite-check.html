@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sprite check</title>
+  <link rel="stylesheet" href="../css/styles.css">
+  <style>
+    body { display: block; font-family: system-ui, sans-serif; color: #eee; }
+    .controls { margin-bottom: 12px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .cells { display: grid; grid-template-columns: repeat(auto-fill, 128px); gap: 6px; }
+    .cell { position: relative; width: 128px; height: 150px; background: #c8e8f8; overflow: hidden; border-radius: 6px; }
+    .cell .plat { position: absolute; left: 4px; right: 4px; top: 104px; height: 22px; border-radius: 50%; background: #b8d080; }
+    .cell .feet { position: absolute; left: 0; right: 0; top: 114px; border-top: 1px dashed #c03028; }
+    .cell img { position: absolute; left: 24px; top: 34px; width: 80px; height: 80px; image-rendering: pixelated; }
+    .cell.back img { top: 54px; }
+    .cell.back .textbox-line { position: absolute; left: 0; right: 0; top: 120px; bottom: 0; background: rgba(255,255,255,0.85); }
+    .cell span { position: absolute; left: 4px; top: 2px; font-size: 11px; color: #303030; }
+  </style>
+</head>
+<body>
+  <div class="controls">
+    <label><input type="radio" name="side" value="front" checked> Front</label>
+    <label><input type="radio" name="side" value="back"> Back</label>
+    <label>From # <input id="from" type="number" value="1" min="1" max="493" style="width:60px"></label>
+    <button id="go">Show 60</button>
+  </div>
+  <div class="cells" id="cells"></div>
+  <script type="module">
+    import { loadData } from "../js/engine/data.js";
+    import { alignSprite, hovers } from "../js/ui/sprite-align.js";
+    const data = await loadData("../data");
+    const cells = document.getElementById("cells");
+    const draw = () => {
+      const side = document.querySelector("input[name=side]:checked").value;
+      const from = Number(document.getElementById("from").value);
+      const list = data.pokemon.slice(from - 1, from - 1 + 60);
+      cells.innerHTML = list.map((p) => `<div class="cell ${side}">
+        <div class="plat"></div><div class="feet"></div>
+        <img class="${side === "back" ? "player" : "foe"}" data-species="${p.key}" src="../${side === "back" ? p.sprites.back : p.sprites.front}" alt="">
+        ${side === "back" ? `<div class="textbox-line"></div>` : ""}
+        <span>${p.id} ${p.name}</span></div>`).join("");
+      for (const img of cells.querySelectorAll("img")) {
+        alignSprite(img, { hover: hovers(data.pokemonByKey[img.dataset.species]), back: side === "back" });
+      }
+    };
+    document.getElementById("go").onclick = draw;
+    draw();
+  </script>
+</body>
+</html>

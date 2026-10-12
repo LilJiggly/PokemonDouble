@@ -1,0 +1,3366 @@
+[
+ {
+  "from": "bulbasaur",
+  "to": "ivysaur",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "red-blue",
+    "is_default": true,
+    "min_level": 16
+   }
+  ]
+ },
+ {
+  "from": "ivysaur",
+  "to": "venusaur",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "red-blue",
+    "is_default": true,
+    "min_level": 32
+   }
+  ]
+ },
+ {
+  "from": "charmander",
+  "to": "charmeleon",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "red-blue",
+    "is_default": true,
+    "min_level": 16
+   }
+  ]
+ },
+ {
+  "from": "charmeleon",
+  "to": "charizard",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "red-blue",
+    "is_default": true,
+    "min_level": 36
+   }
+  ]
+ },
+ {
+  "from": "squirtle",
+  "to": "wartortle",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "red-blue",
+    "is_default": true,
+    "min_level": 16
+   }
+  ]
+ },
+ {
+  "from": "wartortle",
+  "to": "blastoise",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "red-blue",
+    "is_default": true,
+    "min_level": 36
+   }
+  ]
+ },
+ {
+  "from": "caterpie",
+  "to": "metapod",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "red-blue",
+    "is_default": true,
+    "min_level": 7
+   }
+  ]
+ },
+ {
+  "from": "metapod",
+  "to": "butterfree",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "red-blue",
+    "is_default": true,
+    "min_level": 10
+   }
+  ]
+ },
+ {
+  "from": "weedle",
+  "to": "kakuna",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "red-blue",
+    "is_default": true,
+    "min_level": 7
+   }
+  ]
+ },
+ {
+  "from": "kakuna",
+  "to": "beedrill",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "red-blue",
+    "is_default": true,
+    "min_level": 10
+   }
+  ]
+ },
+ {
+  "from": "pidgey",
+  "to": "pidgeotto",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "red-blue",
+    "is_default": true,
+    "min_level": 18
+   }
+  ]
+ },
+ {
+  "from": "pidgeotto",
+  "to": "pidgeot",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "red-blue",
+    "is_default": true,
+    "min_level": 36
+   }
+  ]
+ },
+ {
+  "from": "rattata",
+  "to": "raticate",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "red-blue",
+    "is_default": true,
+    "min_level": 20
+   },
+   {
+    "trigger": "level-up",
+    "version_group": "sun-moon",
+    "is_default": true,
+    "min_level": 20,
+    "time_of_day": "night",
+    "required_pokemon_form": "rattata-alola",
+    "evolved_pokemon_form": "raticate-alola"
+   }
+  ]
+ },
+ {
+  "from": "spearow",
+  "to": "fearow",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "red-blue",
+    "is_default": true,
+    "min_level": 20
+   }
+  ]
+ },
+ {
+  "from": "ekans",
+  "to": "arbok",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "red-blue",
+    "is_default": true,
+    "min_level": 22
+   }
+  ]
+ },
+ {
+  "from": "pichu",
+  "to": "pikachu",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "gold-silver",
+    "is_default": true,
+    "min_happiness": 220
+   }
+  ]
+ },
+ {
+  "from": "pikachu",
+  "to": "raichu",
+  "details": [
+   {
+    "trigger": "use-item",
+    "version_group": "red-blue",
+    "is_default": true,
+    "item": "thunder-stone",
+    "required_pokemon_form": "pikachu"
+   },
+   {
+    "trigger": "use-item",
+    "version_group": "sun-moon",
+    "is_default": true,
+    "item": "thunder-stone",
+    "region": "alola",
+    "required_pokemon_form": "pikachu",
+    "evolved_pokemon_form": "raichu-alola"
+   }
+  ]
+ },
+ {
+  "from": "sandshrew",
+  "to": "sandslash",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "red-blue",
+    "is_default": true,
+    "min_level": 22
+   },
+   {
+    "trigger": "use-item",
+    "version_group": "sun-moon",
+    "is_default": true,
+    "item": "ice-stone",
+    "required_pokemon_form": "sandshrew-alola",
+    "evolved_pokemon_form": "sandslash-alola"
+   }
+  ]
+ },
+ {
+  "from": "nidoran-f",
+  "to": "nidorina",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "red-blue",
+    "is_default": true,
+    "min_level": 16
+   }
+  ]
+ },
+ {
+  "from": "nidorina",
+  "to": "nidoqueen",
+  "details": [
+   {
+    "trigger": "use-item",
+    "version_group": "red-blue",
+    "is_default": true,
+    "item": "moon-stone"
+   }
+  ]
+ },
+ {
+  "from": "nidoran-m",
+  "to": "nidorino",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "red-blue",
+    "is_default": true,
+    "min_level": 16
+   }
+  ]
+ },
+ {
+  "from": "nidorino",
+  "to": "nidoking",
+  "details": [
+   {
+    "trigger": "use-item",
+    "version_group": "red-blue",
+    "is_default": true,
+    "item": "moon-stone"
+   }
+  ]
+ },
+ {
+  "from": "cleffa",
+  "to": "clefairy",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "gold-silver",
+    "is_default": true,
+    "min_happiness": 160
+   }
+  ]
+ },
+ {
+  "from": "clefairy",
+  "to": "clefable",
+  "details": [
+   {
+    "trigger": "use-item",
+    "version_group": "red-blue",
+    "is_default": true,
+    "item": "moon-stone"
+   }
+  ]
+ },
+ {
+  "from": "vulpix",
+  "to": "ninetales",
+  "details": [
+   {
+    "trigger": "use-item",
+    "version_group": "red-blue",
+    "is_default": true,
+    "item": "fire-stone"
+   },
+   {
+    "trigger": "use-item",
+    "version_group": "sun-moon",
+    "is_default": true,
+    "item": "ice-stone",
+    "required_pokemon_form": "vulpix-alola",
+    "evolved_pokemon_form": "ninetales-alola"
+   }
+  ]
+ },
+ {
+  "from": "igglybuff",
+  "to": "jigglypuff",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "gold-silver",
+    "is_default": true,
+    "min_happiness": 160
+   }
+  ]
+ },
+ {
+  "from": "jigglypuff",
+  "to": "wigglytuff",
+  "details": [
+   {
+    "trigger": "use-item",
+    "version_group": "red-blue",
+    "is_default": true,
+    "item": "moon-stone"
+   }
+  ]
+ },
+ {
+  "from": "zubat",
+  "to": "golbat",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "red-blue",
+    "is_default": true,
+    "min_level": 22
+   }
+  ]
+ },
+ {
+  "from": "golbat",
+  "to": "crobat",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "gold-silver",
+    "is_default": true,
+    "min_happiness": 160
+   }
+  ]
+ },
+ {
+  "from": "oddish",
+  "to": "gloom",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "red-blue",
+    "is_default": true,
+    "min_level": 21
+   }
+  ]
+ },
+ {
+  "from": "gloom",
+  "to": "vileplume",
+  "details": [
+   {
+    "trigger": "use-item",
+    "version_group": "red-blue",
+    "is_default": true,
+    "item": "leaf-stone"
+   }
+  ]
+ },
+ {
+  "from": "gloom",
+  "to": "bellossom",
+  "details": [
+   {
+    "trigger": "use-item",
+    "version_group": "gold-silver",
+    "is_default": true,
+    "item": "sun-stone"
+   }
+  ]
+ },
+ {
+  "from": "paras",
+  "to": "parasect",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "red-blue",
+    "is_default": true,
+    "min_level": 24
+   }
+  ]
+ },
+ {
+  "from": "venonat",
+  "to": "venomoth",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "red-blue",
+    "is_default": true,
+    "min_level": 31
+   }
+  ]
+ },
+ {
+  "from": "diglett",
+  "to": "dugtrio",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "red-blue",
+    "is_default": true,
+    "min_level": 26
+   },
+   {
+    "trigger": "level-up",
+    "version_group": "sun-moon",
+    "is_default": true,
+    "min_level": 26,
+    "required_pokemon_form": "diglett-alola",
+    "evolved_pokemon_form": "dugtrio-alola"
+   }
+  ]
+ },
+ {
+  "from": "meowth",
+  "to": "persian",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "red-blue",
+    "is_default": true,
+    "min_level": 28
+   },
+   {
+    "trigger": "level-up",
+    "version_group": "sun-moon",
+    "is_default": true,
+    "min_happiness": 160,
+    "required_pokemon_form": "meowth-alola",
+    "evolved_pokemon_form": "persian-alola"
+   }
+  ]
+ },
+ {
+  "from": "psyduck",
+  "to": "golduck",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "red-blue",
+    "is_default": true,
+    "min_level": 33
+   }
+  ]
+ },
+ {
+  "from": "mankey",
+  "to": "primeape",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "red-blue",
+    "is_default": true,
+    "min_level": 28
+   }
+  ]
+ },
+ {
+  "from": "growlithe",
+  "to": "arcanine",
+  "details": [
+   {
+    "trigger": "use-item",
+    "version_group": "red-blue",
+    "is_default": true,
+    "item": "fire-stone"
+   },
+   {
+    "trigger": "use-item",
+    "version_group": "legends-arceus",
+    "is_default": true,
+    "item": "fire-stone",
+    "required_pokemon_form": "growlithe-hisui",
+    "evolved_pokemon_form": "arcanine-hisui"
+   }
+  ]
+ },
+ {
+  "from": "poliwag",
+  "to": "poliwhirl",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "red-blue",
+    "is_default": true,
+    "min_level": 25
+   }
+  ]
+ },
+ {
+  "from": "poliwhirl",
+  "to": "poliwrath",
+  "details": [
+   {
+    "trigger": "use-item",
+    "version_group": "red-blue",
+    "is_default": true,
+    "item": "water-stone"
+   }
+  ]
+ },
+ {
+  "from": "poliwhirl",
+  "to": "politoed",
+  "details": [
+   {
+    "trigger": "trade",
+    "version_group": "gold-silver",
+    "is_default": true,
+    "held_item": "kings-rock"
+   }
+  ]
+ },
+ {
+  "from": "abra",
+  "to": "kadabra",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "red-blue",
+    "is_default": true,
+    "min_level": 16
+   }
+  ]
+ },
+ {
+  "from": "kadabra",
+  "to": "alakazam",
+  "details": [
+   {
+    "trigger": "trade",
+    "version_group": "red-blue",
+    "is_default": true
+   }
+  ]
+ },
+ {
+  "from": "machop",
+  "to": "machoke",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "red-blue",
+    "is_default": true,
+    "min_level": 28
+   }
+  ]
+ },
+ {
+  "from": "machoke",
+  "to": "machamp",
+  "details": [
+   {
+    "trigger": "trade",
+    "version_group": "red-blue",
+    "is_default": true
+   }
+  ]
+ },
+ {
+  "from": "bellsprout",
+  "to": "weepinbell",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "red-blue",
+    "is_default": true,
+    "min_level": 21
+   }
+  ]
+ },
+ {
+  "from": "weepinbell",
+  "to": "victreebel",
+  "details": [
+   {
+    "trigger": "use-item",
+    "version_group": "red-blue",
+    "is_default": true,
+    "item": "leaf-stone"
+   }
+  ]
+ },
+ {
+  "from": "tentacool",
+  "to": "tentacruel",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "red-blue",
+    "is_default": true,
+    "min_level": 30
+   }
+  ]
+ },
+ {
+  "from": "geodude",
+  "to": "graveler",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "red-blue",
+    "is_default": true,
+    "min_level": 25
+   },
+   {
+    "trigger": "level-up",
+    "version_group": "sun-moon",
+    "is_default": true,
+    "min_level": 25,
+    "required_pokemon_form": "geodude-alola",
+    "evolved_pokemon_form": "graveler-alola"
+   }
+  ]
+ },
+ {
+  "from": "graveler",
+  "to": "golem",
+  "details": [
+   {
+    "trigger": "trade",
+    "version_group": "red-blue",
+    "is_default": true
+   },
+   {
+    "trigger": "trade",
+    "version_group": "sun-moon",
+    "is_default": true,
+    "required_pokemon_form": "graveler-alola",
+    "evolved_pokemon_form": "golem-alola"
+   }
+  ]
+ },
+ {
+  "from": "ponyta",
+  "to": "rapidash",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "red-blue",
+    "is_default": true,
+    "min_level": 40
+   },
+   {
+    "trigger": "level-up",
+    "version_group": "sword-shield",
+    "is_default": true,
+    "min_level": 40,
+    "required_pokemon_form": "ponyta-galar",
+    "evolved_pokemon_form": "rapidash-galar"
+   }
+  ]
+ },
+ {
+  "from": "slowpoke",
+  "to": "slowbro",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "red-blue",
+    "is_default": true,
+    "min_level": 37
+   },
+   {
+    "trigger": "use-item",
+    "version_group": "the-isle-of-armor",
+    "is_default": true,
+    "item": "galarica-cuff",
+    "required_pokemon_form": "slowpoke-galar",
+    "evolved_pokemon_form": "slowbro-galar"
+   }
+  ]
+ },
+ {
+  "from": "slowpoke",
+  "to": "slowking",
+  "details": [
+   {
+    "trigger": "trade",
+    "version_group": "gold-silver",
+    "is_default": true,
+    "held_item": "kings-rock"
+   },
+   {
+    "trigger": "use-item",
+    "version_group": "the-isle-of-armor",
+    "is_default": true,
+    "item": "galarica-wreath",
+    "required_pokemon_form": "slowpoke-galar",
+    "evolved_pokemon_form": "slowking-galar"
+   }
+  ]
+ },
+ {
+  "from": "magnemite",
+  "to": "magneton",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "red-blue",
+    "is_default": true,
+    "min_level": 30
+   }
+  ]
+ },
+ {
+  "from": "magneton",
+  "to": "magnezone",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "diamond-pearl",
+    "location": "mt-coronet"
+   },
+   {
+    "trigger": "level-up",
+    "version_group": "black-white",
+    "location": "chargestone-cave"
+   },
+   {
+    "trigger": "level-up",
+    "version_group": "x-y",
+    "location": "kalos-route-13"
+   },
+   {
+    "trigger": "level-up",
+    "version_group": "sun-moon",
+    "location": "blush-mountain"
+   },
+   {
+    "trigger": "level-up",
+    "version_group": "sun-moon",
+    "location": "vast-poni-canyon"
+   },
+   {
+    "trigger": "use-item",
+    "version_group": "sword-shield",
+    "is_default": true,
+    "item": "thunder-stone"
+   },
+   {
+    "trigger": "level-up",
+    "version_group": "omega-ruby-alpha-sapphire",
+    "location": "new-mauville"
+   }
+  ]
+ },
+ {
+  "from": "doduo",
+  "to": "dodrio",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "red-blue",
+    "is_default": true,
+    "min_level": 31
+   }
+  ]
+ },
+ {
+  "from": "seel",
+  "to": "dewgong",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "red-blue",
+    "is_default": true,
+    "min_level": 34
+   }
+  ]
+ },
+ {
+  "from": "grimer",
+  "to": "muk",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "red-blue",
+    "is_default": true,
+    "min_level": 38
+   },
+   {
+    "trigger": "level-up",
+    "version_group": "sun-moon",
+    "is_default": true,
+    "min_level": 38,
+    "required_pokemon_form": "grimer-alola",
+    "evolved_pokemon_form": "muk-alola"
+   }
+  ]
+ },
+ {
+  "from": "shellder",
+  "to": "cloyster",
+  "details": [
+   {
+    "trigger": "use-item",
+    "version_group": "red-blue",
+    "is_default": true,
+    "item": "water-stone"
+   }
+  ]
+ },
+ {
+  "from": "gastly",
+  "to": "haunter",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "red-blue",
+    "is_default": true,
+    "min_level": 25
+   }
+  ]
+ },
+ {
+  "from": "haunter",
+  "to": "gengar",
+  "details": [
+   {
+    "trigger": "trade",
+    "version_group": "red-blue",
+    "is_default": true
+   }
+  ]
+ },
+ {
+  "from": "onix",
+  "to": "steelix",
+  "details": [
+   {
+    "trigger": "trade",
+    "version_group": "gold-silver",
+    "is_default": true,
+    "held_item": "metal-coat"
+   }
+  ]
+ },
+ {
+  "from": "drowzee",
+  "to": "hypno",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "red-blue",
+    "is_default": true,
+    "min_level": 26
+   }
+  ]
+ },
+ {
+  "from": "krabby",
+  "to": "kingler",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "red-blue",
+    "is_default": true,
+    "min_level": 28
+   }
+  ]
+ },
+ {
+  "from": "voltorb",
+  "to": "electrode",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "red-blue",
+    "is_default": true,
+    "min_level": 30
+   },
+   {
+    "trigger": "use-item",
+    "version_group": "legends-arceus",
+    "is_default": true,
+    "item": "leaf-stone",
+    "required_pokemon_form": "voltorb-hisui",
+    "evolved_pokemon_form": "electrode-hisui"
+   }
+  ]
+ },
+ {
+  "from": "exeggcute",
+  "to": "exeggutor",
+  "details": [
+   {
+    "trigger": "use-item",
+    "version_group": "red-blue",
+    "is_default": true,
+    "item": "leaf-stone"
+   },
+   {
+    "trigger": "use-item",
+    "version_group": "sun-moon",
+    "is_default": true,
+    "item": "leaf-stone",
+    "region": "alola",
+    "evolved_pokemon_form": "exeggutor-alola"
+   }
+  ]
+ },
+ {
+  "from": "cubone",
+  "to": "marowak",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "red-blue",
+    "is_default": true,
+    "min_level": 28
+   },
+   {
+    "trigger": "level-up",
+    "version_group": "sun-moon",
+    "is_default": true,
+    "min_level": 28,
+    "time_of_day": "night",
+    "region": "alola",
+    "evolved_pokemon_form": "marowak-alola"
+   }
+  ]
+ },
+ {
+  "from": "tyrogue",
+  "to": "hitmonlee",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "gold-silver",
+    "is_default": true,
+    "min_level": 20,
+    "relative_physical_stats": 1
+   }
+  ]
+ },
+ {
+  "from": "tyrogue",
+  "to": "hitmonchan",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "gold-silver",
+    "is_default": true,
+    "min_level": 20,
+    "relative_physical_stats": -1
+   }
+  ]
+ },
+ {
+  "from": "tyrogue",
+  "to": "hitmontop",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "gold-silver",
+    "is_default": true,
+    "min_level": 20,
+    "relative_physical_stats": 0
+   }
+  ]
+ },
+ {
+  "from": "lickitung",
+  "to": "lickilicky",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "known_move": "rollout"
+   }
+  ]
+ },
+ {
+  "from": "koffing",
+  "to": "weezing",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "red-blue",
+    "is_default": true,
+    "min_level": 35
+   },
+   {
+    "trigger": "level-up",
+    "version_group": "sword-shield",
+    "is_default": true,
+    "min_level": 35,
+    "region": "galar",
+    "evolved_pokemon_form": "weezing-galar"
+   }
+  ]
+ },
+ {
+  "from": "rhyhorn",
+  "to": "rhydon",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "red-blue",
+    "is_default": true,
+    "min_level": 42
+   }
+  ]
+ },
+ {
+  "from": "rhydon",
+  "to": "rhyperior",
+  "details": [
+   {
+    "trigger": "trade",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "held_item": "protector"
+   }
+  ]
+ },
+ {
+  "from": "happiny",
+  "to": "chansey",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "held_item": "oval-stone",
+    "time_of_day": "day"
+   }
+  ]
+ },
+ {
+  "from": "chansey",
+  "to": "blissey",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "gold-silver",
+    "is_default": true,
+    "min_happiness": 160
+   }
+  ]
+ },
+ {
+  "from": "tangela",
+  "to": "tangrowth",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "known_move": "ancient-power"
+   }
+  ]
+ },
+ {
+  "from": "horsea",
+  "to": "seadra",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "red-blue",
+    "is_default": true,
+    "min_level": 32
+   }
+  ]
+ },
+ {
+  "from": "seadra",
+  "to": "kingdra",
+  "details": [
+   {
+    "trigger": "trade",
+    "version_group": "gold-silver",
+    "is_default": true,
+    "held_item": "dragon-scale"
+   }
+  ]
+ },
+ {
+  "from": "goldeen",
+  "to": "seaking",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "red-blue",
+    "is_default": true,
+    "min_level": 33
+   }
+  ]
+ },
+ {
+  "from": "staryu",
+  "to": "starmie",
+  "details": [
+   {
+    "trigger": "use-item",
+    "version_group": "red-blue",
+    "is_default": true,
+    "item": "water-stone"
+   }
+  ]
+ },
+ {
+  "from": "mime-jr",
+  "to": "mr-mime",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "known_move": "mimic"
+   },
+   {
+    "trigger": "level-up",
+    "version_group": "sword-shield",
+    "is_default": true,
+    "known_move": "mimic",
+    "region": "galar",
+    "evolved_pokemon_form": "mr-mime-galar"
+   }
+  ]
+ },
+ {
+  "from": "scyther",
+  "to": "scizor",
+  "details": [
+   {
+    "trigger": "trade",
+    "version_group": "gold-silver",
+    "is_default": true,
+    "held_item": "metal-coat"
+   }
+  ]
+ },
+ {
+  "from": "smoochum",
+  "to": "jynx",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "gold-silver",
+    "is_default": true,
+    "min_level": 30
+   }
+  ]
+ },
+ {
+  "from": "elekid",
+  "to": "electabuzz",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "gold-silver",
+    "is_default": true,
+    "min_level": 30
+   }
+  ]
+ },
+ {
+  "from": "electabuzz",
+  "to": "electivire",
+  "details": [
+   {
+    "trigger": "trade",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "held_item": "electirizer"
+   }
+  ]
+ },
+ {
+  "from": "magby",
+  "to": "magmar",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "gold-silver",
+    "is_default": true,
+    "min_level": 30
+   }
+  ]
+ },
+ {
+  "from": "magmar",
+  "to": "magmortar",
+  "details": [
+   {
+    "trigger": "trade",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "held_item": "magmarizer"
+   }
+  ]
+ },
+ {
+  "from": "magikarp",
+  "to": "gyarados",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "red-blue",
+    "is_default": true,
+    "min_level": 20
+   }
+  ]
+ },
+ {
+  "from": "eevee",
+  "to": "vaporeon",
+  "details": [
+   {
+    "trigger": "use-item",
+    "version_group": "red-blue",
+    "is_default": true,
+    "item": "water-stone",
+    "required_pokemon_form": "eevee"
+   }
+  ]
+ },
+ {
+  "from": "eevee",
+  "to": "jolteon",
+  "details": [
+   {
+    "trigger": "use-item",
+    "version_group": "red-blue",
+    "is_default": true,
+    "item": "thunder-stone",
+    "required_pokemon_form": "eevee"
+   }
+  ]
+ },
+ {
+  "from": "eevee",
+  "to": "flareon",
+  "details": [
+   {
+    "trigger": "use-item",
+    "version_group": "red-blue",
+    "is_default": true,
+    "item": "fire-stone",
+    "required_pokemon_form": "eevee"
+   }
+  ]
+ },
+ {
+  "from": "eevee",
+  "to": "espeon",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "gold-silver",
+    "is_default": true,
+    "min_happiness": 160,
+    "time_of_day": "day",
+    "required_pokemon_form": "eevee"
+   }
+  ]
+ },
+ {
+  "from": "eevee",
+  "to": "umbreon",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "gold-silver",
+    "is_default": true,
+    "min_happiness": 160,
+    "time_of_day": "night",
+    "required_pokemon_form": "eevee"
+   }
+  ]
+ },
+ {
+  "from": "eevee",
+  "to": "leafeon",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "diamond-pearl",
+    "location": "eterna-forest",
+    "near_special_rock": true,
+    "required_pokemon_form": "eevee"
+   },
+   {
+    "trigger": "level-up",
+    "version_group": "black-white",
+    "location": "pinwheel-forest",
+    "near_special_rock": true,
+    "required_pokemon_form": "eevee"
+   },
+   {
+    "trigger": "level-up",
+    "version_group": "x-y",
+    "location": "kalos-route-20",
+    "near_special_rock": true,
+    "required_pokemon_form": "eevee"
+   },
+   {
+    "trigger": "use-item",
+    "version_group": "sword-shield",
+    "is_default": true,
+    "item": "leaf-stone",
+    "required_pokemon_form": "eevee"
+   },
+   {
+    "trigger": "level-up",
+    "version_group": "omega-ruby-alpha-sapphire",
+    "location": "petalburg-woods",
+    "near_special_rock": true,
+    "required_pokemon_form": "eevee"
+   },
+   {
+    "trigger": "level-up",
+    "version_group": "sun-moon",
+    "location": "lush-jungle",
+    "near_special_rock": true,
+    "required_pokemon_form": "eevee"
+   }
+  ]
+ },
+ {
+  "from": "eevee",
+  "to": "glaceon",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "diamond-pearl",
+    "location": "sinnoh-route-217",
+    "near_special_rock": true,
+    "required_pokemon_form": "eevee"
+   },
+   {
+    "trigger": "level-up",
+    "version_group": "black-white",
+    "location": "twist-mountain",
+    "near_special_rock": true,
+    "required_pokemon_form": "eevee"
+   },
+   {
+    "trigger": "level-up",
+    "version_group": "x-y",
+    "location": "frost-cavern",
+    "near_special_rock": true,
+    "required_pokemon_form": "eevee"
+   },
+   {
+    "trigger": "use-item",
+    "version_group": "sword-shield",
+    "is_default": true,
+    "item": "ice-stone",
+    "required_pokemon_form": "eevee"
+   },
+   {
+    "trigger": "level-up",
+    "version_group": "omega-ruby-alpha-sapphire",
+    "location": "shoal-cave",
+    "near_special_rock": true,
+    "required_pokemon_form": "eevee"
+   },
+   {
+    "trigger": "level-up",
+    "version_group": "sun-moon",
+    "location": "mount-lanakila",
+    "near_special_rock": true,
+    "required_pokemon_form": "eevee"
+   }
+  ]
+ },
+ {
+  "from": "porygon",
+  "to": "porygon2",
+  "details": [
+   {
+    "trigger": "trade",
+    "version_group": "gold-silver",
+    "is_default": true,
+    "held_item": "up-grade"
+   }
+  ]
+ },
+ {
+  "from": "porygon2",
+  "to": "porygon-z",
+  "details": [
+   {
+    "trigger": "trade",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "held_item": "dubious-disc"
+   }
+  ]
+ },
+ {
+  "from": "omanyte",
+  "to": "omastar",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "red-blue",
+    "is_default": true,
+    "min_level": 40
+   }
+  ]
+ },
+ {
+  "from": "kabuto",
+  "to": "kabutops",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "red-blue",
+    "is_default": true,
+    "min_level": 40
+   }
+  ]
+ },
+ {
+  "from": "munchlax",
+  "to": "snorlax",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "min_happiness": 160
+   }
+  ]
+ },
+ {
+  "from": "dratini",
+  "to": "dragonair",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "red-blue",
+    "is_default": true,
+    "min_level": 30
+   }
+  ]
+ },
+ {
+  "from": "dragonair",
+  "to": "dragonite",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "red-blue",
+    "is_default": true,
+    "min_level": 55
+   }
+  ]
+ },
+ {
+  "from": "chikorita",
+  "to": "bayleef",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "gold-silver",
+    "is_default": true,
+    "min_level": 16
+   }
+  ]
+ },
+ {
+  "from": "bayleef",
+  "to": "meganium",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "gold-silver",
+    "is_default": true,
+    "min_level": 32
+   }
+  ]
+ },
+ {
+  "from": "cyndaquil",
+  "to": "quilava",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "gold-silver",
+    "is_default": true,
+    "min_level": 14
+   },
+   {
+    "trigger": "level-up",
+    "version_group": "legends-arceus",
+    "min_level": 17,
+    "region": "hisui"
+   }
+  ]
+ },
+ {
+  "from": "quilava",
+  "to": "typhlosion",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "gold-silver",
+    "is_default": true,
+    "min_level": 36
+   },
+   {
+    "trigger": "level-up",
+    "version_group": "legends-arceus",
+    "is_default": true,
+    "min_level": 36,
+    "region": "hisui",
+    "evolved_pokemon_form": "typhlosion-hisui"
+   }
+  ]
+ },
+ {
+  "from": "totodile",
+  "to": "croconaw",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "gold-silver",
+    "is_default": true,
+    "min_level": 18
+   }
+  ]
+ },
+ {
+  "from": "croconaw",
+  "to": "feraligatr",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "gold-silver",
+    "is_default": true,
+    "min_level": 30
+   }
+  ]
+ },
+ {
+  "from": "sentret",
+  "to": "furret",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "gold-silver",
+    "is_default": true,
+    "min_level": 15
+   }
+  ]
+ },
+ {
+  "from": "hoothoot",
+  "to": "noctowl",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "gold-silver",
+    "is_default": true,
+    "min_level": 20
+   }
+  ]
+ },
+ {
+  "from": "ledyba",
+  "to": "ledian",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "gold-silver",
+    "is_default": true,
+    "min_level": 18
+   }
+  ]
+ },
+ {
+  "from": "spinarak",
+  "to": "ariados",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "gold-silver",
+    "is_default": true,
+    "min_level": 22
+   }
+  ]
+ },
+ {
+  "from": "chinchou",
+  "to": "lanturn",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "gold-silver",
+    "is_default": true,
+    "min_level": 27
+   }
+  ]
+ },
+ {
+  "from": "togepi",
+  "to": "togetic",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "gold-silver",
+    "is_default": true,
+    "min_happiness": 160
+   }
+  ]
+ },
+ {
+  "from": "togetic",
+  "to": "togekiss",
+  "details": [
+   {
+    "trigger": "use-item",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "item": "shiny-stone"
+   }
+  ]
+ },
+ {
+  "from": "natu",
+  "to": "xatu",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "gold-silver",
+    "is_default": true,
+    "min_level": 25
+   }
+  ]
+ },
+ {
+  "from": "mareep",
+  "to": "flaaffy",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "gold-silver",
+    "is_default": true,
+    "min_level": 15
+   }
+  ]
+ },
+ {
+  "from": "flaaffy",
+  "to": "ampharos",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "gold-silver",
+    "is_default": true,
+    "min_level": 30
+   }
+  ]
+ },
+ {
+  "from": "azurill",
+  "to": "marill",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "ruby-sapphire",
+    "is_default": true,
+    "min_happiness": 160
+   }
+  ]
+ },
+ {
+  "from": "marill",
+  "to": "azumarill",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "gold-silver",
+    "is_default": true,
+    "min_level": 18
+   }
+  ]
+ },
+ {
+  "from": "bonsly",
+  "to": "sudowoodo",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "known_move": "mimic"
+   }
+  ]
+ },
+ {
+  "from": "hoppip",
+  "to": "skiploom",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "gold-silver",
+    "is_default": true,
+    "min_level": 18
+   }
+  ]
+ },
+ {
+  "from": "skiploom",
+  "to": "jumpluff",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "gold-silver",
+    "is_default": true,
+    "min_level": 27
+   }
+  ]
+ },
+ {
+  "from": "aipom",
+  "to": "ambipom",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "known_move": "double-hit"
+   }
+  ]
+ },
+ {
+  "from": "sunkern",
+  "to": "sunflora",
+  "details": [
+   {
+    "trigger": "use-item",
+    "version_group": "gold-silver",
+    "is_default": true,
+    "item": "sun-stone"
+   }
+  ]
+ },
+ {
+  "from": "yanma",
+  "to": "yanmega",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "known_move": "ancient-power"
+   }
+  ]
+ },
+ {
+  "from": "wooper",
+  "to": "quagsire",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "gold-silver",
+    "is_default": true,
+    "min_level": 20
+   }
+  ]
+ },
+ {
+  "from": "murkrow",
+  "to": "honchkrow",
+  "details": [
+   {
+    "trigger": "use-item",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "item": "dusk-stone"
+   }
+  ]
+ },
+ {
+  "from": "misdreavus",
+  "to": "mismagius",
+  "details": [
+   {
+    "trigger": "use-item",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "item": "dusk-stone"
+   }
+  ]
+ },
+ {
+  "from": "wynaut",
+  "to": "wobbuffet",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "ruby-sapphire",
+    "is_default": true,
+    "min_level": 15
+   }
+  ]
+ },
+ {
+  "from": "pineco",
+  "to": "forretress",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "gold-silver",
+    "is_default": true,
+    "min_level": 31
+   }
+  ]
+ },
+ {
+  "from": "gligar",
+  "to": "gliscor",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "held_item": "razor-fang",
+    "time_of_day": "night"
+   }
+  ]
+ },
+ {
+  "from": "snubbull",
+  "to": "granbull",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "gold-silver",
+    "is_default": true,
+    "min_level": 23
+   }
+  ]
+ },
+ {
+  "from": "sneasel",
+  "to": "weavile",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "held_item": "razor-claw",
+    "time_of_day": "night"
+   }
+  ]
+ },
+ {
+  "from": "teddiursa",
+  "to": "ursaring",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "gold-silver",
+    "is_default": true,
+    "min_level": 30
+   }
+  ]
+ },
+ {
+  "from": "slugma",
+  "to": "magcargo",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "gold-silver",
+    "is_default": true,
+    "min_level": 38
+   }
+  ]
+ },
+ {
+  "from": "swinub",
+  "to": "piloswine",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "gold-silver",
+    "is_default": true,
+    "min_level": 33
+   }
+  ]
+ },
+ {
+  "from": "piloswine",
+  "to": "mamoswine",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "known_move": "ancient-power"
+   }
+  ]
+ },
+ {
+  "from": "remoraid",
+  "to": "octillery",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "gold-silver",
+    "is_default": true,
+    "min_level": 25
+   }
+  ]
+ },
+ {
+  "from": "mantyke",
+  "to": "mantine",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "party_species": "remoraid"
+   }
+  ]
+ },
+ {
+  "from": "houndour",
+  "to": "houndoom",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "gold-silver",
+    "is_default": true,
+    "min_level": 24
+   }
+  ]
+ },
+ {
+  "from": "phanpy",
+  "to": "donphan",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "gold-silver",
+    "is_default": true,
+    "min_level": 25
+   }
+  ]
+ },
+ {
+  "from": "larvitar",
+  "to": "pupitar",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "gold-silver",
+    "is_default": true,
+    "min_level": 30
+   }
+  ]
+ },
+ {
+  "from": "pupitar",
+  "to": "tyranitar",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "gold-silver",
+    "is_default": true,
+    "min_level": 55
+   }
+  ]
+ },
+ {
+  "from": "treecko",
+  "to": "grovyle",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "ruby-sapphire",
+    "is_default": true,
+    "min_level": 16
+   }
+  ]
+ },
+ {
+  "from": "grovyle",
+  "to": "sceptile",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "ruby-sapphire",
+    "is_default": true,
+    "min_level": 36
+   }
+  ]
+ },
+ {
+  "from": "torchic",
+  "to": "combusken",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "ruby-sapphire",
+    "is_default": true,
+    "min_level": 16
+   }
+  ]
+ },
+ {
+  "from": "combusken",
+  "to": "blaziken",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "ruby-sapphire",
+    "is_default": true,
+    "min_level": 36
+   }
+  ]
+ },
+ {
+  "from": "mudkip",
+  "to": "marshtomp",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "ruby-sapphire",
+    "is_default": true,
+    "min_level": 16
+   }
+  ]
+ },
+ {
+  "from": "marshtomp",
+  "to": "swampert",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "ruby-sapphire",
+    "is_default": true,
+    "min_level": 36
+   }
+  ]
+ },
+ {
+  "from": "poochyena",
+  "to": "mightyena",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "ruby-sapphire",
+    "is_default": true,
+    "min_level": 18
+   }
+  ]
+ },
+ {
+  "from": "zigzagoon",
+  "to": "linoone",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "ruby-sapphire",
+    "is_default": true,
+    "min_level": 20
+   },
+   {
+    "trigger": "level-up",
+    "version_group": "sword-shield",
+    "is_default": true,
+    "min_level": 20,
+    "required_pokemon_form": "zigzagoon-galar",
+    "evolved_pokemon_form": "linoone-galar"
+   }
+  ]
+ },
+ {
+  "from": "wurmple",
+  "to": "silcoon",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "ruby-sapphire",
+    "min_level": 7,
+    "condition_expression": {
+     "expression": "PID 16 >> 10 % 4 <=",
+     "percentage_chance": 50,
+     "variables": [
+      {
+       "name": "personality-value",
+       "url": "https://pokeapi.co/api/v2/evolution-variable/2/"
+      }
+     ]
+    }
+   },
+   {
+    "trigger": "level-up",
+    "version_group": "x-y",
+    "is_default": true,
+    "min_level": 7,
+    "condition_expression": {
+     "expression": "EC 16 >> 10 % 4 <=",
+     "percentage_chance": 50,
+     "variables": [
+      {
+       "name": "encryption-constant",
+       "url": "https://pokeapi.co/api/v2/evolution-variable/1/"
+      }
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "from": "silcoon",
+  "to": "beautifly",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "ruby-sapphire",
+    "is_default": true,
+    "min_level": 10
+   }
+  ]
+ },
+ {
+  "from": "wurmple",
+  "to": "cascoon",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "ruby-sapphire",
+    "min_level": 7,
+    "condition_expression": {
+     "expression": "PID 16 >> 10 % 5 >=",
+     "percentage_chance": 50,
+     "variables": [
+      {
+       "name": "personality-value",
+       "url": "https://pokeapi.co/api/v2/evolution-variable/2/"
+      }
+     ]
+    }
+   },
+   {
+    "trigger": "level-up",
+    "version_group": "x-y",
+    "is_default": true,
+    "min_level": 7,
+    "condition_expression": {
+     "expression": "EC 16 >> 10 % 5 >=",
+     "percentage_chance": 50,
+     "variables": [
+      {
+       "name": "encryption-constant",
+       "url": "https://pokeapi.co/api/v2/evolution-variable/1/"
+      }
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "from": "cascoon",
+  "to": "dustox",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "ruby-sapphire",
+    "is_default": true,
+    "min_level": 10
+   }
+  ]
+ },
+ {
+  "from": "lotad",
+  "to": "lombre",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "ruby-sapphire",
+    "is_default": true,
+    "min_level": 14
+   }
+  ]
+ },
+ {
+  "from": "lombre",
+  "to": "ludicolo",
+  "details": [
+   {
+    "trigger": "use-item",
+    "version_group": "ruby-sapphire",
+    "is_default": true,
+    "item": "water-stone"
+   }
+  ]
+ },
+ {
+  "from": "seedot",
+  "to": "nuzleaf",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "ruby-sapphire",
+    "is_default": true,
+    "min_level": 14
+   }
+  ]
+ },
+ {
+  "from": "nuzleaf",
+  "to": "shiftry",
+  "details": [
+   {
+    "trigger": "use-item",
+    "version_group": "ruby-sapphire",
+    "is_default": true,
+    "item": "leaf-stone"
+   }
+  ]
+ },
+ {
+  "from": "taillow",
+  "to": "swellow",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "ruby-sapphire",
+    "is_default": true,
+    "min_level": 22
+   }
+  ]
+ },
+ {
+  "from": "wingull",
+  "to": "pelipper",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "ruby-sapphire",
+    "is_default": true,
+    "min_level": 25
+   }
+  ]
+ },
+ {
+  "from": "ralts",
+  "to": "kirlia",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "ruby-sapphire",
+    "is_default": true,
+    "min_level": 20
+   }
+  ]
+ },
+ {
+  "from": "kirlia",
+  "to": "gardevoir",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "ruby-sapphire",
+    "is_default": true,
+    "min_level": 30
+   }
+  ]
+ },
+ {
+  "from": "kirlia",
+  "to": "gallade",
+  "details": [
+   {
+    "trigger": "use-item",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "item": "dawn-stone",
+    "gender": 2
+   }
+  ]
+ },
+ {
+  "from": "surskit",
+  "to": "masquerain",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "ruby-sapphire",
+    "is_default": true,
+    "min_level": 22
+   }
+  ]
+ },
+ {
+  "from": "shroomish",
+  "to": "breloom",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "ruby-sapphire",
+    "is_default": true,
+    "min_level": 23
+   }
+  ]
+ },
+ {
+  "from": "slakoth",
+  "to": "vigoroth",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "ruby-sapphire",
+    "is_default": true,
+    "min_level": 18
+   }
+  ]
+ },
+ {
+  "from": "vigoroth",
+  "to": "slaking",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "ruby-sapphire",
+    "is_default": true,
+    "min_level": 36
+   }
+  ]
+ },
+ {
+  "from": "nincada",
+  "to": "ninjask",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "ruby-sapphire",
+    "is_default": true,
+    "min_level": 20
+   }
+  ]
+ },
+ {
+  "from": "nincada",
+  "to": "shedinja",
+  "details": [
+   {
+    "trigger": "shed",
+    "version_group": "ruby-sapphire",
+    "is_default": true
+   }
+  ]
+ },
+ {
+  "from": "whismur",
+  "to": "loudred",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "ruby-sapphire",
+    "is_default": true,
+    "min_level": 20
+   }
+  ]
+ },
+ {
+  "from": "loudred",
+  "to": "exploud",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "ruby-sapphire",
+    "is_default": true,
+    "min_level": 40
+   }
+  ]
+ },
+ {
+  "from": "makuhita",
+  "to": "hariyama",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "ruby-sapphire",
+    "is_default": true,
+    "min_level": 24
+   }
+  ]
+ },
+ {
+  "from": "nosepass",
+  "to": "probopass",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "diamond-pearl",
+    "location": "mt-coronet"
+   },
+   {
+    "trigger": "level-up",
+    "version_group": "black-white",
+    "location": "chargestone-cave"
+   },
+   {
+    "trigger": "level-up",
+    "version_group": "x-y",
+    "location": "kalos-route-13"
+   },
+   {
+    "trigger": "level-up",
+    "version_group": "sun-moon",
+    "location": "blush-mountain"
+   },
+   {
+    "trigger": "level-up",
+    "version_group": "sun-moon",
+    "location": "vast-poni-canyon"
+   },
+   {
+    "trigger": "use-item",
+    "version_group": "scarlet-violet",
+    "is_default": true,
+    "item": "thunder-stone"
+   },
+   {
+    "trigger": "level-up",
+    "version_group": "omega-ruby-alpha-sapphire",
+    "location": "new-mauville"
+   }
+  ]
+ },
+ {
+  "from": "skitty",
+  "to": "delcatty",
+  "details": [
+   {
+    "trigger": "use-item",
+    "version_group": "ruby-sapphire",
+    "is_default": true,
+    "item": "moon-stone"
+   }
+  ]
+ },
+ {
+  "from": "aron",
+  "to": "lairon",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "ruby-sapphire",
+    "is_default": true,
+    "min_level": 32
+   }
+  ]
+ },
+ {
+  "from": "lairon",
+  "to": "aggron",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "ruby-sapphire",
+    "is_default": true,
+    "min_level": 42
+   }
+  ]
+ },
+ {
+  "from": "meditite",
+  "to": "medicham",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "ruby-sapphire",
+    "is_default": true,
+    "min_level": 37
+   }
+  ]
+ },
+ {
+  "from": "electrike",
+  "to": "manectric",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "ruby-sapphire",
+    "is_default": true,
+    "min_level": 26
+   }
+  ]
+ },
+ {
+  "from": "budew",
+  "to": "roselia",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "min_happiness": 160,
+    "time_of_day": "day"
+   }
+  ]
+ },
+ {
+  "from": "roselia",
+  "to": "roserade",
+  "details": [
+   {
+    "trigger": "use-item",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "item": "shiny-stone"
+   }
+  ]
+ },
+ {
+  "from": "gulpin",
+  "to": "swalot",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "ruby-sapphire",
+    "is_default": true,
+    "min_level": 26
+   }
+  ]
+ },
+ {
+  "from": "carvanha",
+  "to": "sharpedo",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "ruby-sapphire",
+    "is_default": true,
+    "min_level": 30
+   }
+  ]
+ },
+ {
+  "from": "wailmer",
+  "to": "wailord",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "ruby-sapphire",
+    "is_default": true,
+    "min_level": 40
+   }
+  ]
+ },
+ {
+  "from": "numel",
+  "to": "camerupt",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "ruby-sapphire",
+    "is_default": true,
+    "min_level": 33
+   }
+  ]
+ },
+ {
+  "from": "spoink",
+  "to": "grumpig",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "ruby-sapphire",
+    "is_default": true,
+    "min_level": 32
+   }
+  ]
+ },
+ {
+  "from": "trapinch",
+  "to": "vibrava",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "ruby-sapphire",
+    "is_default": true,
+    "min_level": 35
+   }
+  ]
+ },
+ {
+  "from": "vibrava",
+  "to": "flygon",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "ruby-sapphire",
+    "is_default": true,
+    "min_level": 45
+   }
+  ]
+ },
+ {
+  "from": "cacnea",
+  "to": "cacturne",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "ruby-sapphire",
+    "is_default": true,
+    "min_level": 32
+   }
+  ]
+ },
+ {
+  "from": "swablu",
+  "to": "altaria",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "ruby-sapphire",
+    "is_default": true,
+    "min_level": 35
+   }
+  ]
+ },
+ {
+  "from": "barboach",
+  "to": "whiscash",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "ruby-sapphire",
+    "is_default": true,
+    "min_level": 30
+   }
+  ]
+ },
+ {
+  "from": "corphish",
+  "to": "crawdaunt",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "ruby-sapphire",
+    "is_default": true,
+    "min_level": 30
+   }
+  ]
+ },
+ {
+  "from": "baltoy",
+  "to": "claydol",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "ruby-sapphire",
+    "is_default": true,
+    "min_level": 36
+   }
+  ]
+ },
+ {
+  "from": "lileep",
+  "to": "cradily",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "ruby-sapphire",
+    "is_default": true,
+    "min_level": 40
+   }
+  ]
+ },
+ {
+  "from": "anorith",
+  "to": "armaldo",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "ruby-sapphire",
+    "is_default": true,
+    "min_level": 40
+   }
+  ]
+ },
+ {
+  "from": "feebas",
+  "to": "milotic",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "ruby-sapphire",
+    "min_beauty": 170
+   },
+   {
+    "trigger": "trade",
+    "version_group": "black-white",
+    "is_default": true,
+    "held_item": "prism-scale"
+   },
+   {
+    "trigger": "level-up",
+    "version_group": "omega-ruby-alpha-sapphire",
+    "min_beauty": 170
+   }
+  ]
+ },
+ {
+  "from": "shuppet",
+  "to": "banette",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "ruby-sapphire",
+    "is_default": true,
+    "min_level": 37
+   }
+  ]
+ },
+ {
+  "from": "duskull",
+  "to": "dusclops",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "ruby-sapphire",
+    "is_default": true,
+    "min_level": 37
+   }
+  ]
+ },
+ {
+  "from": "dusclops",
+  "to": "dusknoir",
+  "details": [
+   {
+    "trigger": "trade",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "held_item": "reaper-cloth"
+   }
+  ]
+ },
+ {
+  "from": "chingling",
+  "to": "chimecho",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "min_happiness": 220,
+    "time_of_day": "night"
+   }
+  ]
+ },
+ {
+  "from": "snorunt",
+  "to": "glalie",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "ruby-sapphire",
+    "is_default": true,
+    "min_level": 42
+   }
+  ]
+ },
+ {
+  "from": "snorunt",
+  "to": "froslass",
+  "details": [
+   {
+    "trigger": "use-item",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "item": "dawn-stone",
+    "gender": 1
+   }
+  ]
+ },
+ {
+  "from": "spheal",
+  "to": "sealeo",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "ruby-sapphire",
+    "is_default": true,
+    "min_level": 32
+   }
+  ]
+ },
+ {
+  "from": "sealeo",
+  "to": "walrein",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "ruby-sapphire",
+    "is_default": true,
+    "min_level": 44
+   }
+  ]
+ },
+ {
+  "from": "clamperl",
+  "to": "huntail",
+  "details": [
+   {
+    "trigger": "trade",
+    "version_group": "ruby-sapphire",
+    "is_default": true,
+    "held_item": "deep-sea-tooth"
+   }
+  ]
+ },
+ {
+  "from": "clamperl",
+  "to": "gorebyss",
+  "details": [
+   {
+    "trigger": "trade",
+    "version_group": "ruby-sapphire",
+    "is_default": true,
+    "held_item": "deep-sea-scale"
+   }
+  ]
+ },
+ {
+  "from": "bagon",
+  "to": "shelgon",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "ruby-sapphire",
+    "is_default": true,
+    "min_level": 30
+   }
+  ]
+ },
+ {
+  "from": "shelgon",
+  "to": "salamence",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "ruby-sapphire",
+    "is_default": true,
+    "min_level": 50
+   }
+  ]
+ },
+ {
+  "from": "beldum",
+  "to": "metang",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "ruby-sapphire",
+    "is_default": true,
+    "min_level": 20
+   }
+  ]
+ },
+ {
+  "from": "metang",
+  "to": "metagross",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "ruby-sapphire",
+    "is_default": true,
+    "min_level": 45
+   }
+  ]
+ },
+ {
+  "from": "turtwig",
+  "to": "grotle",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "min_level": 18
+   }
+  ]
+ },
+ {
+  "from": "grotle",
+  "to": "torterra",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "min_level": 32
+   }
+  ]
+ },
+ {
+  "from": "chimchar",
+  "to": "monferno",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "min_level": 14
+   }
+  ]
+ },
+ {
+  "from": "monferno",
+  "to": "infernape",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "min_level": 36
+   }
+  ]
+ },
+ {
+  "from": "piplup",
+  "to": "prinplup",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "min_level": 16
+   }
+  ]
+ },
+ {
+  "from": "prinplup",
+  "to": "empoleon",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "min_level": 36
+   }
+  ]
+ },
+ {
+  "from": "starly",
+  "to": "staravia",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "min_level": 14
+   }
+  ]
+ },
+ {
+  "from": "staravia",
+  "to": "staraptor",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "min_level": 34
+   }
+  ]
+ },
+ {
+  "from": "bidoof",
+  "to": "bibarel",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "min_level": 15
+   }
+  ]
+ },
+ {
+  "from": "kricketot",
+  "to": "kricketune",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "min_level": 10
+   }
+  ]
+ },
+ {
+  "from": "shinx",
+  "to": "luxio",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "min_level": 15
+   }
+  ]
+ },
+ {
+  "from": "luxio",
+  "to": "luxray",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "min_level": 30
+   }
+  ]
+ },
+ {
+  "from": "cranidos",
+  "to": "rampardos",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "min_level": 30
+   }
+  ]
+ },
+ {
+  "from": "shieldon",
+  "to": "bastiodon",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "min_level": 30
+   }
+  ]
+ },
+ {
+  "from": "burmy",
+  "to": "wormadam",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "gender": 1,
+    "min_level": 20,
+    "required_pokemon_form": "burmy-plant",
+    "evolved_pokemon_form": "wormadam-plant"
+   },
+   {
+    "trigger": "level-up",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "gender": 1,
+    "min_level": 20,
+    "required_pokemon_form": "burmy-sandy",
+    "evolved_pokemon_form": "wormadam-sandy"
+   },
+   {
+    "trigger": "level-up",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "gender": 1,
+    "min_level": 20,
+    "required_pokemon_form": "burmy-trash",
+    "evolved_pokemon_form": "wormadam-trash"
+   }
+  ]
+ },
+ {
+  "from": "burmy",
+  "to": "mothim",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "gender": 2,
+    "min_level": 20
+   }
+  ]
+ },
+ {
+  "from": "combee",
+  "to": "vespiquen",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "gender": 1,
+    "min_level": 21
+   }
+  ]
+ },
+ {
+  "from": "buizel",
+  "to": "floatzel",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "min_level": 26
+   }
+  ]
+ },
+ {
+  "from": "cherubi",
+  "to": "cherrim",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "min_level": 25
+   }
+  ]
+ },
+ {
+  "from": "shellos",
+  "to": "gastrodon",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "min_level": 30,
+    "required_pokemon_form": "shellos-west",
+    "evolved_pokemon_form": "gastrodon-west"
+   },
+   {
+    "trigger": "level-up",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "min_level": 30,
+    "required_pokemon_form": "shellos-east",
+    "evolved_pokemon_form": "gastrodon-east"
+   }
+  ]
+ },
+ {
+  "from": "drifloon",
+  "to": "drifblim",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "min_level": 28
+   }
+  ]
+ },
+ {
+  "from": "buneary",
+  "to": "lopunny",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "min_happiness": 160
+   }
+  ]
+ },
+ {
+  "from": "glameow",
+  "to": "purugly",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "min_level": 38
+   }
+  ]
+ },
+ {
+  "from": "stunky",
+  "to": "skuntank",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "min_level": 34
+   }
+  ]
+ },
+ {
+  "from": "bronzor",
+  "to": "bronzong",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "min_level": 33
+   }
+  ]
+ },
+ {
+  "from": "gible",
+  "to": "gabite",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "min_level": 24
+   }
+  ]
+ },
+ {
+  "from": "gabite",
+  "to": "garchomp",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "min_level": 48
+   }
+  ]
+ },
+ {
+  "from": "riolu",
+  "to": "lucario",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "min_happiness": 160,
+    "time_of_day": "day"
+   }
+  ]
+ },
+ {
+  "from": "hippopotas",
+  "to": "hippowdon",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "min_level": 34
+   }
+  ]
+ },
+ {
+  "from": "skorupi",
+  "to": "drapion",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "min_level": 40
+   }
+  ]
+ },
+ {
+  "from": "croagunk",
+  "to": "toxicroak",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "min_level": 37
+   }
+  ]
+ },
+ {
+  "from": "finneon",
+  "to": "lumineon",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "min_level": 31
+   }
+  ]
+ },
+ {
+  "from": "snover",
+  "to": "abomasnow",
+  "details": [
+   {
+    "trigger": "level-up",
+    "version_group": "diamond-pearl",
+    "is_default": true,
+    "min_level": 40
+   }
+  ]
+ },
+ {
+  "from": "phione",
+  "to": "manaphy",
+  "details": []
+ }
+]

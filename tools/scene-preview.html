@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Scene preview</title>
+  <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600;700&family=VT323&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/styles.css">
+  <style>
+    body { display: block; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+    h1 { color: #f8d030; margin-bottom: 8px; }
+    p { color: #c8d6e2; margin-bottom: 16px; font-family: var(--font-info); font-size: 20px; }
+    figure { margin: 0; }
+    figcaption { color: #eef4f8; font-size: 14px; margin-top: 4px; }
+    .banner-frame .banner-slide { opacity: 1; }
+    button { font: inherit; margin-bottom: 16px; }
+  </style>
+</head>
+<body>
+  <h1>Scene preview</h1>
+  <p>Every terrain with random Pokémon. Click "Reroll" for new Pokémon and weather. Dev tool: open through the local server.</p>
+  <button id="reroll">Reroll</button>
+  <div class="grid" id="grid"></div>
+  <script type="module">
+    import { loadData } from "../js/engine/data.js";
+    import { sceneHtml, bannerPool, alignScene } from "../js/ui/title-banner.js";
+    import { TERRAINS } from "../js/ui/terrain.js";
+    const data = await loadData("../data");
+    // Sprite paths in the data are relative to the game root
+    for (const p of data.pokemon) for (const k of Object.keys(p.sprites)) p.sprites[k] = "../" + p.sprites[k];
+    const pool = bannerPool(data);
+    const weathers = ["", "rain", "sun", "sand", "hail"];
+    const grid = document.getElementById("grid");
+    const draw = () => {
+      grid.innerHTML = TERRAINS.map((t, i) => {
+        const weather = weathers[i % weathers.length];
+        return `<figure><div class="banner-frame"><div class="banner-slide">${sceneHtml(pool, data, { terrain: t, weather })}</div></div>
+          <figcaption>${t}${weather ? ` · ${weather}` : ""}</figcaption></figure>`;
+      }).join("");
+      alignScene(grid, data);
+    };
+    document.getElementById("reroll").onclick = draw;
+    draw();
+  </script>
+</body>
+</html>
