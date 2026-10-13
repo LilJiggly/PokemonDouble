@@ -224,7 +224,7 @@ function statusScore(battle, mon, move, target, ally, allyChoice) {
   const hpPct = mon.hp / mon.maxHp;
 
   // Moves that only make sense against a foe
-  const foeOnly = new Set(["disable", "spite", "psycho-shift", "transform", "mimic", "mirror-move", "me-first"]);
+  const foeOnly = new Set(["disable", "spite", "psycho-shift", "transform", "mimic", "mirror-move", "me-first", "sketch"]);
   if (foeOnly.has(key) && (!target || target.side === mon.side)) return -100;
 
   if (WEATHER_OF[key]) {
@@ -261,7 +261,7 @@ function statusScore(battle, mon, move, target, ally, allyChoice) {
     case "gravity": return field.gravity > 0 ? -50 : foes.some((f) => !battle.isGrounded(f)) && ![mon, ally].some((m) => m && !battle.isGrounded(m)) ? 40 : 5;
     case "disable": return target.volatile.disabled || !target.volatile.lastMove ? -50 : 25;
     case "spite": return target.volatile.lastMove ? 12 : -50;
-    case "mimic": case "mirror-move": return target.volatile.lastMove ? 22 : -50;
+    case "mimic": case "mirror-move": case "sketch": return target.volatile.lastMove ? 22 : -50;
     case "copycat": return field.previousMove ? 22 : -50;
     case "assist": return battle.state.sides[mon.side].team.some((m) => m !== mon && m.moves.length) ? 25 : -50;
     case "me-first": return 8;

@@ -33,6 +33,8 @@ export const SHINY_CHANCE = 1 / 512;
 const pickFrom = (list, rand) => list[Math.floor(rand() * list.length)];
 
 export function levelUpMovesAt(species, level, data) {
+  // Smeargle knows nothing but Sketch: it gets all 4 slots (it learns Sketch at levels 1, 11, 21…)
+  if (species.key === "smeargle") return ["sketch", "sketch", "sketch", "sketch"];
   const learned = species.learnset.levelUp.filter(([lvl, m]) => lvl <= level && data.moves[m]).map(([, m]) => m);
   // Last 4 distinct moves, keeping the order they were learned
   const seen = new Set();

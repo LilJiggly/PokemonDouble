@@ -387,7 +387,7 @@ Every trainer has a pool of **every species of their type** (Gen 1–4, Gen 4 ty
 - Move a species to another group by editing its row, or add filler in the Filler column. The game reads these tables directly.
 - Group = the species' own base stat total (table above). Put hand-added filler in the group that matches its BST.
 - Heading format: `(gen<N>:<trainer id>)` must match the leader file; Final Rivals use `rival-<id>`.
-- To rebuild the lists from scratch (e.g. for another gen): `node tools/build-pools.mjs <gen>`.
+- To rebuild the lists from scratch: `node tools/build-pools.mjs <gen>` (filler and signature lists are at the top of that file, keyed `<gen>:<trainer id>`).
 
 #### Team pools — Gen 1 (Kanto)
 
@@ -566,6 +566,518 @@ Every trainer has a pool of **every species of their type** (Gen 1–4, Gen 4 ty
 | 3 | Clefable, Victreebel | — |
 | 4 | Kangaskhan, Nidoqueen, Ninetales, Gardevoir, Starmie, Venusaur, Vaporeon, Blastoise, Charizard | — |
 | 5 | — | — |
+
+#### Team pools — Gen 2 (Johto)
+
+##### Gym Leader Falkner · Flying (`gen2:falkner`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | — | Caterpie, Wurmple, Magikarp, Metapod, Silcoon, Burmy |
+| 1 | Combee, Zubat, Starly, Hoppip, Pidgey, Spearow, Hoothoot, Ledyba, Taillow, Wingull, Doduo, Swablu, Natu, Delibird, Skiploom, Staravia, Drifloon, Pidgeotto | Nincada, Surskit, Dratini, Bagon, Charmander |
+| 2 | Farfetch’d, Butterfree, Beautifly, Ledian, Yanma, Togetic, Murkrow, Chatot, Masquerain, Mothim | Charmeleon, Dragonair, Shelgon |
+| 3 | Gligar, Swellow, Pelipper, Fearow, Noctowl, Jumpluff, Golbat, Ninjask, Dodrio, Tropius, Mantine, Skarmory, Pidgeot, Xatu, Vespiquen, Staraptor | — |
+| 4 | Altaria, Drifblim, Scyther, Honchkrow, Gliscor, Aerodactyl, Yanmega, Charizard | — |
+| 5 | Crobat, Gyarados, Togekiss, Articuno, Zapdos, Moltres, Dragonite, Salamence, Lugia, Ho-Oh, Rayquaza | — |
+
+##### Gym Leader Bugsy · Bug (`gen2:bugsy`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | Kricketot, Caterpie, Weedle, Wurmple, Metapod, Kakuna, Silcoon, Cascoon, Burmy, Shedinja | — |
+| 1 | Combee, Spinarak, Ledyba, Nincada, Surskit, Paras, Pineco, Venonat, Skorupi | — |
+| 2 | Anorith, Kricketune, Butterfree, Beedrill, Beautifly, Dustox, Ledian, Ariados, Yanma, Volbeat, Illumise, Parasect, Masquerain, Wormadam, Mothim | Kabuto |
+| 3 | Venomoth, Ninjask, Forretress, Vespiquen | — |
+| 4 | Armaldo, Scyther, Pinsir, Scizor, Heracross, Shuckle, Yanmega | Kabutops |
+| 5 | — | — |
+
+##### Gym Leader Whitney · Normal (`gen2:whitney`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | — | — |
+| 1 | Sentret, Zigzagoon, Whismur, Starly, Smeargle, Bidoof, Pidgey, Rattata, Skitty, Spearow, Hoothoot, Jigglypuff, Taillow, Slakoth, Ditto, Meowth, Snubbull, Doduo, Swablu, Glameow, Clefairy, Eevee, Teddiursa, Staravia, Pidgeotto | — |
+| 2 | Buneary, Farfetch’d, Aipom, Loudred, Spinda, Delcatty, Lickitung, Porygon, Togetic, Bibarel, Chatot, Raticate, Furret, Dunsparce, Linoone, Castform, Wigglytuff | — |
+| 3 | Swellow, Persian, Vigoroth, Kecleon, Fearow, Noctowl, Chansey, Granbull, Purugly, Girafarig, Zangoose, Dodrio, Stantler, Pidgeot, Clefable, Staraptor, Exploud, Lopunny, Ambipom | — |
+| 4 | Kangaskhan, Tauros, Miltank, Ursaring, Porygon2, Lickilicky | — |
+| 5 | Porygon-Z, Snorlax, Blissey, Togekiss, Slaking, Regigigas, Arceus | — |
+
+##### Gym Leader Morty · Ghost (`gen2:morty`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | Shedinja | — |
+| 1 | Shuppet, Duskull, Gastly, Drifloon | Zubat, Nincada, Ekans, Snorunt |
+| 2 | Sableye, Haunter | — |
+| 3 | Misdreavus, Rotom, Banette, Dusclops, Froslass, Spiritomb | Arbok, Golbat |
+| 4 | Mismagius, Drifblim, Gengar, Dusknoir | — |
+| 5 | Giratina | Crobat |
+
+##### Gym Leader Chuck · Fighting (`gen2:chuck`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | — | — |
+| 1 | Makuhita, Meditite, Croagunk, Mankey, Machop | Ralts, Kirlia, Shroomish, Poliwag, Chimchar, Torchic |
+| 2 | Machoke, Combusken, Monferno, Medicham | Poliwhirl |
+| 3 | Primeape, Hitmonlee, Hitmonchan, Hitmontop, Breloom, Hariyama | — |
+| 4 | Toxicroak, Poliwrath, Heracross, Machamp, Gallade, Lucario, Blaziken, Infernape | — |
+| 5 | — | — |
+
+##### Gym Leader Jasmine · Steel (`gen2:jasmine`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | — | — |
+| 1 | Beldum, Bronzor, Magnemite, Aron | Pineco, Piplup |
+| 2 | Shieldon, Mawile, Metang | Nosepass, Onix, Prinplup |
+| 3 | Lairon, Magneton, Forretress, Skarmory | — |
+| 4 | Bastiodon, Scizor, Bronzong, Steelix, Lucario, Probopass, Aggron, Empoleon | Scyther |
+| 5 | Magnezone, Registeel, Metagross, Jirachi, Heatran, Dialga | — |
+
+##### Gym Leader Pryce · Ice (`gen2:pryce`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | — | — |
+| 1 | Swinub, Spheal, Snorunt, Delibird, Snover | Shellder, Slowpoke, Seel |
+| 2 | Sealeo | — |
+| 3 | Sneasel, Piloswine, Jynx, Dewgong, Glalie, Froslass | — |
+| 4 | Abomasnow, Weavile, Cloyster, Glaceon, Walrein, Mamoswine | Slowbro, Slowking |
+| 5 | Lapras, Articuno, Regice | — |
+
+##### Gym Leader Clair · Dragon (`gen2:clair`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | — | Magikarp |
+| 1 | Dratini, Bagon, Gible, Vibrava | Trapinch, Horsea, Charmander, Swablu |
+| 2 | Gabite, Dragonair, Shelgon | Charmeleon |
+| 3 | — | Seadra |
+| 4 | Altaria, Flygon | Aerodactyl, Charizard |
+| 5 | Kingdra, Dragonite, Salamence, Latias, Latios, Garchomp, Rayquaza, Dialga, Palkia, Giratina | Gyarados |
+
+##### Elite Four Will · Psychic (`gen2:will`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | Unown | — |
+| 1 | Ralts, Kirlia, Meditite, Baltoy, Beldum, Bronzor, Abra, Slowpoke, Natu, Exeggcute, Drowzee, Spoink | Staryu |
+| 2 | Kadabra, Wobbuffet, Medicham, Metang, Chimecho | — |
+| 3 | Lunatone, Solrock, Jynx, Girafarig, Mr. Mime, Xatu, Grumpig, Hypno | — |
+| 4 | Alakazam, Slowbro, Slowking, Claydol, Bronzong, Gardevoir, Gallade, Exeggutor, Starmie, Espeon | — |
+| 5 | Uxie, Mesprit, Azelf, Mew, Celebi, Metagross, Latias, Latios, Jirachi, Deoxys, Cresselia, Mewtwo, Lugia | — |
+
+##### Elite Four Koga · Poison (`gen2:koga`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | Weedle, Kakuna | Wurmple, Cascoon |
+| 1 | Zubat, Spinarak, Nidoran♂, Nidoran♀, Ekans, Bellsprout, Croagunk, Gulpin, Venonat, Gastly, Bulbasaur, Oddish, Grimer, Stunky, Skorupi, Tentacool, Koffing | Nincada, Pineco |
+| 2 | Nidorina, Nidorino, Beedrill, Dustox, Weepinbell, Ariados, Gloom, Roselia, Ivysaur, Haunter | — |
+| 3 | Qwilfish, Arbok, Venomoth, Golbat, Seviper, Swalot, Skuntank, Vileplume, Victreebel | Ninjask, Forretress |
+| 4 | Weezing, Toxicroak, Nidoqueen, Nidoking, Muk, Gengar, Drapion, Roserade, Tentacruel, Venusaur | — |
+| 5 | Crobat | — |
+
+##### Elite Four Bruno · Fighting (`gen2:bruno`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | — | — |
+| 1 | Makuhita, Meditite, Croagunk, Mankey, Machop | Ralts, Kirlia, Shroomish, Poliwag, Chimchar, Torchic |
+| 2 | Machoke, Combusken, Monferno, Medicham | Poliwhirl, Onix |
+| 3 | Primeape, Hitmonlee, Hitmonchan, Hitmontop, Breloom, Hariyama | — |
+| 4 | Toxicroak, Poliwrath, Heracross, Machamp, Gallade, Lucario, Blaziken, Infernape | Steelix |
+| 5 | — | — |
+
+##### Elite Four Karen · Dark (`gen2:karen`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | — | — |
+| 1 | Poochyena, Carvanha, Stunky, Houndour, Nuzleaf | Seedot, Larvitar, Corphish, Oddish, Skorupi, Cacnea |
+| 2 | Sableye, Murkrow, Mightyena | Gloom, Pupitar |
+| 3 | Sneasel, Sharpedo, Absol, Crawdaunt, Cacturne, Skuntank, Shiftry, Spiritomb | Vileplume |
+| 4 | Houndoom, Drapion, Honchkrow, Weavile, Umbreon | — |
+| 5 | Tyranitar, Darkrai | — |
+
+##### Champion Lance · Dragon (`gen2:lance`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | — | Magikarp |
+| 1 | Dratini, Bagon, Gible, Vibrava | Trapinch, Horsea, Charmander, Swablu |
+| 2 | Gabite, Dragonair, Shelgon | Charmeleon |
+| 3 | — | Seadra |
+| 4 | Altaria, Flygon | Aerodactyl, Charizard |
+| 5 | Kingdra, Dragonite, Salamence, Latias, Latios, Garchomp, Rayquaza, Dialga, Palkia, Giratina | Gyarados |
+
+##### Silver (Final Rival) · signature lines (`gen2:rival-silver`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | — | — |
+| 1 | Zubat, Horsea, Cyndaquil, Abra, Gastly, Totodile, Chikorita, Magnemite, Houndour, Koffing | — |
+| 2 | Kadabra, Haunter, Bayleef, Quilava, Croconaw, Murkrow | — |
+| 3 | Sneasel, Seadra, Golbat, Magneton | — |
+| 4 | Alakazam, Weezing, Gengar, Houndoom, Honchkrow, Weavile, Meganium, Feraligatr, Typhlosion | — |
+| 5 | Crobat, Magnezone, Kingdra | — |
+
+##### Gold (Final Rival) · signature lines (`gen2:rival-gold`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | — | — |
+| 1 | Mareep, Pikachu, Dratini, Cyndaquil, Gastly, Totodile, Chikorita, Eevee | — |
+| 2 | Flaaffy, Haunter, Bayleef, Quilava, Croconaw, Togetic, Sudowoodo, Dragonair | — |
+| 3 | Raichu | — |
+| 4 | Tauros, Gengar, Scyther, Ampharos, Scizor, Meganium, Espeon, Umbreon, Feraligatr, Typhlosion | — |
+| 5 | Lapras, Snorlax, Togekiss, Dragonite | — |
+
+#### Team pools — Gen 3 (Hoenn)
+
+##### Gym Leader Roxanne · Rock (`gen3:roxanne`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | — | — |
+| 1 | Geodude, Larvitar, Aron, Rhyhorn | Slugma |
+| 2 | Cranidos, Shieldon, Omanyte, Kabuto, Lileep, Anorith, Nosepass, Corsola, Onix, Graveler, Sudowoodo, Magcargo, Pupitar | — |
+| 3 | Lairon, Lunatone, Solrock, Golem, Rhydon, Relicanth | — |
+| 4 | Omastar, Kabutops, Cradily, Armaldo, Rampardos, Bastiodon, Shuckle, Aerodactyl, Probopass, Aggron | — |
+| 5 | Rhyperior, Regirock, Tyranitar | — |
+
+##### Gym Leader Brawly · Fighting (`gen3:brawly`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | — | — |
+| 1 | Makuhita, Meditite, Croagunk, Mankey, Machop | Ralts, Kirlia, Shroomish, Poliwag, Chimchar, Torchic |
+| 2 | Machoke, Combusken, Monferno, Medicham | Poliwhirl |
+| 3 | Primeape, Hitmonlee, Hitmonchan, Hitmontop, Breloom, Hariyama | — |
+| 4 | Toxicroak, Poliwrath, Heracross, Machamp, Gallade, Lucario, Blaziken, Infernape | — |
+| 5 | — | — |
+
+##### Gym Leader Wattson · Electric (`gen3:wattson`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | — | — |
+| 1 | Shinx, Mareep, Electrike, Pikachu, Magnemite, Voltorb, Chinchou | Bronzor |
+| 2 | Luxio, Flaaffy, Plusle, Minun, Pachirisu | Porygon |
+| 3 | Rotom, Lanturn, Magneton, Raichu, Manectric, Electrode | Skarmory |
+| 4 | Electabuzz, Ampharos, Luxray, Jolteon | Bronzong, Porygon2 |
+| 5 | Magnezone, Electivire, Zapdos, Raikou | Porygon-Z |
+
+##### Gym Leader Flannery · Fire (`gen3:flannery`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | — | — |
+| 1 | Slugma, Vulpix, Numel, Charmander, Cyndaquil, Chimchar, Torchic, Houndour | — |
+| 2 | Growlithe, Charmeleon, Quilava, Combusken, Monferno, Ponyta, Magcargo | Castform |
+| 3 | Camerupt, Torkoal | — |
+| 4 | Magmar, Rapidash, Houndoom, Ninetales, Flareon, Blaziken, Charizard, Typhlosion, Infernape | — |
+| 5 | Magmortar, Arcanine, Moltres, Entei, Heatran, Ho-Oh | — |
+
+##### Gym Leader Norman · Normal (`gen3:norman`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | — | — |
+| 1 | Sentret, Zigzagoon, Whismur, Starly, Smeargle, Bidoof, Pidgey, Rattata, Skitty, Spearow, Hoothoot, Jigglypuff, Taillow, Slakoth, Ditto, Meowth, Snubbull, Doduo, Swablu, Glameow, Clefairy, Eevee, Teddiursa, Staravia, Pidgeotto | — |
+| 2 | Buneary, Farfetch’d, Aipom, Loudred, Spinda, Delcatty, Lickitung, Porygon, Togetic, Bibarel, Chatot, Raticate, Furret, Dunsparce, Linoone, Castform, Wigglytuff | — |
+| 3 | Swellow, Persian, Vigoroth, Kecleon, Fearow, Noctowl, Chansey, Granbull, Purugly, Girafarig, Zangoose, Dodrio, Stantler, Pidgeot, Clefable, Staraptor, Exploud, Lopunny, Ambipom | — |
+| 4 | Kangaskhan, Tauros, Miltank, Ursaring, Porygon2, Lickilicky | — |
+| 5 | Porygon-Z, Snorlax, Blissey, Togekiss, Slaking, Regigigas, Arceus | — |
+
+##### Gym Leader Winona · Flying (`gen3:winona`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | — | Caterpie, Wurmple, Magikarp, Metapod, Silcoon, Burmy |
+| 1 | Combee, Zubat, Starly, Hoppip, Pidgey, Spearow, Hoothoot, Ledyba, Taillow, Wingull, Doduo, Swablu, Natu, Delibird, Skiploom, Staravia, Drifloon, Pidgeotto | Nincada, Surskit, Dratini, Bagon, Charmander |
+| 2 | Farfetch’d, Butterfree, Beautifly, Ledian, Yanma, Togetic, Murkrow, Chatot, Masquerain, Mothim | Charmeleon, Dragonair, Shelgon |
+| 3 | Gligar, Swellow, Pelipper, Fearow, Noctowl, Jumpluff, Golbat, Ninjask, Dodrio, Tropius, Mantine, Skarmory, Pidgeot, Xatu, Vespiquen, Staraptor | — |
+| 4 | Altaria, Drifblim, Scyther, Honchkrow, Gliscor, Aerodactyl, Yanmega, Charizard | — |
+| 5 | Crobat, Gyarados, Togekiss, Articuno, Zapdos, Moltres, Dragonite, Salamence, Lugia, Ho-Oh, Rayquaza | — |
+
+##### Gym Leader Tate & Liza · Psychic (`gen3:tate-and-liza`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | Unown | — |
+| 1 | Ralts, Kirlia, Meditite, Baltoy, Beldum, Bronzor, Abra, Slowpoke, Natu, Exeggcute, Drowzee, Spoink | Venonat, Staryu |
+| 2 | Kadabra, Wobbuffet, Medicham, Metang, Chimecho | — |
+| 3 | Lunatone, Solrock, Jynx, Girafarig, Mr. Mime, Xatu, Grumpig, Hypno | Venomoth |
+| 4 | Alakazam, Slowbro, Slowking, Claydol, Bronzong, Gardevoir, Gallade, Exeggutor, Starmie, Espeon | — |
+| 5 | Uxie, Mesprit, Azelf, Mew, Celebi, Metagross, Latias, Latios, Jirachi, Deoxys, Cresselia, Mewtwo, Lugia | — |
+
+##### Gym Leader Juan · Water (`gen3:juan`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | Magikarp, Feebas | — |
+| 1 | Wooper, Lotad, Marill, Surskit, Wingull, Barboach, Spheal, Horsea, Poliwag, Remoraid, Shellder, Carvanha, Corphish, Mudkip, Squirtle, Totodile, Piplup, Slowpoke, Psyduck, Goldeen, Seel, Krabby, Shellos, Chinchou, Luvdisc, Buizel, Finneon, Tentacool, Staryu, Lombre, Clamperl | Bidoof |
+| 2 | Omanyte, Kabuto, Corsola, Poliwhirl, Wailmer, Wartortle, Croconaw, Marshtomp, Prinplup, Azumarill, Sealeo, Bibarel | — |
+| 3 | Quagsire, Qwilfish, Pelipper, Seadra, Seaking, Lanturn, Sharpedo, Lumineon, Mantine, Whiscash, Crawdaunt, Dewgong, Kingler, Gastrodon, Octillery, Ludicolo, Phione, Huntail, Gorebyss, Relicanth | — |
+| 4 | Slowbro, Slowking, Omastar, Kabutops, Floatzel, Golduck, Poliwrath, Politoed, Wailord, Tentacruel, Starmie, Cloyster, Vaporeon, Blastoise, Feraligatr, Walrein, Empoleon | — |
+| 5 | Lapras, Swampert, Gyarados, Kingdra, Milotic, Suicune, Manaphy, Kyogre, Palkia | — |
+
+##### Elite Four Sidney · Dark (`gen3:sidney`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | — | — |
+| 1 | Poochyena, Carvanha, Stunky, Houndour, Nuzleaf | Seedot, Larvitar, Corphish, Skorupi, Cacnea |
+| 2 | Sableye, Murkrow, Mightyena | Pupitar |
+| 3 | Sneasel, Sharpedo, Absol, Crawdaunt, Cacturne, Skuntank, Shiftry, Spiritomb | — |
+| 4 | Houndoom, Drapion, Honchkrow, Weavile, Umbreon | — |
+| 5 | Tyranitar, Darkrai | — |
+
+##### Elite Four Phoebe · Ghost (`gen3:phoebe`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | Shedinja | — |
+| 1 | Shuppet, Duskull, Gastly, Drifloon | Zubat, Nincada, Ekans, Snorunt |
+| 2 | Sableye, Haunter | — |
+| 3 | Misdreavus, Rotom, Banette, Dusclops, Froslass, Spiritomb | Arbok, Golbat |
+| 4 | Mismagius, Drifblim, Gengar, Dusknoir | — |
+| 5 | Giratina | Crobat |
+
+##### Elite Four Glacia · Ice (`gen3:glacia`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | — | — |
+| 1 | Swinub, Spheal, Snorunt, Delibird, Snover | Shellder, Slowpoke, Seel |
+| 2 | Sealeo | — |
+| 3 | Sneasel, Piloswine, Jynx, Dewgong, Glalie, Froslass | — |
+| 4 | Abomasnow, Weavile, Cloyster, Glaceon, Walrein, Mamoswine | Slowbro, Slowking |
+| 5 | Lapras, Articuno, Regice | — |
+
+##### Elite Four Drake · Dragon (`gen3:drake`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | — | Magikarp |
+| 1 | Dratini, Bagon, Gible, Vibrava | Trapinch, Horsea, Charmander, Swablu |
+| 2 | Gabite, Dragonair, Shelgon | Charmeleon |
+| 3 | — | Seadra |
+| 4 | Altaria, Flygon | Aerodactyl, Charizard |
+| 5 | Kingdra, Dragonite, Salamence, Latias, Latios, Garchomp, Rayquaza, Dialga, Palkia, Giratina | Gyarados |
+
+##### Champion Wallace · Water (`gen3:wallace`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | Magikarp, Feebas | — |
+| 1 | Wooper, Lotad, Marill, Surskit, Wingull, Barboach, Spheal, Horsea, Poliwag, Remoraid, Shellder, Carvanha, Corphish, Mudkip, Squirtle, Totodile, Piplup, Slowpoke, Psyduck, Goldeen, Seel, Krabby, Shellos, Chinchou, Luvdisc, Buizel, Finneon, Tentacool, Staryu, Lombre, Clamperl | Bidoof |
+| 2 | Omanyte, Kabuto, Corsola, Poliwhirl, Wailmer, Wartortle, Croconaw, Marshtomp, Prinplup, Azumarill, Sealeo, Bibarel | — |
+| 3 | Quagsire, Qwilfish, Pelipper, Seadra, Seaking, Lanturn, Sharpedo, Lumineon, Mantine, Whiscash, Crawdaunt, Dewgong, Kingler, Gastrodon, Octillery, Ludicolo, Phione, Huntail, Gorebyss, Relicanth | — |
+| 4 | Slowbro, Slowking, Omastar, Kabutops, Floatzel, Golduck, Poliwrath, Politoed, Wailord, Tentacruel, Starmie, Cloyster, Vaporeon, Blastoise, Feraligatr, Walrein, Empoleon | — |
+| 5 | Lapras, Swampert, Gyarados, Kingdra, Milotic, Suicune, Manaphy, Kyogre, Palkia | — |
+
+##### Brendan (Final Rival) · signature lines (`gen3:rival-brendan`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | — | — |
+| 1 | Ralts, Lotad, Zigzagoon, Zubat, Wingull, Kirlia, Slakoth, Trapinch, Spheal, Electrike, Bagon, Abra, Treecko, Torchic, Mudkip, Aron, Lombre, Vibrava | — |
+| 2 | Kadabra, Grovyle, Combusken, Marshtomp, Sealeo, Linoone, Shelgon | — |
+| 3 | Pelipper, Lairon, Vigoroth, Golbat, Manectric, Ludicolo | — |
+| 4 | Alakazam, Gardevoir, Flygon, Sceptile, Blaziken, Aggron, Walrein | — |
+| 5 | Crobat, Swampert, Salamence, Slaking | — |
+
+##### May (Final Rival) · signature lines (`gen3:rival-may`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | Feebas | — |
+| 1 | Ralts, Skitty, Taillow, Kirlia, Trapinch, Spheal, Bagon, Numel, Treecko, Torchic, Mudkip, Swablu, Chinchou, Vibrava | — |
+| 2 | Delcatty, Roselia, Grovyle, Combusken, Marshtomp, Sealeo, Shelgon | — |
+| 3 | Swellow, Lanturn, Camerupt, Absol | — |
+| 4 | Altaria, Roserade, Gardevoir, Flygon, Sceptile, Blaziken, Walrein | — |
+| 5 | Swampert, Milotic, Salamence | — |
+
+#### Team pools — Gen 4 (Sinnoh)
+
+##### Gym Leader Roark · Rock (`gen4:roark`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | — | — |
+| 1 | Geodude, Larvitar, Aron, Rhyhorn | Slugma |
+| 2 | Cranidos, Shieldon, Omanyte, Kabuto, Lileep, Anorith, Nosepass, Corsola, Onix, Graveler, Sudowoodo, Magcargo, Pupitar | — |
+| 3 | Lairon, Lunatone, Solrock, Golem, Rhydon, Relicanth | — |
+| 4 | Omastar, Kabutops, Cradily, Armaldo, Rampardos, Bastiodon, Shuckle, Aerodactyl, Probopass, Aggron | — |
+| 5 | Rhyperior, Regirock, Tyranitar | — |
+
+##### Gym Leader Gardenia · Grass (`gen4:gardenia`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | — | Burmy |
+| 1 | Sunkern, Lotad, Seedot, Hoppip, Cherubi, Paras, Shroomish, Bellsprout, Treecko, Bulbasaur, Chikorita, Turtwig, Oddish, Exeggcute, Snover, Cacnea, Skiploom, Lombre, Nuzleaf | — |
+| 2 | Lileep, Weepinbell, Gloom, Roselia, Ivysaur, Parasect, Bayleef, Grovyle, Grotle, Wormadam, Sunflora | — |
+| 3 | Tangela, Jumpluff, Cherrim, Carnivine, Breloom, Tropius, Cacturne, Vileplume, Victreebel, Bellossom, Ludicolo, Shiftry | — |
+| 4 | Abomasnow, Cradily, Roserade, Exeggutor, Venusaur, Meganium, Torterra, Leafeon, Sceptile | — |
+| 5 | Tangrowth, Celebi, Shaymin | — |
+
+##### Gym Leader Fantina · Ghost (`gen4:fantina`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | Shedinja | — |
+| 1 | Shuppet, Duskull, Gastly, Drifloon | Zubat, Nincada, Ekans, Snorunt |
+| 2 | Sableye, Haunter | — |
+| 3 | Misdreavus, Rotom, Banette, Dusclops, Froslass, Spiritomb | Arbok, Golbat |
+| 4 | Mismagius, Drifblim, Gengar, Dusknoir | — |
+| 5 | Giratina | Crobat |
+
+##### Gym Leader Maylene · Fighting (`gen4:maylene`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | — | — |
+| 1 | Makuhita, Meditite, Croagunk, Mankey, Machop | Ralts, Kirlia, Shroomish, Poliwag, Chimchar, Torchic |
+| 2 | Machoke, Combusken, Monferno, Medicham | Poliwhirl |
+| 3 | Primeape, Hitmonlee, Hitmonchan, Hitmontop, Breloom, Hariyama | — |
+| 4 | Toxicroak, Poliwrath, Heracross, Machamp, Gallade, Lucario, Blaziken, Infernape | — |
+| 5 | — | — |
+
+##### Gym Leader Crasher Wake · Water (`gen4:crasher-wake`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | Magikarp, Feebas | — |
+| 1 | Wooper, Lotad, Marill, Surskit, Wingull, Barboach, Spheal, Horsea, Poliwag, Remoraid, Shellder, Carvanha, Corphish, Mudkip, Squirtle, Totodile, Piplup, Slowpoke, Psyduck, Goldeen, Seel, Krabby, Shellos, Chinchou, Luvdisc, Buizel, Finneon, Tentacool, Staryu, Lombre, Clamperl | Bidoof |
+| 2 | Omanyte, Kabuto, Corsola, Poliwhirl, Wailmer, Wartortle, Croconaw, Marshtomp, Prinplup, Azumarill, Sealeo, Bibarel | — |
+| 3 | Quagsire, Qwilfish, Pelipper, Seadra, Seaking, Lanturn, Sharpedo, Lumineon, Mantine, Whiscash, Crawdaunt, Dewgong, Kingler, Gastrodon, Octillery, Ludicolo, Phione, Huntail, Gorebyss, Relicanth | — |
+| 4 | Slowbro, Slowking, Omastar, Kabutops, Floatzel, Golduck, Poliwrath, Politoed, Wailord, Tentacruel, Starmie, Cloyster, Vaporeon, Blastoise, Feraligatr, Walrein, Empoleon | — |
+| 5 | Lapras, Swampert, Gyarados, Kingdra, Milotic, Suicune, Manaphy, Kyogre, Palkia | — |
+
+##### Gym Leader Byron · Steel (`gen4:byron`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | — | — |
+| 1 | Beldum, Bronzor, Magnemite, Aron | Pineco, Piplup |
+| 2 | Shieldon, Mawile, Metang | Nosepass, Onix, Prinplup |
+| 3 | Lairon, Magneton, Forretress, Skarmory | — |
+| 4 | Bastiodon, Scizor, Bronzong, Steelix, Lucario, Probopass, Aggron, Empoleon | Scyther |
+| 5 | Magnezone, Registeel, Metagross, Jirachi, Heatran, Dialga | — |
+
+##### Gym Leader Candice · Ice (`gen4:candice`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | — | — |
+| 1 | Swinub, Spheal, Snorunt, Delibird, Snover | Meditite, Shellder, Slowpoke, Seel |
+| 2 | Sealeo | Medicham |
+| 3 | Sneasel, Piloswine, Jynx, Dewgong, Glalie, Froslass | — |
+| 4 | Abomasnow, Weavile, Cloyster, Glaceon, Walrein, Mamoswine | Slowbro |
+| 5 | Lapras, Articuno, Regice | — |
+
+##### Gym Leader Volkner · Electric (`gen4:volkner`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | — | — |
+| 1 | Shinx, Mareep, Electrike, Pikachu, Magnemite, Voltorb, Chinchou | Remoraid |
+| 2 | Luxio, Flaaffy, Plusle, Minun, Pachirisu | Porygon |
+| 3 | Rotom, Lanturn, Magneton, Raichu, Manectric, Electrode | Octillery |
+| 4 | Electabuzz, Ampharos, Luxray, Jolteon | Porygon2 |
+| 5 | Magnezone, Electivire, Zapdos, Raikou | Porygon-Z |
+
+##### Elite Four Aaron · Bug (`gen4:aaron`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | Kricketot, Caterpie, Weedle, Wurmple, Metapod, Kakuna, Silcoon, Cascoon, Burmy, Shedinja | — |
+| 1 | Combee, Spinarak, Ledyba, Nincada, Surskit, Paras, Pineco, Venonat, Skorupi | Oddish, Cacnea |
+| 2 | Anorith, Kricketune, Butterfree, Beedrill, Beautifly, Dustox, Ledian, Ariados, Yanma, Volbeat, Illumise, Parasect, Masquerain, Wormadam, Mothim | Gloom |
+| 3 | Venomoth, Ninjask, Forretress, Vespiquen | Cacturne, Vileplume |
+| 4 | Armaldo, Scyther, Pinsir, Scizor, Heracross, Shuckle, Yanmega | — |
+| 5 | — | — |
+
+##### Elite Four Bertha · Ground (`gen4:bertha`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | — | — |
+| 1 | Wooper, Swinub, Diglett, Nincada, Barboach, Trapinch, Sandshrew, Geodude, Larvitar, Baltoy, Gible, Numel, Cubone, Phanpy, Hippopotas, Vibrava, Rhyhorn | Nidoran♂, Nidoran♀, Mudkip, Turtwig, Shellos |
+| 2 | Onix, Graveler, Dugtrio, Marshtomp, Pupitar, Gabite, Marowak | Nidorina, Nidorino, Grotle |
+| 3 | Quagsire, Gligar, Sandslash, Piloswine, Camerupt, Whiscash, Gastrodon, Golem, Rhydon | — |
+| 4 | Nidoqueen, Nidoking, Donphan, Claydol, Steelix, Gliscor, Flygon, Torterra, Hippowdon, Mamoswine | — |
+| 5 | Swampert, Rhyperior, Garchomp, Groudon | — |
+
+##### Elite Four Flint · Fire (`gen4:flint`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | — | — |
+| 1 | Slugma, Vulpix, Numel, Charmander, Cyndaquil, Chimchar, Torchic, Houndour | — |
+| 2 | Growlithe, Charmeleon, Quilava, Combusken, Monferno, Ponyta, Magcargo | — |
+| 3 | Camerupt, Torkoal | — |
+| 4 | Magmar, Rapidash, Houndoom, Ninetales, Flareon, Blaziken, Charizard, Typhlosion, Infernape | — |
+| 5 | Magmortar, Arcanine, Moltres, Entei, Heatran, Ho-Oh | — |
+
+##### Elite Four Lucian · Psychic (`gen4:lucian`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | Unown | — |
+| 1 | Ralts, Kirlia, Meditite, Baltoy, Beldum, Bronzor, Abra, Slowpoke, Natu, Exeggcute, Drowzee, Spoink | Venonat, Staryu |
+| 2 | Kadabra, Wobbuffet, Medicham, Metang, Chimecho | — |
+| 3 | Lunatone, Solrock, Jynx, Girafarig, Mr. Mime, Xatu, Grumpig, Hypno | Venomoth |
+| 4 | Alakazam, Slowbro, Slowking, Claydol, Bronzong, Gardevoir, Gallade, Exeggutor, Starmie, Espeon | — |
+| 5 | Uxie, Mesprit, Azelf, Mew, Celebi, Metagross, Latias, Latios, Jirachi, Deoxys, Cresselia, Mewtwo, Lugia | — |
+
+##### Champion Cynthia · signature lines (`gen4:cynthia`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | Feebas | — |
+| 1 | Ralts, Kirlia, Dratini, Gible, Gastly, Eevee, Shellos | — |
+| 2 | Roselia, Haunter, Togetic, Gabite, Dragonair | — |
+| 3 | Sneasel, Gastrodon, Spiritomb | — |
+| 4 | Gengar, Roserade, Weavile, Gallade, Lucario, Leafeon | — |
+| 5 | Milotic, Togekiss, Dragonite, Garchomp | — |
+
+##### Dawn (Final Rival) · signature lines (`gen4:rival-dawn`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | — | — |
+| 1 | Ralts, Starly, Kirlia, Chimchar, Piplup, Turtwig, Eevee, Houndour, Staravia | — |
+| 2 | Buneary, Aipom, Roselia, Togetic, Grotle, Monferno, Prinplup | — |
+| 3 | Staraptor, Lopunny, Ambipom | — |
+| 4 | Houndoom, Roserade, Gardevoir, Vaporeon, Torterra, Lucario, Empoleon, Infernape | — |
+| 5 | Togekiss | — |
+
+##### Lucas (Final Rival) · signature lines (`gen4:rival-lucas`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | — | — |
+| 1 | Ralts, Starly, Shinx, Kirlia, Gible, Chimchar, Piplup, Turtwig, Magnemite, Buizel, Staravia | — |
+| 2 | Aipom, Luxio, Roselia, Grotle, Monferno, Prinplup, Gabite | — |
+| 3 | Magneton, Staraptor, Ambipom | — |
+| 4 | Floatzel, Heracross, Roserade, Gallade, Luxray, Torterra, Empoleon, Infernape | — |
+| 5 | Magnezone, Garchomp | — |
+
+##### Barry (Final Rival) · signature lines (`gen4:rival-barry`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | — | — |
+| 1 | Starly, Gible, Chimchar, Abra, Piplup, Turtwig, Buizel, Staravia | — |
+| 2 | Aipom, Kadabra, Roselia, Grotle, Monferno, Prinplup, Ponyta, Gabite | — |
+| 3 | Staraptor, Ambipom | — |
+| 4 | Alakazam, Floatzel, Rapidash, Heracross, Roserade, Torterra, Empoleon, Infernape | — |
+| 5 | Snorlax, Garchomp | — |
 
 ### Leader data (planned format)
 Each opponent is defined in a data file with: name, title, gen, order, level, badge/sprite, and a list of **team sets**. Each set has a name, strategy notes, and its Pokémon (species, nature, ability, held item, moves).
@@ -917,3 +1429,4 @@ All Rock-type lines up to Gen 4. Slugma (Fire) and Steelix (Steel/Ground) are in
 - **v0.2.1 · October 13, 2026:** Dialogs fit their content (the details window is as tall as its tallest tab, so nothing is cut off or jumps). Abilities tab shows every ability with its full description. Switch-in summary uses the free space. The empty battle menu no longer shows "…".
 - **v0.2.2 · October 13, 2026:** iOS Safari: controls no longer sit in the bottom-edge strip where the first tap only brought the toolbar back (page, sticky confirm bar and dialogs stop ~56 px above the edge). Could not be tested on a real iPhone.
 - **v0.3.0 · October 13, 2026:** All 23 moves that did nothing are implemented (Disable, Mimic, Mirror Move, Transform, Conversion, Sketch, Conversion 2, Spite, Assist, Ingrain, Magic Coat, Recycle, Imprison, Grudge, Snatch, Camouflage, Mud Sport, Water Sport, Gravity, Psycho Shift, Power Trick, Me First, Copycat); rules in §7. Sketch is permanent for the run. Camouflage uses the arena type. The AI knows when to use them. 23 new engine tests.
+- **v0.3.1 · October 14, 2026:** Smeargle now has 4 Sketch slots (recruits and opponents). Team pools for **all four gens**: Johto, Hoenn and Sinnoh trainers use their specialty type plus a few canon or fitting filler Pokémon (shown in each table's Filler column), the same rules as Kanto. Typeless trainers (Silver, Gold, Brendan, May, Cynthia, Barry, Dawn, Lucas) use signature lines.

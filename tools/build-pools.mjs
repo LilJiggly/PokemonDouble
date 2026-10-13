@@ -31,27 +31,70 @@ const DEAD_WEIGHT = new Set(["magikarp", "feebas", "caterpie", "metapod", "weedl
   "silcoon", "cascoon", "kricketot", "burmy", "unown", "shedinja"]);
 const groupOf = (p) => DEAD_WEIGHT.has(p.key) ? 0 : CUTOFFS.findLastIndex((min) => p.bst >= min) + 1;
 
-// Trainers without a type: signature species (their earlier stages are added)
+// Trainers without a type: signature species (their earlier stages are added). Keys: "<gen>:<id>"
 const SIGNATURE = {
-  blue: "Pidgeot, Alakazam, Rhyperior, Exeggutor, Gyarados, Arcanine, Machamp, Charizard, Blastoise, Venusaur, Tyranitar, Heracross, Aerodactyl, Jolteon",
-  "rival-red": "Raichu, Espeon, Snorlax, Venusaur, Charizard, Blastoise, Lapras, Aerodactyl, Gengar, Dragonite",
-  "rival-green": "Clefable, Starmie, Ninetales, Victreebel, Nidoqueen, Vaporeon, Wigglytuff, Venusaur, Charizard, Blastoise, Kangaskhan, Gardevoir",
+  "1:blue": "Pidgeot, Alakazam, Rhyperior, Exeggutor, Gyarados, Arcanine, Machamp, Charizard, Blastoise, Venusaur, Tyranitar, Heracross, Aerodactyl, Jolteon",
+  "1:rival-red": "Raichu, Espeon, Snorlax, Venusaur, Charizard, Blastoise, Lapras, Aerodactyl, Gengar, Dragonite",
+  "1:rival-green": "Clefable, Starmie, Ninetales, Victreebel, Nidoqueen, Vaporeon, Wigglytuff, Venusaur, Charizard, Blastoise, Kangaskhan, Gardevoir",
+  "2:rival-silver": "Crobat, Honchkrow, Weavile, Magnezone, Alakazam, Gengar, Weezing, Kingdra, Feraligatr, Meganium, Typhlosion, Houndoom",
+  "2:rival-gold": "Typhlosion, Feraligatr, Meganium, Ampharos, Espeon, Umbreon, Snorlax, Togekiss, Sudowoodo, Lapras, Raichu, Tauros, Dragonite, Gengar, Scizor",
+  "3:rival-brendan": "Swampert, Sceptile, Blaziken, Slaking, Aggron, Manectric, Gardevoir, Flygon, Crobat, Pelipper, Ludicolo, Linoone, Alakazam, Walrein, Salamence",
+  "3:rival-may": "Blaziken, Sceptile, Swampert, Gardevoir, Altaria, Absol, Lanturn, Camerupt, Roserade, Flygon, Delcatty, Swellow, Milotic, Walrein, Salamence",
+  "4:cynthia": "Spiritomb, Roserade, Togekiss, Lucario, Milotic, Garchomp, Gastrodon, Gallade, Weavile, Dragonite, Gengar, Leafeon",
+  "4:rival-barry": "Staraptor, Infernape, Empoleon, Torterra, Heracross, Alakazam, Snorlax, Floatzel, Rapidash, Roserade, Garchomp, Ambipom",
+  "4:rival-dawn": "Staraptor, Empoleon, Infernape, Torterra, Togekiss, Gardevoir, Lucario, Ambipom, Vaporeon, Houndoom, Roserade, Lopunny",
+  "4:rival-lucas": "Staraptor, Torterra, Infernape, Empoleon, Gallade, Garchomp, Heracross, Luxray, Floatzel, Ambipom, Roserade, Magnezone",
 };
-SIGNATURE["rival-blue"] = SIGNATURE.blue;
+SIGNATURE["1:rival-blue"] = SIGNATURE["1:blue"];
 
 // Filler: species outside the trainer's type (their earlier stages are added).
-// Mostly the trainer's picks from the original games. Shown in their own column.
+// Mostly the trainer's picks from the original games, to thicken thin pools. Keys: "<gen>:<id>"
 const FILLER = {
-  brock: "Steelix",
-  "lt-surge": "Porygon-Z, Skarmory, Bronzong",
-  erika: "Butterfree, Beautifly",
-  koga: "Forretress, Ninjask",
-  sabrina: "Venomoth",
-  giovanni: "Persian, Kangaskhan",
-  lorelei: "Slowbro, Slowking",
-  bruno: "Steelix",
-  agatha: "Arbok, Crobat",
-  lance: "Gyarados, Charizard, Aerodactyl",
+  "1:brock": "Steelix",
+  "1:lt-surge": "Porygon-Z, Skarmory, Bronzong",
+  "1:erika": "Butterfree, Beautifly",
+  "1:koga": "Forretress, Ninjask",
+  "1:sabrina": "Venomoth",
+  "1:giovanni": "Persian, Kangaskhan",
+  "1:lorelei": "Slowbro, Slowking",
+  "1:bruno": "Steelix",
+  "1:agatha": "Arbok, Crobat",
+  "1:lance": "Gyarados, Charizard, Aerodactyl",
+
+  "2:falkner": "Delibird, Skarmory",
+  "2:bugsy": "Kabutops",
+  "2:whitney": "Blissey",
+  "2:morty": "Arbok, Crobat",
+  "2:chuck": "Hariyama",
+  "2:jasmine": "Skarmory, Forretress",
+  "2:pryce": "Slowbro, Slowking",
+  "2:clair": "Gyarados, Charizard, Aerodactyl",
+  "2:will": "Slowbro, Slowking, Bronzong",
+  "2:koga": "Forretress, Ninjask",
+  "2:bruno": "Steelix, Onix",
+  "2:karen": "Vileplume, Cacturne",
+  "2:lance": "Gyarados, Charizard, Aerodactyl",
+
+  "3:wattson": "Porygon-Z, Skarmory, Bronzong",
+  "3:flannery": "Castform",
+  "3:norman": "Chansey",
+  "3:winona": "Skarmory, Dragonite",
+  "3:tate-and-liza": "Venomoth, Bronzong",
+  "3:juan": "Slowbro, Slowking",
+  "3:sidney": "Shiftry, Cacturne",
+  "3:phoebe": "Arbok, Crobat",
+  "3:glacia": "Slowbro, Slowking",
+  "3:drake": "Gyarados, Charizard, Aerodactyl",
+
+  "4:fantina": "Arbok, Crobat",
+  "4:maylene": "Hariyama, Lucario",
+  "4:byron": "Skarmory, Forretress",
+  "4:candice": "Medicham, Slowbro",
+  "4:volkner": "Porygon-Z, Octillery",
+  "4:aaron": "Vileplume, Cacturne",
+  "4:bertha": "Steelix, Quagsire",
+  "4:flint": "Camerupt",
+  "4:lucian": "Venomoth, Bronzong",
 };
 
 // Legendaries and Mythicals are allowed (level gating keeps them late); babies are not
@@ -85,10 +128,10 @@ for (const t of trainers) {
     pool = list.filter((p) => usable(p) && p.types.includes(t.theme));
     // Filler = hand picks + earlier stages of type species that aren't the type themselves (Shellder → Cloyster)
     const inPool = new Set(pool);
-    filler = [...new Set([...withEarlierStages(FILLER[t.id] ?? ""), ...withEarlierStages(pool.map((p) => p.name).join(","))])]
+    filler = [...new Set([...withEarlierStages(FILLER[`${gen}:${t.id}`] ?? ""), ...withEarlierStages(pool.map((p) => p.name).join(","))])]
       .filter((p) => !inPool.has(p) && p.key !== "eevee"); // Eevee: branched Normal line, not a real pre-evo
   } else {
-    pool = withEarlierStages(SIGNATURE[t.id] ?? "");
+    pool = withEarlierStages(SIGNATURE[`${gen}:${t.id}`] ?? "");
     filler = [];
   }
   const label = t.theme ? TYPE_NAMES[t.theme] ?? cap(t.theme) : "signature lines";

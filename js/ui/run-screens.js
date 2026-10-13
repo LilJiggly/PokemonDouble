@@ -297,7 +297,7 @@ export class RunUI {
 
   // opts.keyPrefix: gives each card a stable key (used to keep opened descriptions open)
   moveGrid(moves, opts = {}) {
-    return `<div class="move-cards">${moves.map((id) => this.moveCard(id, { ...opts, key: opts.keyPrefix ? `${opts.keyPrefix}:${id}` : "" })).join("")}</div>`;
+    return `<div class="move-cards">${moves.map((id, i) => this.moveCard(id, { ...opts, key: opts.keyPrefix ? `${opts.keyPrefix}:${i}:${id}` : "" })).join("")}</div>`;
   }
 
   // "Pebbles ♂ (Geodude)": nickname first, species in small text
