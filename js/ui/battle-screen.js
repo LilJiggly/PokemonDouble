@@ -8,6 +8,8 @@
 
 import { chooseTurn, chooseSwitches } from "../engine/ai.js";
 import { alignSprite, hovers } from "./sprite-align.js";
+import { itemInfo } from "../game/item-catalog.js";
+import { NATURES, STAT_NAMES } from "../engine/constants.js";
 
 const PLAYER = 0;
 const FOE = 1;
@@ -337,6 +339,14 @@ export class BattleScreen {
         this.placeMon(e.side, e.slot, e.teamIndex, e.hp, e.maxHp);
         await this.animateSprite(e.side, e.slot, "enter", 450);
         return this.say(e.text);
+      case "transform": {
+        // The Pokémon looks like its target until it leaves the field
+        const img = this.sprite(e.side, e.slot);
+        const sprites = this.data.pokemonByKey[e.species].sprites;
+        img.src = e.side === PLAYER ? (e.shiny ? sprites.backShiny : sprites.back) : (e.shiny ? sprites.frontShiny : sprites.front);
+        alignSprite(img, { hover: hovers(this.data.pokemonByKey[e.species]) });
+        return this.say(e.text);
+      }
       case "switchOut":
         await this.say(e.text);
         await this.animateSprite(e.side, e.slot, "leave", 300);
@@ -394,7 +404,7 @@ export class BattleScreen {
   }
 
   showWaiting() {
-    this.setMenu(`<div class="panel result"><p>…</p></div>`);
+    this.setMenu(`<div class="panel result"></div>`);
   }
 
   // Ask each of the player's active Pokémon what to do (with Back between them)
@@ -460,7 +470,7 @@ export class BattleScreen {
         }
         if (cmd === "party") {
           const options = slotReq.switchOptions.filter((t) => !takenSwitches.includes(t));
-          const teamIndex = await this.partyMenu({ title: `Switch ${mon.name} with…`, options, canCancel: true });
+          const teamIndex = await this.partyMenu({ title: `Switch ${mon.name} with…`, options, canCancel: true, summary: true });
           resolve(teamIndex === null ? await this.commandMenu(slotReq, canGoBack, takenSwitches, reserved)
             : { slot: slotReq.slot, type: "switch", teamIndex });
         }
@@ -581,35 +591,90 @@ export class BattleScreen {
     return { slot: slotReq.slot, type: "item", item, teamIndex };
   }
 
-  // Pick a team member. Returns teamIndex or null (cancelled).
-  // All six fit on one screen: 2 columns × 3 rows.
-  partyMenu({ title, options, canCancel }) {
+  // Pick a team member. Returns teamIndex or null (cancelled). All six fit: 2 columns × 3 rows.
+  // summary: tapping a Pokémon first shows everything about it (HP, ability, item, stats, moves
+  // with PP) with a "Send out" button, so you can decide before switching. Works for Pokémon
+  // that can't be picked too (in battle, fainted): the button then says why.
+  partyMenu({ title, options, canCancel, summary = false }) {
     const side = this.battle.state.sides[PLAYER];
+    const hpClass = (m) => { const pct = m.hp / m.maxHp; return pct <= 0.2 ? "red" : pct <= 0.5 ? "yellow" : ""; };
+    const spriteOf = (m) => this.data.pokemonByKey[m.species].sprites[m.shiny ? "frontShiny" : "front"];
     return new Promise((resolve) => {
-      const cards = side.team.map((m) => {
-        const active = side.active.includes(m.teamIndex);
-        const selectable = options.includes(m.teamIndex);
-        const pct = m.hp / m.maxHp;
-        const color = pct <= 0.2 ? "red" : pct <= 0.5 ? "yellow" : "";
-        const img = this.data.pokemonByKey[m.species].sprites[m.shiny ? "frontShiny" : "front"];
-        return `<button class="btn party-card ${m.fainted ? "fainted" : active ? "active-mon" : ""}" data-team="${m.teamIndex}" ${selectable ? "" : "disabled"}>
-          <img src="${img}" alt="">
-          <span class="pname">${m.name} <span class="pinfo">Lv${m.level}</span></span>
-          <span class="hpbar"><i class="${color}" style="width:${pct * 100}%"></i></span>
-          <span class="pinfo">${m.fainted ? "Fainted" : `${m.hp}/${m.maxHp} HP`}${m.status ? ` · ${m.status.toUpperCase()}` : ""}${active ? " · In battle" : ""}</span>
-        </button>`;
-      }).join("");
-      const menu = this.setMenu(`
-        <div class="menu-title">${title}</div>
-        <div class="party-grid">${cards}</div>
-        ${canCancel ? `<div class="menu-footer"><button class="btn" data-back>◀ Back</button></div>` : ""}`);
-      menu.onclick = (ev) => {
-        const btn = ev.target.closest("button");
-        if (!btn || btn.disabled) return;
-        if (btn.hasAttribute("data-back")) { resolve(null); return; }
-        resolve(Number(btn.dataset.team));
+      const grid = () => {
+        const cards = side.team.map((m) => {
+          const active = side.active.includes(m.teamIndex);
+          const selectable = options.includes(m.teamIndex);
+          const pct = m.hp / m.maxHp;
+          return `<button class="btn party-card ${m.fainted ? "fainted" : active ? "active-mon" : ""} ${summary && !selectable ? "unavailable" : ""}" data-team="${m.teamIndex}" ${selectable || summary ? "" : "disabled"}>
+            <img src="${spriteOf(m)}" alt="">
+            <span class="pname">${m.name} <span class="pinfo">Lv${m.level}</span></span>
+            <span class="hpbar"><i class="${hpClass(m)}" style="width:${pct * 100}%"></i></span>
+            <span class="pinfo">${m.fainted ? "Fainted" : `${m.hp}/${m.maxHp} HP`}${m.status ? ` · ${m.status.toUpperCase()}` : ""}${active ? " · In battle" : ""}</span>
+          </button>`;
+        }).join("");
+        const menu = this.setMenu(`
+          <div class="menu-title">${title}${summary ? ` <small>· tap one for details</small>` : ""}</div>
+          <div class="party-grid">${cards}</div>
+          ${canCancel ? `<div class="menu-footer"><button class="btn" data-back>◀ Back</button></div>` : ""}`);
+        menu.onclick = (ev) => {
+          const btn = ev.target.closest("button");
+          if (!btn || btn.disabled) return;
+          if (btn.hasAttribute("data-back")) { resolve(null); return; }
+          const teamIndex = Number(btn.dataset.team);
+          if (summary) details(side.team[teamIndex]);
+          else resolve(teamIndex);
+        };
+        menu.querySelector(".party-card:not(:disabled):not(.unavailable)")?.focus();
       };
-      menu.querySelector(".party-card:not(:disabled)")?.focus();
+
+      const details = (m) => {
+        const species = this.data.pokemonByKey[m.species];
+        const ability = this.data.abilities[m.ability];
+        const [up, down] = NATURES[m.nature] ?? [];
+        const active = side.active.includes(m.teamIndex);
+        const canSend = options.includes(m.teamIndex);
+        const why = m.fainted ? "Fainted" : active ? "Already in battle" : "Can't switch in";
+        const gender = m.gender ? `<span class="gender ${m.gender}">${m.gender === "M" ? "♂" : "♀"}</span>` : "";
+        const SHORT = { atk: "Atk", def: "Def", spa: "SpA", spd: "SpD", spe: "Spe" };
+        const stat = (k) => `<span class="${k === up ? "up" : k === down ? "down" : ""}" title="${STAT_NAMES[k]}"><small>${SHORT[k]}</small>${m.stats[k]}</span>`;
+        const moves = m.moves.map((mv) => {
+          const info = this.data.moves[mv.id];
+          return `<div class="sum-move" style="--type: var(--t-${info.type})" title="${info.shortEffect ?? ""}">
+            <b>${info.name}</b>
+            <span>${info.type} · ${CATEGORY_LABEL[info.category]}</span>
+            <span>Pow ${info.power ?? "—"} · Acc ${info.accuracy ?? "—"} · PP ${mv.pp}/${mv.maxPp}</span>
+          </div>`;
+        }).join("");
+        const menu = this.setMenu(`
+          <div class="sum">
+            <div class="sum-top">
+              <img src="${spriteOf(m)}" alt="">
+              <div class="sum-info">
+                <div class="sum-name"><b>${m.name}</b>${gender} <span class="pinfo">Lv${m.level}</span>
+                  ${m.types.map((t) => `<span class="sum-type" style="background: var(--t-${t})">${t}</span>`).join("")}</div>
+                <div class="sum-hp"><span class="hpbar"><i class="${hpClass(m)}" style="width:${(m.hp / m.maxHp) * 100}%"></i></span>
+                  <span class="pinfo">${m.fainted ? "Fainted" : `${m.hp}/${m.maxHp}`}${m.status ? ` ${m.status.toUpperCase()}` : ""}</span></div>
+                <div class="pinfo sum-ability"><b>${ability?.name ?? m.ability}</b>${species.abilities.hidden === m.ability ? " (HA)" : ""}: ${ability?.shortEffect ?? ""}</div>
+                <div class="pinfo">Item: <b>${m.item ? itemInfo(m.item).name : "none"}</b> · ${m.nature[0].toUpperCase()}${m.nature.slice(1)}</div>
+              </div>
+            </div>
+            <div class="sum-stats">${["atk", "def", "spa", "spd", "spe"].map(stat).join("")}</div>
+            <div class="sum-moves">${moves}</div>
+          </div>
+          <div class="menu-footer">
+            <button class="btn" data-back>◀ Back</button>
+            <button class="btn primary" data-send ${canSend ? "" : "disabled"}>${canSend ? "Send out" : why}</button>
+          </div>`);
+        menu.onclick = (ev) => {
+          const btn = ev.target.closest("button");
+          if (!btn || btn.disabled) return;
+          if (btn.hasAttribute("data-back")) { grid(); return; }
+          if (btn.hasAttribute("data-send")) resolve(m.teamIndex);
+        };
+        menu.querySelector("[data-send]:not(:disabled)")?.focus();
+      };
+
+      grid();
     });
   }
 
@@ -617,7 +682,7 @@ export class BattleScreen {
     const picks = [];
     for (const { slot } of req.slots) {
       const options = req.options.filter((t) => !picks.some((p) => p.teamIndex === t));
-      const teamIndex = await this.partyMenu({ title: "Choose a Pokémon to send out", options, canCancel: false });
+      const teamIndex = await this.partyMenu({ title: "Choose a Pokémon to send out", options, canCancel: false, summary: true });
       picks.push({ slot, teamIndex });
     }
     return picks;

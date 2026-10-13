@@ -105,6 +105,16 @@ export function parseRules(markdown, data) {
     else if (rule.includes("reroll")) money.reroll = n;
   }
 
+  // §3h shop sections: how many items each section sells
+  const shopStock = { items: 4, berries: 3, medicine: 3, battle: 2, key: 2, tms: 3 };
+  for (const row of readTableAfter(markdown, "### 3h.", "| Shop section")) {
+    const name = clean(row["Shop section"]).toLowerCase();
+    const n = firstNumber(row["Items for sale"]);
+    const id = name.includes("berr") ? "berries" : name.includes("medic") ? "medicine" : name.includes("battle") ? "battle"
+      : name.includes("key") ? "key" : name.includes("tm") ? "tms" : name.includes("item") ? "items" : null;
+    if (id && n !== null) shopStock[id] = n;
+  }
+
   // §3i Trainer Points and upgrades
   const tp = { gym: 1, elite: 2, champion: 3, hallOfFame: 5 };
   const upgrades = [];
@@ -161,6 +171,7 @@ export function parseRules(markdown, data) {
   }
 
   return {
+    shopStock,
     teamPools,
     poolGroups,
     minChoice,

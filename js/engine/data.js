@@ -8,6 +8,8 @@
 export function prepareData({ pokemon, moves, abilities }) {
   const movesWithKeys = {};
   for (const [key, move] of Object.entries(moves)) movesWithKeys[key] = { ...move, key };
+  // PokeAPI lists Conversion 2 as aimed at a Pokémon, but it only changes the user's type
+  if (movesWithKeys["conversion-2"]) movesWithKeys["conversion-2"].target = "user";
   return {
     pokemon,
     pokemonByKey: Object.fromEntries(pokemon.map((p) => [p.key, p])),

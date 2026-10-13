@@ -69,3 +69,33 @@ export function makesContact(move) {
   if (move.category === "special") return CONTACT_SPECIAL.has(move.key);
   return false;
 }
+
+// ---------------------------------------------------------------
+// Moves that copy or call other moves (Gen 4 rules, simplified)
+// ---------------------------------------------------------------
+
+// Assist and Copycat can't call these
+export const CALL_BANNED = set(`
+  assist chatter copycat counter covet destiny-bond detect endure feint focus-punch follow-me helping-hand
+  me-first metronome mimic mirror-coat mirror-move protect sketch sleep-talk snatch struggle switcheroo thief
+  transform trick
+`);
+export const MIMIC_BANNED = set("chatter metronome mimic sketch struggle transform");
+export const SKETCH_BANNED = set("chatter sketch struggle");
+export const ME_FIRST_BANNED = set("chatter counter covet focus-punch me-first metronome mirror-coat struggle thief");
+// Mirror Move only copies moves aimed at other Pokémon
+export const MIRRORABLE_TARGETS = set("selected-pokemon selected-pokemon-me-first all-opponents all-other-pokemon random-opponent");
+
+// Can't be used while Gravity is active
+export const GRAVITY_BANNED = set("fly bounce jump-kick hi-jump-kick magnet-rise splash");
+
+// Magic Coat bounces status moves aimed at the user's side, except these
+export const REFLECT_TARGETS = set("selected-pokemon selected-pokemon-me-first all-opponents random-opponent");
+export const REFLECT_BANNED = set(`
+  psych-up role-play skill-swap transform mimic sketch guard-swap power-swap heart-swap pain-split
+  perish-song conversion-2 mirror-move me-first
+`);
+
+// Snatch steals these kinds of status moves (aimed at the user or its side)
+export const SNATCH_TARGETS = set("user users-field user-and-allies");
+export const SNATCH_BANNED = set("snatch baton-pass copycat assist metronome sleep-talk conversion-2 splash teleport");

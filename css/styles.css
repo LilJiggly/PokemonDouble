@@ -655,6 +655,38 @@ button { touch-action: manipulation; }
 .party-card .pinfo { font-size: 2.4cqw; color: var(--ink-soft); }
 .party-card.active-mon { background: #e8f0d0; }
 .party-card.fainted { background: #e8c8c0; }
+.party-card.unavailable { opacity: 0.7; }
+.menu-title small { font-family: var(--font-info); font-size-adjust: 0.62; opacity: 0.75; }
+
+/* Switch-in summary: everything about a Pokémon before you send it out */
+.menu:has(.sum) { gap: 1.4cqw; padding: 2.4cqw; }
+.sum { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 1.4cqw; }
+.sum-top { display: grid; grid-template-columns: 20cqw 1fr; gap: 2cqw; align-items: center; padding: 1.6cqw 2cqw; background: rgba(0, 0, 0, 0.22); border-radius: 1.4cqw; }
+.sum-top img { width: 20cqw; }
+.sum-info { display: flex; flex-direction: column; gap: 0.7cqw; min-width: 0; }
+.sum-info .pinfo { font-family: var(--font-info); font-size-adjust: 0.62; font-size: 2.8cqw; line-height: 1.1; color: #e8f0f4; }
+.sum-name { display: flex; align-items: center; flex-wrap: wrap; gap: 1cqw; font-size: 3.4cqw; }
+.sum-hp { display: flex; align-items: center; gap: 1.4cqw; }
+.sum-hp .hpbar { flex: 1; height: 1.8cqw; }
+.sum-ability { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
+.sum-type { padding: 0 1.2cqw; border-radius: 0.8cqw; font-size: 2.2cqw; text-transform: uppercase; color: #fff; text-shadow: 0 0.2cqw 0 rgba(0, 0, 0, 0.5); }
+.sum-stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1cqw; }
+.sum-stats span { display: flex; flex-direction: column; align-items: center; padding: 1cqw 0; background: rgba(0, 0, 0, 0.22); border-radius: 1cqw; font-family: var(--font-info); font-size-adjust: 0.62; font-size: 3.4cqw; line-height: 1; }
+.sum-stats small { font-size: 2.4cqw; color: #b8d0e0; text-transform: uppercase; }
+.sum-stats .up { color: #ff9a80; }
+.sum-stats .down { color: #8ab4ff; }
+.sum-moves { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: minmax(0, 1fr); gap: 1.4cqw; }
+.sum-move {
+  --type: var(--t-normal);
+  display: flex; flex-direction: column; justify-content: center; gap: 0.1cqw;
+  padding: 0.9cqw 1.6cqw; min-width: 0;
+  background: linear-gradient(180deg, var(--type), color-mix(in srgb, var(--type) 70%, black));
+  border-radius: 1.4cqw;
+  color: #fff; text-shadow: 0 0.2cqw 0 rgba(0, 0, 0, 0.55);
+}
+.sum-move b { font-size: 3.4cqw; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sum-move span { font-family: var(--font-info); font-size-adjust: 0.62; font-size: 2.5cqw; line-height: 1.25; text-transform: capitalize; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.menu-footer .btn.primary { flex: 1; max-width: 60%; }
 
 /* Waiting / result panel */
 .panel {
@@ -697,7 +729,7 @@ button { touch-action: manipulation; }
 }
 .card-panel > h2 + *, .card-panel > h3 + * { margin-top: var(--gap-sm); }
 
-.empty-note { color: var(--text-muted); font-size: var(--fs-sm); }
+.empty-note { color: var(--text-muted); font-size: var(--fs-sm); padding-top: 1  vh; }
 .messages { display: flex; flex-direction: column; gap: var(--gap-xs); }
 .messages p { color: var(--accent); font-size: var(--fs-sm); }
 
@@ -934,11 +966,6 @@ button { touch-action: manipulation; }
 .slot.lead { border-color: var(--accent); }
 .slot:hover:not(:disabled) { transform: translateY(-2px); border-color: var(--accent-dark); }
 .slot.current { background: var(--accent); border-color: var(--accent-dark); cursor: default; opacity: 1; }
-.slot img { width: 32px; height: 32px; margin: -4px -2px; }
-/* In the details window: bigger, with the Pokémon in each slot */
-.details .slot-strip { background: var(--surface-sunken); border-radius: var(--r-md); padding: 6px 8px; }
-.details .slot-label { color: var(--text-muted); }
-.details .slot { height: 40px; padding: 0 6px 0 2px; }
 
 .held-chip {
   display: inline-flex; align-items: center; gap: var(--gap-xs);
@@ -1046,6 +1073,18 @@ button { touch-action: manipulation; }
 }
 .mc-toggle:hover { background: rgba(0, 0, 0, 0.55); }
 .mc-toggle span { display: inline-block; transition: transform 0.15s; }
+
+/* Details window: name / tags + Effect button / stats, descriptions collapsed (like the team cards) */
+.details .move-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "name tags" "stats toggle" "desc desc"; gap: 6px 8px; padding: 8px 10px 9px; align-items: center; }
+.details .mc-name { grid-area: name; }
+.details .mc-tags { grid-area: tags; justify-self: end; flex-wrap: nowrap; }
+.details .mc-toggle { grid-area: toggle; align-self: center; justify-self: end; }
+.details .mc-stats { grid-area: stats; column-gap: 10px; padding: 4px 8px 5px; font-size: 18px; }
+.details .mc-stats small { font-size: 12px; }
+.details .mc-desc-box { grid-area: desc; display: none; }
+.details .move-card.open .mc-desc-box, .modal.show-effects .details .mc-desc-box { display: block; }
+.modal.show-effects .details .mc-toggle { display: none; }
+.details .move-cards { gap: 8px; }
 
 /* Compact (recruit cards): no description */
 .move-card.compact { padding: 9px 9px 10px; gap: 7px; }
@@ -1190,25 +1229,31 @@ button.bag-entry:hover { box-shadow: 0 0 0 2px var(--accent); }
 .modal-backdrop {
   position: fixed; inset: 0; z-index: 100;
   display: grid; place-items: center;
-  padding: var(--gap-lg);
+  padding: 12px;
   background: rgba(10, 14, 22, 0.75);
 }
 .modal {
   width: min(100%, 520px);
-  max-height: 85vh;
-  max-height: 85dvh;
-  overflow: auto;
-  overscroll-behavior: contain;
-  display: flex; flex-direction: column; gap: var(--gap-md);
-  padding: 18px;
+  max-height: calc(100vh - 24px);
+  max-height: calc(100dvh - 24px);
+  display: flex; flex-direction: column;
+  overflow: hidden;
   background: var(--surface);
   border: 3px solid var(--border-strong);
   border-radius: var(--r-lg);
   color: var(--text);
 }
+/* Fixed top, scrolling middle, fixed bottom */
+.modal-head { flex: none; display: flex; flex-direction: column; gap: var(--gap-sm); padding: 12px 18px 10px; border-bottom: 2px solid var(--border); }
+.modal-head:empty { display: none; }
+.modal-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: var(--gap-md); padding: 12px 18px; }
+.modal-foot { flex: none; padding: 8px 18px 12px; border-top: 2px solid var(--border); }
+.modal-foot .btn { width: 100%; }
+.modal-head h2 { line-height: 1.15; }
 .modal h2 { font-size: var(--fs-xl); }
 .modal p { line-height: 1.4; color: var(--text-soft); }
 .modal .options { display: flex; flex-direction: column; gap: var(--gap-sm); }
+.modal .options:empty { display: none; }
 .modal .options .btn { display: flex; align-items: center; gap: 10px; text-align: left; font-size: 15px; }
 .modal .options .btn img { width: 32px; height: 32px; }
 .modal .options .btn small { color: var(--ink-soft); }
@@ -1216,11 +1261,42 @@ button.bag-entry:hover { box-shadow: 0 0 0 2px var(--accent); }
 .modal-backdrop.details .modal { width: min(100%, 760px); }
 .modal .action-options { flex-direction: row; flex-wrap: wrap; gap: 6px; }
 .modal-label { font-size: var(--fs-md); color: var(--accent); }
-/* ◀ title ▶ (flip through your Pokémon) */
-.modal-nav { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: var(--gap-sm); }
-.modal-nav h2 { text-align: center; }
-.modal .nav-btn { min-width: 40px; height: 36px; font-size: var(--fs-md); }
 .modal-count { font-family: var(--font-info); font-size-adjust: 0.62; font-size: var(--fs-md); font-weight: 400; color: var(--text-muted); }
+
+/* Pokémon selector at the top of the details / Move Relearner / TM dialogs */
+.mon-strip { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; }
+.mon-pick {
+  display: grid; place-items: center;
+  height: 46px; padding: 0;
+  background: var(--surface-sunken);
+  border: 2px solid var(--border);
+  border-radius: var(--r-md);
+  cursor: pointer;
+  transition: border-color 0.1s, background 0.1s;
+}
+.mon-pick img { width: 40px; height: 40px; opacity: 0.8; }
+.mon-pick.lead { border-bottom: 4px solid var(--accent-dark); }
+.mon-pick:hover { background: #2f3a52; }
+.mon-pick:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; }
+.mon-pick.current { background: var(--accent); border-color: var(--accent-dark); cursor: default; }
+.mon-pick.current img { opacity: 1; }
+
+/* Details window: rows of "label … button", and buttons under a tab's content */
+
+/* Tab contents share one grid cell: the dialog is as tall as its tallest tab, so nothing is
+   cut off and it doesn't jump when you switch tabs. */
+.tab-panels { display: grid; }
+.tab-panels > section { grid-area: 1 / 1; min-width: 0; }
+.tab-panels > section.off { visibility: hidden; pointer-events: none; }
+.ability-full { list-style: none; display: flex; flex-direction: column; gap: var(--gap-sm); }
+.ability-full li { padding: 6px 12px 8px; background: var(--surface-sunken); border: 2px solid var(--border); border-radius: var(--r-md); }
+.ability-full li.active { border-color: var(--accent); }
+.ability-full .ab-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: var(--fs-md); }
+.ability-full .ab-arrow { width: 14px; }
+.ability-full .ab-now { padding: 0 6px; background: var(--accent); border-radius: 4px; color: var(--ink); font-family: var(--font-info); font-size-adjust: 0.62; font-size: var(--fs-sm); }
+.ability-full .ab-ha { font-size: var(--fs-sm); }
+.ability-full p { margin-top: 4px; font-family: var(--font-info); font-size-adjust: 0.62; font-size: var(--fs-md); line-height: 1.25; color: var(--text-soft); }
+.panel-actions { display: flex; flex-wrap: wrap; gap: var(--gap-sm); margin-top: var(--gap-sm); }
 /* Who a move dialog is for */
 .dialog-mon {
   display: flex; align-items: center; gap: var(--gap-md);
@@ -1255,25 +1331,30 @@ button.bag-entry:hover { box-shadow: 0 0 0 2px var(--accent); }
 .confirm-mon img { width: 72px; height: 72px; }
 
 /* Details window (grid mode) */
-.details { display: flex; flex-direction: column; gap: var(--gap-lg); }
+.details { display: flex; flex-direction: column; gap: var(--gap-md); }
 .details h3 { margin-bottom: 6px; color: var(--accent); }
 .details-head {
-  display: flex; gap: 14px; align-items: center;
-  padding: 10px 14px;
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 4px 14px; align-items: center;
+  padding: 6px 12px;
   background: var(--paper);
   color: var(--ink);
   border-radius: var(--r-md);
 }
-.details-head > img { width: 112px; height: 112px; }
-.details-head .tile-sub img { width: 24px; height: 24px; vertical-align: middle; }
+.details-info { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.details-actions { display: flex; flex-direction: column; gap: 6px; }
+.details-actions .btn { white-space: nowrap; }
+.details-head > img { width: 80px; height: 80px; }
+
 .details-head .tile-sub { color: var(--ink); }
+.details-head .tile-sub img { width: 22px; height: 22px; vertical-align: middle; }
 .details-name { font-size: var(--fs-xl); font-weight: 700; }
-.details-tabs { padding-bottom: var(--gap-sm); border-bottom: 2px solid var(--border); }
+.details-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; padding-bottom: var(--gap-sm); border-bottom: 2px solid var(--border); }
+.details-tabs .tab { justify-content: center; border-radius: var(--r-md); }
 .details-tabs .tab { font-size: 15px; }
 .details .ability-list { color: var(--text); font-size: var(--fs-lg); gap: 6px; }
 
 .stats-table { width: 100%; border-collapse: collapse; font-size: var(--fs-md); }
-.stats-table th, .stats-table td { padding: 3px 6px; text-align: right; }
+.stats-table th, .stats-table td { padding: 2px 6px; text-align: right; }
 .stats-table th:first-child { text-align: left; white-space: nowrap; }
 .stats-table thead th { color: var(--text-muted); font-weight: 400; font-size: 13px; }
 .stats-table tbody tr:nth-child(odd) { background: rgba(255, 255, 255, 0.05); }
@@ -1368,19 +1449,32 @@ button.bag-entry:hover { box-shadow: 0 0 0 2px var(--accent); }
   .confirm-bar { flex-wrap: wrap; bottom: max(8px, env(safe-area-inset-bottom)); }
   .confirm-bar .btn { flex: 1 1 100%; }
 
-  /* Dialogs: sheet from the bottom, full width */
+  /* Dialogs: a sheet from the bottom, full width. Top and Close stay in view, the middle scrolls. */
   .modal-backdrop { place-items: end stretch; padding: 0; }
   .modal, .modal-backdrop.wide .modal, .modal-backdrop.details .modal {
     width: 100%;
-    max-height: 92dvh;
-    padding: 16px 14px max(16px, env(safe-area-inset-bottom));
+    max-height: 96dvh;
     border-width: 2px 0 0;
     border-radius: var(--r-lg) var(--r-lg) 0 0;
   }
+  .modal-head { padding: 12px 14px 8px; gap: 6px; }
+  .modal-body { padding: 12px 14px; gap: var(--gap-sm); }
+  .modal-foot { padding: 8px 14px max(12px, env(safe-area-inset-bottom)); }
+  .modal h2 { font-size: var(--fs-lg); }
+  .mon-pick { height: 46px; }
+  .mon-pick img { width: 38px; height: 38px; }
+  /* Tabs: icon above the label */
+  .details-tabs .tab { flex-direction: column; gap: 0; padding: 4px 2px; font-size: 13px; }
+  .details-tabs .tab img { width: 24px; height: 24px; }
   .modal .card-options { grid-template-columns: 1fr; }
   .new-move { max-width: 100%; }
   .details-head { gap: 10px; padding: 8px 10px; }
-  .details-head > img { width: 80px; height: 80px; }
+  .details-head > img { width: 64px; height: 64px; }
+  .details .move-cards { grid-template-columns: 1fr; }
+  .details-head { grid-template-columns: auto minmax(0, 1fr); }
+  .details-actions { grid-column: 1 / -1; flex-direction: row; }
+  .details-actions .btn { flex: 1; }
+  .details { gap: var(--gap-sm); }
   .stats-table th, .stats-table td { padding: 3px 4px; }
   .bar-cell { width: 22%; }
   .evo-mon { min-width: 90px; }
@@ -1413,4 +1507,31 @@ button.bag-entry:hover { box-shadow: 0 0 0 2px var(--accent); }
   .banner-slide .sprite.enter { animation: none; }
   .weather-layer::before, .weather-layer::after { animation: none !important; }
   .offer-card { animation: none; }
+}
+
+/* =====================================================
+   iOS SAFARI: tapping near the bottom edge only brings the
+   toolbar back (the tap is "used up"), so you had to tap a
+   button twice. Keep every control out of that strip: the
+   page, sticky bars and dialogs all stop ~56 px above the
+   bottom edge. Only applies to iOS (the @supports test is
+   true for iOS browsers, false everywhere else).
+   ===================================================== */
+@supports (-webkit-touch-callout: none) {
+  :root { --ios-bottom: calc(env(safe-area-inset-bottom, 0px) + 56px); }
+  body { padding-bottom: calc(var(--ios-bottom) + 8px); }
+  .confirm-bar { bottom: var(--ios-bottom); }
+  .modal-backdrop { padding-bottom: var(--ios-bottom); }
+  .modal { max-height: calc(100vh - var(--ios-bottom) - 12px); max-height: calc(100dvh - var(--ios-bottom) - 12px); }
+  @media (max-width: 560px) {
+    /* Dialogs float above the strip instead of sitting on the bottom edge */
+    .modal-backdrop { padding: 8px 8px var(--ios-bottom); place-items: end stretch; }
+    .modal, .modal-backdrop.wide .modal, .modal-backdrop.details .modal {
+      max-height: calc(100vh - var(--ios-bottom) - 8px);
+      max-height: calc(100dvh - var(--ios-bottom) - 8px);
+      border-width: 2px;
+      border-radius: var(--r-lg);
+    }
+    .modal-foot { padding-bottom: 12px; }
+  }
 }

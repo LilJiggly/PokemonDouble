@@ -128,3 +128,19 @@ export function itemSprite(id) {
 export function itemInfo(id) {
   return ITEMS[id] ?? { kind: "held", tier: "common", name: titleCase(id), desc: "" };
 }
+
+// Bag / shop section an item belongs to
+export const POCKETS = [
+  { id: "items", label: "Items", icon: "leftovers" },
+  { id: "berries", label: "Berries", icon: "oran-berry" },
+  { id: "medicine", label: "Medicine", icon: "potion" },
+  { id: "battle", label: "Battle", icon: "x-attack" },
+  { id: "key", label: "Key Items", icon: "thunder-stone" },
+  { id: "tms", label: "TMs", icon: "tm-normal" },
+];
+export function pocketOf(id) {
+  const item = ITEMS[id];
+  if (!item || item.kind === "evo" || item.kind === "patch") return "key";
+  if (item.kind === "bag") return item.effect?.boost || item.effect?.focusEnergy || item.effect?.mist ? "battle" : "medicine";
+  return id.endsWith("-berry") ? "berries" : "items";
+}

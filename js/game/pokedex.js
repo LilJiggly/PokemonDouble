@@ -182,8 +182,9 @@ export class Pokedex {
       if (method.gender && mon.gender !== method.gender) continue; // e.g. only male Kirlia → Gallade
       if (method.kind === "stone" && !(bag[method.item] > 0)) reasons.push(itemLabel(method.item));
       if (method.kind === "trade") {
-        if (!(bag["link-cable"] > 0)) reasons.push("Link Cable");
-        if (method.heldItem && mon.item !== method.heldItem) reasons.push(`holding ${itemLabel(method.heldItem)}`);
+        // Trade + held item (Magmarizer, Metal Coat…): the held item is enough, no Link Cable
+        if (method.heldItem) { if (mon.item !== method.heldItem) reasons.push(`holding ${itemLabel(method.heldItem)}`); }
+        else if (!(bag["link-cable"] > 0)) reasons.push("Link Cable");
       }
       if (method.kind === "held" && mon.item !== method.heldItem) reasons.push(`holding ${itemLabel(method.heldItem)}`);
       out.push({ to, name: this.byKey[to].name, method, ready: reasons.length === 0, needs: reasons });

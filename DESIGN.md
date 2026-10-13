@@ -81,7 +81,7 @@ _Last updated: October 09, 2026_
 | Level-up | Evolve once the evolution level is reached |
 | Evolution stone | Use the stone on the Pokémon. Stones are **multi-use** (not consumed). |
 | Trade | Use a **Link Cable** on the Pokémon. Multi-use. |
-| Trade + held item (e.g. Onix → Steelix) | Use a Link Cable while the Pokémon **holds** the required item (e.g. Metal Coat). The item is **not consumed**, so it keeps its battle effect and can evolve more Pokémon. |
+| Trade + held item (e.g. Onix → Steelix, Magmar → Magmortar) | The Pokémon only has to **hold** the required item (Metal Coat, Magmarizer…); **no Link Cable needed**. The item is **not consumed**, so it keeps its battle effect and can evolve more Pokémon. |
 | Friendship | **No friendship needed.** Evolve once the §3c level is reached |
 | Location (Magneton → Magnezone, Nosepass → Probopass) | Evolve button at the §3c "Other" level (30) |
 | Location (Eevee → Leafeon / Glaceon) | **Leaf Stone** → Leafeon, **Ice Stone** → Glaceon |
@@ -103,7 +103,7 @@ _Last updated: October 09, 2026_
 - **No Revives** of any kind. Permadeath is the core of the game.
 - **Consumable held items** (berries, Focus Sash, herbs) are **used up for good** once triggered.
 - **Bag items** are **used up for good** once used. They **can be used in battle**, which takes up that Pokémon's turn.
-- **Evolution items** (stones, Link Cable, trade items like Metal Coat) are **multi-use**.
+- **Evolution items** (stones, Link Cable, trade items like Metal Coat) are **multi-use**. Link Cable is only for plain trade evolutions (Machoke, Kadabra, Graveler, Haunter).
 - When a Pokémon dies, its **held item goes back to the bag**.
 - **Bag size: unlimited** (an upgrade system may come later).
 - **Opponents** only use **held items**, never bag items.
@@ -178,7 +178,7 @@ A Pokémon can only be **offered**, **evolved into** on your team, or **used by 
 |---|---|
 | Level-up | The species' evolution level (e.g. Swampert 36) |
 | Evolution stone | 30 |
-| Trade (Link Cable) | 36 |
+| Trade (Link Cable, or a held trade item) | 36 |
 | Friendship | 25 |
 | Other (move, location, held item, time of day) | 30 |
 | Legendary / Mythical | 45 |
@@ -245,7 +245,7 @@ Every opponent (gyms, Elite Four, Champion, Rival) gives a **reusable TM** when 
 
 ### 3h. Shop & prize money
 
-The **shop** in the hub sells **5 random items** from the item pool (§3e), rolled with the item odds (§3d), and **2 random TMs** you don't own yet (within the TM power limit for the next battle, §3g). The stock refreshes after every battle. **Reroll:** the first reroll after each battle is free, after that each reroll costs the amount below. You can sell items for half their price.
+The **shop** in the hub is split into **sections** (tabs, like the Bag): Items (held items), Berries, Medicine, Battle, Key Items and TMs. Each section sells the number of random items below, from the item pool (§3e) rolled with the item odds (§3d). TMs are ones you don't own yet, within the TM power limit for the next battle (§3g). The stock refreshes after every battle. **Reroll:** the first reroll after each battle is free, after that each reroll costs the amount below. You can sell items for half their price.
 
 | Tier | Price |
 |---|---|
@@ -253,6 +253,15 @@ The **shop** in the hub sells **5 random items** from the item pool (§3e), roll
 | Uncommon | 800 |
 | Rare | 2000 |
 | Epic | 5000 |
+
+| Shop section | Items for sale |
+|---|---|
+| Items (held items) | 4 |
+| Berries | 3 |
+| Medicine | 3 |
+| Battle (X items, Dire Hit…) | 2 |
+| Key Items (stones, Link Cable, patches) | 2 |
+| TMs | 3 |
 
 | Money rule | Amount |
 |---|---|
@@ -706,9 +715,35 @@ Code in `js/engine/` (plain ES modules, runs in the browser and in Node):
 - **Leader data:** `data/leaders/gen1.json` holds Brock's 8 sets. Team size and level are read from the §3a table in this file.
 - **Simplified for now:**
   - U-turn and Baton Pass switch to the next healthy Pokémon in team order (the player will get to choose once the UI exists).
-  - Not implemented yet (these moves do nothing): Transform, Sketch, Mimic, Imprison, Spite, Snatch, Gravity, Future Sight's delay, and a few other rare moves. The simulator lists any it runs into.
+  - Every Gen 1–4 move now does something. The rules of the copy/call/field moves are listed below.
   - Alternate forms (Castform, Cherrim, Rotom, etc.) aren't in the data yet.
 - Damage formula referenced against **Pokémon Showdown** for accuracy.
+
+#### Rules of the special moves (Gen 4, simplified where noted)
+
+| Move | Rule here |
+|---|---|
+| Future Sight / Doom Desire | Hits at the end of the 2nd turn after use. Damage is worked out on use and ignores type matchups (Dark types are hit). Fails if one is already coming for that slot |
+| Disable | Target's last move can't be used for 4–7 turns |
+| Spite | Takes 4 PP off the target's last move |
+| Mimic | Copies the target's last move into Mimic's slot with 5 PP until the user leaves the field |
+| Sketch | Copies the target's last move into Sketch's slot **permanently**: the run keeps it (see `finishBattle`). Fails when transformed |
+| Mirror Move | Uses the target's last move if it was aimed at other Pokémon |
+| Copycat | Uses the last move anyone used |
+| Assist | Uses a random move of another team member (bench included) |
+| Me First | Uses the foe's chosen move first, ×1.5 power. Fails if the foe already moved or chose a status move |
+| Transform | Copies the target's types, stats (not HP), ability, weight, stat stages and moves (5 PP each). The sprite changes. Ends when the user leaves the field |
+| Conversion / Conversion 2 / Camouflage | Change the user's type (a move's type / one that resists the last hit / the **arena's** type, §7 Arenas) until it leaves the field |
+| Power Trick | Swaps Attack and Defense (swap again to undo; undone on leaving) |
+| Psycho Shift | Moves the user's status to the target (if it can get it) |
+| Ingrain | Heals 1/16 each turn and the user can't be switched out or forced out |
+| Magic Coat | Bounces the first status move aimed at the user (or its side's hazards) this turn. Priority +4 |
+| Snatch | Steals the next self-targeted status move this turn (not Splash). Priority +4 |
+| Imprison | The foes can't use any move the user also knows, while the user is out |
+| Grudge | If the user is knocked out by a move this turn, that move's PP drops to 0 |
+| Recycle | Returns the item the user used up this battle |
+| Mud Sport / Water Sport | Halve Electric / Fire move power while the user is on the field |
+| Gravity | 5 turns: everyone is grounded (Ground hits Flying and Levitate), accuracy ×5/3, and Fly, Bounce, Jump Kick, Hi Jump Kick, Magnet Rise and Splash can't be used |
 
 ### Battle screen (step 2)
 
@@ -878,3 +913,7 @@ All Rock-type lines up to Gen 4. Slugma (Fire) and Steelix (Steel/Ground) are in
 - **v0.1.0 · October 12, 2026:** First versioned release. Stylesheet rebuilt with shared design tokens (same look, dead override blocks removed). Mobile UI: phone layout for every screen, bottom-sheet dialogs, battle menu fills the screen, bigger tap targets, tap-to-use bag items. Version number on the title screen. README and .gitignore for GitHub.
 - **v0.1.1 · October 12, 2026:** Battle menu screen no longer stretches on phones. Battle Pokémon menu is a 2×2 grid (pages for 5–6 Pokémon). Details window and the Move Relearner / TM dialogs flip through your team with ◀ ▶ (arrow keys, swipe on phones). "Earlier / Later" replaced by team slot buttons: tap a slot to swap places. More space above choice rows.
 - **v0.1.2 · October 12, 2026:** Battle Pokémon menu is a 2×3 grid: the whole team on one screen (no pages).
+- **v0.2.0 · October 13, 2026:** Future Sight and Doom Desire now really hit two turns later (typeless, damage worked out on use). Held-item trade evolutions (Magmarizer, Electirizer, Metal Coat…) only need the held item, no Link Cable. Shop split into sections with tabs (Items, Berries, Medicine, Battle, Key Items, TMs), stock per section editable in §3h. Dialogs rebuilt: fixed top with a Pokémon selector, scrolling middle, fixed Close; item, swap, relearn, TM and evolve actions moved into the tabs they belong to. Phone dialogs tidied. Battle switch-in shows a full summary (HP, ability, item, stats, moves with PP) before you send a Pokémon out.
+- **v0.2.1 · October 13, 2026:** Dialogs fit their content (the details window is as tall as its tallest tab, so nothing is cut off or jumps). Abilities tab shows every ability with its full description. Switch-in summary uses the free space. The empty battle menu no longer shows "…".
+- **v0.2.2 · October 13, 2026:** iOS Safari: controls no longer sit in the bottom-edge strip where the first tap only brought the toolbar back (page, sticky confirm bar and dialogs stop ~56 px above the edge). Could not be tested on a real iPhone.
+- **v0.3.0 · October 13, 2026:** All 23 moves that did nothing are implemented (Disable, Mimic, Mirror Move, Transform, Conversion, Sketch, Conversion 2, Spite, Assist, Ingrain, Magic Coat, Recycle, Imprison, Grudge, Snatch, Camouflage, Mud Sport, Water Sport, Gravity, Psycho Shift, Power Trick, Me First, Copycat); rules in §7. Sketch is permanent for the run. Camouflage uses the arena type. The AI knows when to use them. 23 new engine tests.
