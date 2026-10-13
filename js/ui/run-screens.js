@@ -14,7 +14,7 @@ import { CHARACTERS, characterById } from "../game/characters.js";
 import { VERSION } from "../version.js";
 import * as Run from "../game/run.js";
 import { loadMeta, saveMeta, buyUpgrade, canBuyUpgrade, upgradeLevel, perksFromMeta, trainerPointsFor } from "../game/meta.js";
-import { ITEMS, itemInfo, itemSprite } from "../game/item-catalog.js";
+import { ITEMS, POCKETS, pocketOf, itemInfo, itemSprite } from "../game/item-catalog.js";
 import { itemLabel } from "../game/pokedex.js";
 import { calcStats, DEFAULT_IVS, DEFAULT_EVS } from "../engine/pokemon.js";
 import { NATURES, STAT_NAMES } from "../engine/constants.js";
@@ -252,6 +252,21 @@ export class RunUI {
     }).join("")}</ul>`;
   }
 
+  // Details window: every possible ability with its full description (no hover needed)
+  abilityDetails(mon) {
+    const { normal, hidden } = this.ctx.data.pokemonByKey[mon.species].abilities;
+    const all = [...normal.map((id) => ({ id, ha: false })), ...(hidden ? [{ id: hidden, ha: true }] : [])];
+    return `<ul class="ability-full">${all.map(({ id, ha }) => {
+      const info = this.ctx.data.abilities[id];
+      const active = id === mon.ability;
+      return `<li class="${active ? "active" : ""}">
+        <div class="ab-head"><span class="ab-arrow" aria-hidden="true">${active ? "▶" : ""}</span><b>${info?.name ?? id}</b>
+          ${ha ? `<span class="ab-ha">Hidden</span>` : ""}${active ? `<span class="ab-now">Current</span>` : ""}</div>
+        <p>${info?.shortEffect ?? "No description."}</p>
+      </li>`;
+    }).join("")}</ul>`;
+  }
+
   abilityText(mon) {
     const p = this.ctx.data.pokemonByKey[mon.species];
     const name = this.ctx.data.abilities[mon.ability]?.name ?? mon.ability;
@@ -328,25 +343,21 @@ export class RunUI {
   // nav: shows ◀ ▶ around the title (also arrow keys and swipe); resolves with { nav: -1 | 1 }
   // Buttons inside the body with data-result='{"…":…}' close the dialog with that object.
   // onOpen(dialogElement): runs once the dialog is on screen (e.g. to wire up tabs)
-  modal({ title, body = "", options = [], cancel = "Cancel", layout = "list", wide = false, nav = false, onOpen = null }) {
+  modal({ title, label = "", body = "", head = "", options = [], cancel = "Cancel", layout = "list", wide = false, nav = false, onOpen = null }) {
     return new Promise((resolve) => {
       const backdrop = document.createElement("div");
       backdrop.className = `modal-backdrop ${layout === "cards" || wide ? "wide" : ""} ${layout === "actions" ? "details" : ""}`;
-      const heading = nav
-        ? `<div class="modal-nav">
-            <button class="btn small nav-btn" data-nav="-1" aria-label="Previous Pokémon">◀</button>
-            <h2>${title}</h2>
-            <button class="btn small nav-btn" data-nav="1" aria-label="Next Pokémon">▶</button>
-          </div>`
-        : `<h2>${title}</h2>`;
+      // Three parts: a fixed top (head + title), a scrolling middle, a fixed bottom (Close)
       backdrop.innerHTML = `
-        <div class="modal" role="dialog" aria-modal="true">
-          ${heading}
-          ${body ? `<div>${body}</div>` : ""}
-          <div class="options ${layout === "cards" ? "card-options" : layout === "actions" ? "action-options" : ""}">
-            ${options.map((o, i) => `<button class="${layout === "cards" ? "card-choice" : layout === "actions" ? "btn small" : "btn"}" data-i="${i}" ${o.disabled ? "disabled" : ""}>${o.html ?? o.label}</button>`).join("")}
+        <div class="modal" role="dialog" aria-modal="true" ${label ? `aria-label="${label}"` : ""}>
+          <div class="modal-head">${head}${title ? `<h2>${title}</h2>` : ""}</div>
+          <div class="modal-body">
+            ${body ? `<div>${body}</div>` : ""}
+            <div class="options ${layout === "cards" ? "card-options" : layout === "actions" ? "action-options" : ""}">
+              ${options.map((o, i) => `<button class="${layout === "cards" ? "card-choice" : layout === "actions" ? "btn small" : "btn"}" data-i="${i}" ${o.disabled ? "disabled" : ""}>${o.html ?? o.label}</button>`).join("")}
+            </div>
           </div>
-          ${cancel ? `<button class="btn" data-cancel>${cancel}</button>` : ""}
+          ${cancel ? `<div class="modal-foot"><button class="btn" data-cancel>${cancel}</button></div>` : ""}
         </div>`;
       const close = (value) => { backdrop.remove(); document.removeEventListener("keydown", onKey); resolve(value); };
       const onKey = (e) => {
@@ -359,7 +370,6 @@ export class RunUI {
         const btn = e.target.closest("button");
         if (!btn || btn.disabled) return;
         if (btn.hasAttribute("data-cancel")) return close(null);
-        if (btn.dataset.nav) return close({ nav: Number(btn.dataset.nav) });
         if (btn.dataset.result) return close(JSON.parse(btn.dataset.result));
         if (btn.dataset.i === undefined) return; // buttons inside the body (e.g. effect toggles)
         close(options[Number(btn.dataset.i)].value);
@@ -378,8 +388,8 @@ export class RunUI {
       }
       document.body.appendChild(backdrop);
       // Focus the first button without scrolling the window down to it
-      backdrop.querySelector("button:not(:disabled)")?.focus({ preventScroll: true });
-      backdrop.querySelector(".modal").scrollTop = 0;
+      backdrop.querySelector(".modal-body button:not(:disabled), .modal-foot button")?.focus({ preventScroll: true });
+      backdrop.querySelector(".modal-body").scrollTop = 0;
       onOpen?.(backdrop.querySelector(".modal"));
     });
   }
@@ -399,20 +409,24 @@ export class RunUI {
     return team[(i + step + team.length) % team.length];
   }
 
-  // Row of team slots: tap one to swap places with whoever is there.
-  // dialog: buttons close the details window (data-result); otherwise hub actions (data-act).
-  slotStrip(mon, { dialog = false } = {}) {
+  // Team position buttons on the hub's detailed cards: tap a slot to swap places with whoever is there
+  slotStrip(mon) {
     const team = this.run.team;
     const here = team.indexOf(mon);
     return `<div class="slot-strip" role="group" aria-label="Team position">
       <span class="slot-label">Position</span>
-      ${team.map((m, j) => {
-        const attrs = dialog ? `data-result='{"slot":${j}}'` : `data-act="slot" data-uid="${mon.uid}" data-slot="${j}"`;
-        const who = j === here ? "here" : `swap with ${this.ctx.data.pokemonByKey[m.species].name}`;
-        return `<button class="slot ${j === here ? "current" : ""} ${j < 2 ? "lead" : ""}" ${attrs} ${j === here ? "aria-current=\"true\" disabled" : ""}
-          title="Slot ${j + 1}${j < 2 ? " (lead)" : ""}: ${who}">${dialog ? `<img src="${this.sprite(m)}" alt="">` : ""}<span>${j + 1}</span></button>`;
-      }).join("")}
+      ${team.map((m, j) => `<button class="slot ${j === here ? "current" : ""} ${j < 2 ? "lead" : ""}" data-act="slot" data-uid="${mon.uid}" data-slot="${j}"
+          ${j === here ? `aria-current="true" disabled` : ""} title="Slot ${j + 1}${j < 2 ? " (lead)" : ""}: ${j === here ? "here" : `swap with ${this.ctx.data.pokemonByKey[m.species].name}`}"><span>${j + 1}</span></button>`).join("")}
     </div>`;
+  }
+
+  // Selector at the top of the dialogs: one sprite per Pokémon, tap to look at that one
+  monStrip(mon) {
+    const team = this.run.team;
+    if (team.length < 2) return "";
+    return `<div class="mon-strip" role="group" aria-label="Choose a Pokémon">${team.map((m, j) => `
+      <button class="mon-pick ${m === mon ? "current" : ""} ${j < 2 ? "lead" : ""}" data-result='{"goto":${m.uid}}' ${m === mon ? `aria-current="true"` : ""}
+        title="${this.ctx.data.pokemonByKey[m.species].name}${j < 2 ? " (lead)" : ""}"><img src="${this.sprite(m)}" alt="${this.ctx.data.pokemonByKey[m.species].name}"></button>`).join("")}</div>`;
   }
 
   // ===============================
@@ -737,7 +751,7 @@ export class RunUI {
           </div>
           ${this.teamView === "grid"
             ? `<div class="team-tiles">${run.team.map((m, i) => this.teamTile(m, i)).join("")}</div>
-               <p class="empty-note">Tap a Pokémon for its stats, evolution line and actions.</p>`
+               <p class="empty-note">Tap a Pokémon for its stats, evolution line and actions. Drag and drop to chance the order.</p>`
             : `<div class="team-grid">${team}</div>`}
           ${run.fallen.length ? `<h3 class="fallen-heading">Fallen</h3><div class="fallen-list">${run.fallen.map((f) => `<div class="mon"><img src="${this.sprite(f)}" alt="">${f.name}<small>#${f.order} ${f.opponent}</small></div>`).join("")}</div>` : ""}
         </section>
@@ -820,33 +834,19 @@ export class RunUI {
   // BAG POCKETS
   // ===============================
 
-  pocketOf(id) {
-    const item = ITEMS[id];
-    if (!item || item.kind === "evo" || item.kind === "patch") return "key";
-    if (item.kind === "bag") return item.effect?.boost || item.effect?.focusEnergy || item.effect?.mist ? "battle" : "medicine";
-    return id.endsWith("-berry") ? "berries" : "items";
-  }
-
   tmIcon(move) {
     return `<img src="images/items/tm-${this.ctx.data.moves[move].type}.png" alt="" onerror="this.style.visibility='hidden'">`;
   }
 
   bagPanel() {
     const { run, ctx } = this;
-    const pockets = [
-      { id: "items", label: "Items", icon: "leftovers" },
-      { id: "medicine", label: "Medicine", icon: "potion" },
-      { id: "berries", label: "Berries", icon: "oran-berry" },
-      { id: "battle", label: "Battle", icon: "x-attack" },
-      { id: "tms", label: "TMs", icon: "tm-normal" },
-      { id: "key", label: "Key Items", icon: "thunder-stone" },
-    ];
+    const pockets = POCKETS;
     const entries = Object.entries(run.bag).sort((a, b) => itemInfo(a[0]).name.localeCompare(itemInfo(b[0]).name));
     const byPocket = Object.fromEntries(pockets.map((p) => [p.id, []]));
     for (const [id, n] of entries) {
       const usable = ["held", "evo", "patch"].includes(ITEMS[id]?.kind);
       const label = `${this.itemImg(id)} ${itemInfo(id).name} ×${n}`;
-      byPocket[this.pocketOf(id)].push(usable
+      byPocket[pocketOf(id)].push(usable
         ? `<button class="bag-entry draggable" data-act="bag-use" data-item="${id}" draggable="true" data-drag="bag"
             title="${itemInfo(id).desc} · Tap or drag onto a Pokémon">${label}</button>`
         : `<span class="bag-entry" title="${itemInfo(id).desc}">${label}</span>`);
@@ -944,7 +944,7 @@ export class RunUI {
       switch (mm.kind) {
         case "level": return `Lv ${mm.level}${gender}`;
         case "stone": return `${itemLabel(mm.item)}${gender} · Lv ${lvl}+`;
-        case "trade": return `Link Cable${mm.heldItem ? ` + ${itemLabel(mm.heldItem)}` : ""} · Lv ${lvl}+`;
+        case "trade": return mm.heldItem ? `Hold ${itemLabel(mm.heldItem)} · Lv ${lvl}+` : `Link Cable · Lv ${lvl}+`;
         case "friendship": return `Lv ${lvl}`;
         case "held": return `Hold ${itemLabel(mm.heldItem)} · Lv ${lvl}+`;
         case "shed": return "Bonus with Ninjask";
@@ -972,40 +972,52 @@ export class RunUI {
     const evo = ctx.dex.evolutionOptions(mon, run.bag);
     const patches = ["ability-patch", "hidden-ability-patch"].some((x) => run.bag[x] > 0);
     const tms = Run.teachableTMs(run, ctx, mon).length;
+    const relearn = Run.relearnableMoves(ctx, mon).length;
+    const act = (value, label, { disabled = false, ready = false } = {}) =>
+      `<button class="btn small ${ready ? "ready" : ""}" data-result='{"act":"${value}"}' ${disabled ? "disabled" : ""}>${label}</button>`;
+    const active = this.detailsTab ?? "stats";
     const body = `
       <div class="details">
         <div class="details-head">
           <img src="${this.sprite(mon)}" alt="">
-          <div>
+          <div class="details-info">
             <div class="details-name">${this.monName(mon)}</div>
             <div class="tile-sub">Lv ${mon.level} · ${this.typeBadges(mon.species)} · <span class="tier-label tier-${ctx.dex.tier(mon.species)}">${ctx.dex.tier(mon.species)}</span></div>
             <div class="tile-sub">Nature: <b>${nature}</b>${up ? ` (+${STAT_NAMES[up]}, −${STAT_NAMES[down]})` : " (neutral)"}</div>
-            <div class="tile-sub">Held item: ${mon.item ? `${this.itemImg(mon.item)} ${itemInfo(mon.item).name}` : "none"}</div>
+            <div class="tile-sub">Held: ${mon.item ? `${this.itemImg(mon.item)} ${itemInfo(mon.item).name}` : "none"} · Slot ${i + 1}/${run.team.length}${i < 2 ? " (lead)" : ""}</div>
+          </div>
+          <div class="details-actions">
+            ${act("item", mon.item ? "Change item" : "Give item")}
+            ${run.team.length > 1 ? act("swap", "Swap place…") : ""}
           </div>
         </div>
-        ${run.team.length > 1 ? this.slotStrip(mon, { dialog: true }) : ""}
         <div class="tabs details-tabs" role="tablist" aria-label="Details">${DETAIL_TABS.map((t) => `
-          <button class="tab ${t.id === (this.detailsTab ?? "stats") ? "active" : ""}" role="tab" data-tab="${t.id}"
-            aria-selected="${t.id === (this.detailsTab ?? "stats")}"><img src="images/items/${t.icon}.png" alt=""> ${t.label}</button>`).join("")}
+          <button class="tab ${t.id === active ? "active" : ""}" role="tab" data-tab="${t.id}"
+            aria-selected="${t.id === active}"><img src="images/items/${t.icon}.png" alt=""><span>${t.label}</span></button>`).join("")}
         </div>
+        <div class="tab-panels">
         <section data-tab-panel="stats">${this.statsTable(mon)}</section>
-        <section data-tab-panel="abilities">${this.abilityList(mon)}</section>
-        <section data-tab-panel="evolution">${this.evolutionLine(mon)}</section>
-        <section data-tab-panel="moves">${this.moveGrid(mon.moves)}</section>
+        <section data-tab-panel="abilities">${this.abilityDetails(mon)}
+          ${patches ? `<div class="panel-actions">${act("patch", "Use an Ability Patch…")}</div>` : ""}</section>
+        <section data-tab-panel="evolution">${this.evolutionLine(mon)}
+          ${evo.length ? `<div class="panel-actions">${act("evolve", evo.some((o) => o.ready) ? "Evolve!" : "Evolve…", { ready: evo.some((o) => o.ready) })}</div>` : ""}</section>
+        <section data-tab-panel="moves">${this.moveGrid(mon.moves, { toggle: true })}
+          <div class="panel-actions">
+            <button class="btn small" data-local="effects" type="button">${this.showEffects ? "Hide all effects" : "Show all effects"}</button>
+            ${act("moves", "Relearn a move…", { disabled: !relearn })}
+            ${tms ? act("tm", `Teach a TM (${tms})…`) : ""}
+          </div></section>
+        </div>
       </div>`;
-    const action = await this.modal({
-      title: `${p.name} <small class="modal-count">${i + 1}/${run.team.length}${i < 2 ? " · Lead" : ""}</small>`,
+    const result = await this.modal({
+      title: "",
+      label: `${p.name}, Pokémon ${i + 1} of ${run.team.length}`,
+      head: this.monStrip(mon),
       body,
       layout: "actions",
       wide: true,
       nav: run.team.length > 1,
-      options: [
-        { value: "item", label: "Item" },
-        { value: "moves", label: "Moves", disabled: !Run.relearnableMoves(ctx, mon).length },
-        ...(evo.length ? [{ value: "evolve", label: evo.some((o) => o.ready) ? "Evolve!" : "Evolve" }] : []),
-        ...(patches ? [{ value: "patch", label: "Ability" }] : []),
-        ...(tms ? [{ value: "tm", label: `TM (${tms})` }] : []),
-      ],
+      options: [],
       cancel: "Close",
       onOpen: (dialog) => {
         const show = (id) => {
@@ -1014,58 +1026,109 @@ export class RunUI {
             tab.classList.toggle("active", tab.dataset.tab === id);
             tab.setAttribute("aria-selected", String(tab.dataset.tab === id));
           }
-          for (const panel of dialog.querySelectorAll("[data-tab-panel]")) panel.hidden = panel.dataset.tabPanel !== id;
+          for (const panel of dialog.querySelectorAll("[data-tab-panel]")) {
+            const off = panel.dataset.tabPanel !== id;
+            panel.classList.toggle("off", off);
+            panel.setAttribute("aria-hidden", String(off));
+          }
         };
-        show(this.detailsTab ?? "stats");
+        show(active);
+        dialog.classList.toggle("show-effects", !!this.showEffects);
         dialog.addEventListener("click", (e) => {
           const tab = e.target.closest("[data-tab]");
           if (tab) show(tab.dataset.tab);
+          const toggle = e.target.closest("[data-act=toggle-desc]");
+          if (toggle) {
+            const open = toggle.closest(".move-card").classList.toggle("open");
+            toggle.setAttribute("aria-expanded", String(open));
+          }
+          const all = e.target.closest("[data-local=effects]");
+          if (all) {
+            this.showEffects = !this.showEffects;
+            try { localStorage.setItem("pd.showEffects", this.showEffects ? "1" : "0"); } catch { /* ignore */ }
+            dialog.classList.toggle("show-effects", this.showEffects);
+            all.textContent = this.showEffects ? "Hide all effects" : "Show all effects";
+          }
         });
       },
     });
-    if (!action) return;
-    if (action.nav) return this.detailsDialog(this.neighbour(mon, action.nav).uid);
-    if (action.slot !== undefined) Run.swapTeamMember(run, uid, action.slot);
-    if (action === "item") await this.itemDialog(mon);
-    if (action === "moves") await this.relearnDialog(mon);
-    if (action === "evolve") await this.evolveDialog(mon);
-    if (action === "patch") await this.patchDialog(mon);
-    if (action === "tm") await this.tmDialog(mon);
+    if (!result) return;
+    if (result.goto) return this.detailsDialog(result.goto);
+    if (result.nav) return this.detailsDialog(this.neighbour(mon, result.nav).uid);
+    if (result.act === "swap") await this.swapDialog(mon);
+    if (result.act === "item") await this.itemDialog(mon);
+    if (result.act === "moves") await this.relearnDialog(mon);
+    if (result.act === "evolve") await this.evolveDialog(mon);
+    if (result.act === "patch") await this.patchDialog(mon);
+    if (result.act === "tm") await this.tmDialog(mon);
     this.render();
     await this.detailsDialog(uid); // reopen with the updated info
   }
 
+  // "Swap place…": pick who this Pokémon trades team slots with
+  async swapDialog(mon) {
+    const { run } = this;
+    const here = run.team.indexOf(mon);
+    const index = await this.modal({
+      title: `Swap ${this.ctx.data.pokemonByKey[mon.species].name}'s place`,
+      body: `<p>Slot ${here + 1} of ${run.team.length}. Your first two Pokémon lead the battle. Pick who ${here < 2 ? "takes" : "swaps with"} this slot.</p>`,
+      options: run.team.map((m, j) => ({
+        value: j,
+        disabled: j === here,
+        html: `<img src="${this.sprite(m)}" alt=""> ${this.monName(m)} <small>Slot ${j + 1}${j < 2 ? " · Lead" : ""}${j === here ? " · this one" : ""}</small>`,
+      })),
+    });
+    if (index !== null) Run.swapTeamMember(run, mon.uid, index);
+  }
+
+  // The shop is split into sections (tabs) like the Bag: held items, berries, medicine…
   shopPanel() {
     const { run, ctx } = this;
-    const stock = run.shop?.stock ?? [];
+    const stock = (run.shop?.stock ?? []).map((e, i) => ({ e, i }));
+    const tms = (run.shop?.tms ?? []).map((t, i) => ({ t, i }));
+    const inSection = (id) => stock.filter(({ e }) => pocketOf(e.id) === id);
+    const left = (id) => (id === "tms" ? tms.filter(({ t }) => !t.sold) : inSection(id).filter(({ e }) => !e.sold)).length;
+    const active = POCKETS.some((p) => p.id === this.shopTab) ? this.shopTab : "items";
+    const cost = Run.shopRerollCost(run, ctx);
+
+    const itemRow = ({ e, i }) => {
+      const item = itemInfo(e.id);
+      return `<div class="shop-item tier-${e.tier} ${e.sold ? "sold" : ""}" title="${item.desc}">
+        ${this.itemImg(e.id)}
+        <div><b>${item.name}</b><small>${item.desc}</small></div>
+        <button class="btn small" data-act="buy" data-i="${i}" ${e.sold || run.money < e.price ? "disabled" : ""}>${e.sold ? "Sold" : `₽${e.price.toLocaleString()}`}</button>
+      </div>`;
+    };
+    const tmRow = ({ t, i }) => {
+      const m = ctx.data.moves[t.move];
+      return `<div class="shop-item tm-shop ${t.sold ? "sold" : ""}" style="--type: var(--t-${m.type})" title="${m.shortEffect}">
+        ${this.tmIcon(t.move)}
+        <div><b>${Run.tmLabel(ctx, t.move)}</b><small>${m.type} · ${m.category}${m.power ? ` · ${m.power} power` : ""}. ${m.shortEffect}</small></div>
+        <button class="btn small" data-act="buy-tm" data-i="${i}" ${t.sold || run.money < t.price ? "disabled" : ""}>${t.sold ? "Sold" : `₽${t.price.toLocaleString()}`}</button>
+      </div>`;
+    };
+
     return `<section class="card-panel shop-panel">
       <div class="team-head"><h2>Shop</h2>
         <div class="row-buttons team-tools">
-          ${(() => {
-            const cost = Run.shopRerollCost(run, ctx);
-            return `<button class="btn small" data-act="shop-reroll" ${run.money < cost ? "disabled" : ""}
-              title="New stock. The first reroll after each battle is free.">🎲 ${cost ? `₽${cost.toLocaleString()}` : "Free"}</button>`;
-          })()}
+          <button class="btn small" data-act="shop-reroll" ${run.money < cost ? "disabled" : ""}
+            title="New stock. The first reroll after each battle is free.">🎲 ${cost ? `₽${cost.toLocaleString()}` : "Free"}</button>
           <button class="btn small" data-act="sell" ${Object.keys(run.bag).length ? "" : "disabled"}>Sell</button>
         </div>
       </div>
       <p class="empty-note">New stock after every battle. You have ₽${run.money.toLocaleString()}.</p>
-      <div class="shop-grid">${stock.map((e, i) => {
-        const item = itemInfo(e.id);
-        return `<div class="shop-item tier-${e.tier} ${e.sold ? "sold" : ""}" title="${item.desc}">
-          ${this.itemImg(e.id)}
-          <div><b>${item.name}</b><small>${item.desc}</small></div>
-          <button class="btn small" data-act="buy" data-i="${i}" ${e.sold || run.money < e.price ? "disabled" : ""}>${e.sold ? "Sold" : `₽${e.price.toLocaleString()}`}</button>
+      <div class="tabs pocket-tabs" role="tablist" aria-label="Shop sections">${POCKETS.map((p) => `
+        <button class="tab ${p.id === active ? "active" : ""} ${left(p.id) ? "" : "empty"}" role="tab" aria-selected="${p.id === active}"
+          data-act="shop-tab" data-pocket="${p.id}" title="${p.label}">
+          <img src="images/items/${p.icon}.png" alt=""><span class="tab-count">${left(p.id)}</span>
+        </button>`).join("")}</div>
+      ${POCKETS.map((p) => {
+        const rows = p.id === "tms" ? tms.map(tmRow) : inSection(p.id).map(itemRow);
+        return `<div class="pocket" data-shop-panel="${p.id}" role="tabpanel" ${p.id === active ? "" : "hidden"}>
+          <h3>${p.label}</h3>
+          <div class="shop-grid">${rows.join("") || `<p class="empty-note">Nothing in this section today.</p>`}</div>
         </div>`;
-      }).join("") || `<p class="empty-note">Sold out.</p>`}</div>
-      ${(run.shop?.tms ?? []).length ? `<h3>TMs</h3><div class="shop-grid">${run.shop.tms.map((t, i) => {
-        const m = ctx.data.moves[t.move];
-        return `<div class="shop-item tm-shop ${t.sold ? "sold" : ""}" style="--type: var(--t-${m.type})" title="${m.shortEffect}">
-          ${this.tmIcon(t.move)}
-          <div><b>${Run.tmLabel(ctx, t.move)}</b><small>${m.type} · ${m.category}${m.power ? ` · ${m.power} power` : ""}. ${m.shortEffect}</small></div>
-          <button class="btn small" data-act="buy-tm" data-i="${i}" ${t.sold || run.money < t.price ? "disabled" : ""}>${t.sold ? "Sold" : `₽${t.price.toLocaleString()}`}</button>
-        </div>`;
-      }).join("")}</div>` : ""}
+      }).join("")}
     </section>`;
   }
 
@@ -1099,6 +1162,16 @@ export class RunUI {
         tab.setAttribute("aria-selected", String(on));
       }
       for (const panel of this.hub.querySelectorAll("[data-pocket-panel]")) panel.hidden = panel.dataset.pocketPanel !== this.bagPocket;
+      return;
+    }
+    if (act === "shop-tab") {
+      this.shopTab = btn.dataset.pocket;
+      for (const tab of this.hub.querySelectorAll("[data-act=shop-tab]")) {
+        const on = tab.dataset.pocket === this.shopTab;
+        tab.classList.toggle("active", on);
+        tab.setAttribute("aria-selected", String(on));
+      }
+      for (const panel of this.hub.querySelectorAll("[data-shop-panel]")) panel.hidden = panel.dataset.shopPanel !== this.shopTab;
       return;
     }
     if (act === "toggle-view") {
@@ -1215,12 +1288,14 @@ export class RunUI {
     const moves = Run.relearnableMoves(ctx, mon);
     const move = await this.modal({
       title: `Move Relearner`,
+      head: this.monStrip(mon),
       body: `${this.dialogMon(mon)}
         <p>${moves.length ? `Any level-up move up to level ${mon.level}. Free. Pick a move to learn.` : "No moves to relearn right now."}</p>`,
       layout: "cards",
       nav: run.team.length > 1,
       options: moves.map((id) => ({ value: id, html: this.moveCard(id) })),
     });
+    if (move?.goto) return this.relearnDialog(run.team.find((m) => m.uid === move.goto));
     if (move?.nav) return this.relearnDialog(this.neighbour(mon, move.nav));
     if (!move) return;
     let replace = null;
@@ -1292,12 +1367,14 @@ export class RunUI {
     const moves = Run.teachableTMs(run, ctx, mon);
     const move = preselected ?? await this.modal({
       title: `Teach a TM`,
+      head: preselected ? "" : this.monStrip(mon),
       body: `${this.dialogMon(mon)}
         <p>${moves.length ? "TMs are reusable: teaching one doesn't use it up." : "None of your TMs fit this Pokémon."}</p>`,
       layout: "cards",
       nav: !preselected && run.team.length > 1,
       options: moves.map((id) => ({ value: id, html: this.moveCard(id) })),
     });
+    if (move?.goto) return this.tmDialog(run.team.find((m) => m.uid === move.goto));
     if (move?.nav) return this.tmDialog(this.neighbour(mon, move.nav));
     if (!move) return;
     let replace = null;

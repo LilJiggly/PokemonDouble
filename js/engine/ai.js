@@ -223,6 +223,10 @@ function statusScore(battle, mon, move, target, ally, allyChoice) {
   const foes = battle.foesOf(mon);
   const hpPct = mon.hp / mon.maxHp;
 
+  // Moves that only make sense against a foe
+  const foeOnly = new Set(["disable", "spite", "psycho-shift", "transform", "mimic", "mirror-move", "me-first"]);
+  if (foeOnly.has(key) && (!target || target.side === mon.side)) return -100;
+
   if (WEATHER_OF[key]) {
     const w = WEATHER_OF[key];
     return field.weather === w ? -50 : teamBenefitsFromWeather(battle, mon, w) ? 75 : 5;
@@ -253,6 +257,26 @@ function statusScore(battle, mon, move, target, ally, allyChoice) {
       if (!target || target.side === mon.side || target.volatile.taunt) return -50;
       return target.moves.some((m) => battle.move(m.id).category === "status") ? 35 : 5;
     case "substitute": return mon.volatile.substitute || hpPct < 0.5 ? -50 : 20;
+    case "ingrain": return mon.volatile.ingrain ? -50 : hpPct < 0.85 ? 25 : 8;
+    case "gravity": return field.gravity > 0 ? -50 : foes.some((f) => !battle.isGrounded(f)) && ![mon, ally].some((m) => m && !battle.isGrounded(m)) ? 40 : 5;
+    case "disable": return target.volatile.disabled || !target.volatile.lastMove ? -50 : 25;
+    case "spite": return target.volatile.lastMove ? 12 : -50;
+    case "mimic": case "mirror-move": return target.volatile.lastMove ? 22 : -50;
+    case "copycat": return field.previousMove ? 22 : -50;
+    case "assist": return battle.state.sides[mon.side].team.some((m) => m !== mon && m.moves.length) ? 25 : -50;
+    case "me-first": return 8;
+    case "transform": return mon.volatile.transformed || target.volatile.transformed ? -100
+      : Object.values(target.stats).reduce((a, b) => a + b, 0) > Object.values(mon.stats).reduce((a, b) => a + b, 0) * 1.15 ? 40 : 3;
+    case "psycho-shift": return mon.status && !target.status ? 45 : -60;
+    case "power-trick": return mon.volatile.powerTrick ? -40 : mon.stats.def > mon.stats.atk * 1.4 && mon.moves.some((m) => battle.move(m.id).category === "physical") ? 40 : -30;
+    case "recycle": return mon.consumedItem && !mon.item ? 30 : -50;
+    case "imprison": return foes.some((f) => f.moves.some((m) => mon.moves.some((mm) => mm.id === m.id))) ? 30 : -40;
+    case "grudge": return hpPct < 0.3 ? 15 : -20;
+    case "magic-coat": return foes.some((f) => f.moves.some((m) => battle.move(m.id).category === "status")) ? 15 : 3;
+    case "snatch": return 8;
+    case "mud-sport": return field.mudSport ? -50 : foes.some((f) => f.moves.some((m) => battle.move(m.id).type === "electric" && battle.move(m.id).category !== "status")) ? 25 : -40;
+    case "water-sport": return field.waterSport ? -50 : foes.some((f) => f.moves.some((m) => battle.move(m.id).type === "fire" && battle.move(m.id).category !== "status")) ? 25 : -40;
+    case "conversion": case "conversion-2": case "camouflage": return 3;
     case "haze": {
       const foeBoosts = foes.reduce((a, f) => a + Object.values(f.boosts).reduce((x, y) => x + Math.max(0, y), 0), 0);
       return foeBoosts >= 2 ? 50 : -20;

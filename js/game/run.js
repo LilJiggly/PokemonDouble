@@ -15,7 +15,7 @@ import { nextRandom } from "../engine/rng.js";
 import { Battle } from "../engine/battle.js";
 import { createRecruit, levelUpMovesAt } from "./recruit.js";
 import { itemOddsFor, tmMaxPowerFor, TIERS } from "./rules.js";
-import { ITEMS } from "./item-catalog.js";
+import { ITEMS, pocketOf } from "./item-catalog.js";
 
 export const FINAL_ORDER = 14;
 export const REPLACEMENT_PICK_CAP = 2;
@@ -444,28 +444,34 @@ export function priceOf(ctx, id) {
 function makeShop(run, ctx) {
   const odds = itemOddsFor(ctx.rules, Math.max(1, run.order));
   const teamSpecies = new Set(run.team.map((m) => m.species));
-  const byTier = {};
+  // Item ids by section, then by tier
+  const bySection = {};
   for (const [id, item] of Object.entries(ITEMS)) {
     if (item.species && !item.species.some((s) => teamSpecies.has(s))) continue;
-    (byTier[item.tier] ??= []).push(id);
+    ((bySection[pocketOf(id)] ??= {})[item.tier] ??= []).push(id);
   }
+  // Every section rolls its own items with the item odds (§3d)
+  const counts = ctx.rules.shopStock ?? {};
   const stock = [];
-  const used = new Set();
-  for (let i = 0; i < 5; i++) {
-    const available = new Set(Object.keys(byTier).filter((t) => byTier[t].some((id) => !used.has(id))));
-    if (!available.size) break;
-    const tier = rollTier(run, odds, available);
-    const id = pickOne(run, byTier[tier].filter((x) => !used.has(x)));
-    used.add(id);
-    stock.push({ id, tier, price: priceOf(ctx, id), sold: false });
+  for (const section of ["items", "berries", "medicine", "battle", "key"]) {
+    const byTier = bySection[section] ?? {};
+    const used = new Set();
+    for (let i = 0; i < (counts[section] ?? 0); i++) {
+      const available = new Set(Object.keys(byTier).filter((t) => byTier[t].some((id) => !used.has(id))));
+      if (!available.size) break;
+      const tier = rollTier(run, odds, available);
+      const id = pickOne(run, byTier[tier].filter((x) => !used.has(x)));
+      used.add(id);
+      stock.push({ id, tier, price: priceOf(ctx, id), sold: false });
+    }
   }
-  // 2 TMs you don't own, within the power limit for this battle (§3g)
+  // TMs you don't own, within the power limit for this battle (§3g)
   const max = tmMaxPowerFor(ctx.rules, Math.max(1, run.order));
   const owned = new Set(run.tms);
   const tmPool = (ctx.tms ?? []).filter((t) => !TM_EXCLUDED.has(t.move) && !owned.has(t.move)
     && (ctx.data.moves[t.move].power ?? 0) <= max);
   const tms = [];
-  for (let i = 0; i < 2 && tmPool.length; i++) {
+  for (let i = 0; i < (counts.tms ?? 3) && tmPool.length; i++) {
     const [t] = tmPool.splice(Math.floor(nextRandom(run) * tmPool.length), 1);
     tms.push({ move: t.move, price: tmPrice(ctx, t.move), sold: false });
   }
@@ -697,6 +703,7 @@ export function startBattle(run, ctx) {
   const title = run.opponent.title === "Rival" ? "Rival" : run.opponent.title;
   const battle = Battle.create(ctx.data, {
     seed: Math.floor(nextRandom(run) * 2 ** 32),
+    terrain: run.opponent.theme ?? "normal", // Camouflage turns into the arena's type
     sides: [
       { name: "You", isPlayer: true, team: run.team.map((m) => ({ ...m })), bag },
       { name: `${title} ${run.opponent.name}`, team: foe.team, script: foe.script },
@@ -723,6 +730,8 @@ export function finishBattle(run, ctx) {
     }
     if (bm.item) mon.item = bm.item;
     else if (bm.consumedItem) mon.item = null; // used up for good
+    // Sketch is permanent: the sketched move replaces the Sketch slot for the rest of the run
+    for (const { index, move } of bm.sketched ?? []) mon.moves[index] = move;
     // (knocked off / swapped away items come back after battle)
     survivors.push(mon);
   });
