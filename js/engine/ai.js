@@ -139,7 +139,7 @@ function wouldBeImmune(battle, user, move, target) {
   const ab = target.ability;
   const absorbs = { "volt-absorb": "electric", "water-absorb": "water", "dry-skin": "water", "motor-drive": "electric",
     "flash-fire": "fire", "lightning-rod": "electric", "storm-drain": "water", "sap-sipper": "grass" };
-  if (absorbs[ab] === type && user.ability !== "mold-breaker") return true;
+  if (absorbs[ab] === type && !["mold-breaker", "turboblaze", "teravolt"].includes(user.ability)) return true;
   if (ab === "wonder-guard" && battle.effectiveness(type, target) <= 1) return true;
   return false;
 }
@@ -152,7 +152,7 @@ function estimateDamage(battle, user, move, target, spread) {
   let dmg;
   if (fixed !== undefined) dmg = fixed;
   else {
-    battle.currentMove = { user, move, moldBreaker: user.ability === "mold-breaker" };
+    battle.currentMove = { user, move, moldBreaker: ["mold-breaker", "turboblaze", "teravolt"].includes(user.ability) };
     try {
       dmg = battle.calcDamage(user, target, move, { type: battle.moveType(user, move), crit: false, spread, roll: 92 });
     } finally {
@@ -224,7 +224,8 @@ function statusScore(battle, mon, move, target, ally, allyChoice) {
   const hpPct = mon.hp / mon.maxHp;
 
   // Moves that only make sense against a foe
-  const foeOnly = new Set(["disable", "spite", "psycho-shift", "transform", "mimic", "mirror-move", "me-first", "sketch"]);
+  const foeOnly = new Set(["disable", "spite", "psycho-shift", "transform", "mimic", "mirror-move", "me-first", "sketch",
+    "soak", "simple-beam", "entrainment", "guard-split", "power-split", "telekinesis", "quash", "reflect-type"]);
   if (foeOnly.has(key) && (!target || target.side === mon.side)) return -100;
 
   if (WEATHER_OF[key]) {
@@ -277,6 +278,22 @@ function statusScore(battle, mon, move, target, ally, allyChoice) {
     case "mud-sport": return field.mudSport ? -50 : foes.some((f) => f.moves.some((m) => battle.move(m.id).type === "electric" && battle.move(m.id).category !== "status")) ? 25 : -40;
     case "water-sport": return field.waterSport ? -50 : foes.some((f) => f.moves.some((m) => battle.move(m.id).type === "fire" && battle.move(m.id).category !== "status")) ? 25 : -40;
     case "conversion": case "conversion-2": case "camouflage": return 3;
+    case "wide-guard": return foes.some((f) => ["all-opponents", "all-other-pokemon"].includes(battle.move(f.moves[0]?.id ?? "splash").target)) ? 15 : 4;
+    case "quick-guard": return 8;
+    case "rage-powder": return ally && ally.hp / ally.maxHp < 0.5 ? 35 : 10;
+    case "heal-pulse": return target && target.side === mon.side && target.hp / target.maxHp < 0.5 ? 55 : -50;
+    case "after-you": return -30;
+    case "ally-switch": return ally ? 3 : -80;
+    case "bestow": return mon.item && ally && !ally.item ? 12 : -50;
+    case "wonder-room": return field.wonderRoom > 0 ? -40 : 6;
+    case "magic-room": return field.magicRoom > 0 ? -40 : mon.item ? 4 : 12;
+    case "guard-split": case "power-split": return 12;
+    case "soak": return target.types.includes("fire") || target.types.includes("ground") || target.types.includes("rock") ? 20 : 5;
+    case "simple-beam": case "entrainment": return 8;
+    case "telekinesis": return target.volatile.telekinesis ? -50 : 8;
+    case "quash": return 6;
+    case "reflect-type": return 4;
+    case "autotomize": return mon.boosts.spe >= 4 ? -20 : battle.speed(mon) < Math.max(...foes.map((f) => battle.speed(f))) ? 30 : 8;
     case "haze": {
       const foeBoosts = foes.reduce((a, f) => a + Object.values(f.boosts).reduce((x, y) => x + Math.max(0, y), 0), 0);
       return foeBoosts >= 2 ? 50 : -20;

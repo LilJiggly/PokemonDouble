@@ -20,7 +20,8 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const gen = Number(process.argv[2] ?? 1);
 const pokemon = JSON.parse(fs.readFileSync(path.join(ROOT, "data/pokemon.json"), "utf8"));
 const leaders = JSON.parse(fs.readFileSync(path.join(ROOT, `data/leaders/gen${gen}.json`), "utf8"));
-const list = Array.isArray(pokemon) ? pokemon : Object.values(pokemon);
+// Gens 1–4 trainers use Pokémon up to Gen 4 (as in DESIGN.md); Unova trainers use everything up to Gen 5
+const list = (Array.isArray(pokemon) ? pokemon : Object.values(pokemon)).filter((p) => p.gen <= (gen === 5 ? 5 : 4));
 const byName = Object.fromEntries(list.map((p) => [p.name.toLowerCase(), p]));
 const byKey = Object.fromEntries(list.map((p) => [p.key, p]));
 
@@ -43,6 +44,9 @@ const SIGNATURE = {
   "4:cynthia": "Spiritomb, Roserade, Togekiss, Lucario, Milotic, Garchomp, Gastrodon, Gallade, Weavile, Dragonite, Gengar, Leafeon",
   "4:rival-barry": "Staraptor, Infernape, Empoleon, Torterra, Heracross, Alakazam, Snorlax, Floatzel, Rapidash, Roserade, Garchomp, Ambipom",
   "4:rival-dawn": "Staraptor, Empoleon, Infernape, Torterra, Togekiss, Gardevoir, Lucario, Ambipom, Vaporeon, Houndoom, Roserade, Lopunny",
+  "5:rival-hugh": "Emboar, Serperior, Samurott, Zoroark, Haxorus, Chandelure, Hydreigon, Conkeldurr, Excadrill, Garchomp, Lucario, Staraptor",
+  "5:rival-bianca": "Serperior, Emboar, Samurott, Musharna, Lilligant, Zebstrika, Mandibuzz, Gardevoir, Reuniclus, Togekiss, Roserade, Flareon",
+  "5:rival-cheren": "Stoutland, Unfezant, Bisharp, Serperior, Emboar, Samurott, Zebstrika, Mandibuzz, Slaking, Jolteon, Ambipom, Garchomp",
   "4:rival-lucas": "Staraptor, Torterra, Infernape, Empoleon, Gallade, Garchomp, Heracross, Luxray, Floatzel, Ambipom, Roserade, Magnezone",
 };
 SIGNATURE["1:rival-blue"] = SIGNATURE["1:blue"];
@@ -95,6 +99,14 @@ const FILLER = {
   "4:bertha": "Steelix, Quagsire",
   "4:flint": "Camerupt",
   "4:lucian": "Venomoth, Bronzong",
+
+  "5:roxie": "Crobat",
+  "5:elesa": "Raichu",
+  "5:drayden": "Gyarados, Charizard, Aerodactyl",
+  "5:shauntal": "Arbok, Crobat",
+  "5:marshal": "Onix, Steelix",
+  "5:grimsley": "Chandelure, Vileplume",
+  "5:iris": "Gyarados, Charizard, Aerodactyl",
 };
 
 // Legendaries and Mythicals are allowed (level gating keeps them late); babies are not

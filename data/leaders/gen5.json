@@ -1,0 +1,133 @@
+{
+ "gen": 5,
+ "region": "Unova",
+ "basedOn": "Black 2 / White 2",
+ "opponents": [
+  {
+   "order": 1,
+   "id": "cheren",
+   "name": "Cheren",
+   "title": "Gym Leader",
+   "theme": "normal",
+   "sets": []
+  },
+  {
+   "order": 2,
+   "id": "roxie",
+   "name": "Roxie",
+   "title": "Gym Leader",
+   "theme": "poison",
+   "sets": []
+  },
+  {
+   "order": 3,
+   "id": "burgh",
+   "name": "Burgh",
+   "title": "Gym Leader",
+   "theme": "bug",
+   "sets": []
+  },
+  {
+   "order": 4,
+   "id": "elesa",
+   "name": "Elesa",
+   "title": "Gym Leader",
+   "theme": "electric",
+   "sets": []
+  },
+  {
+   "order": 5,
+   "id": "clay",
+   "name": "Clay",
+   "title": "Gym Leader",
+   "theme": "ground",
+   "sets": []
+  },
+  {
+   "order": 6,
+   "id": "skyla",
+   "name": "Skyla",
+   "title": "Gym Leader",
+   "theme": "flying",
+   "sets": []
+  },
+  {
+   "order": 7,
+   "id": "drayden",
+   "name": "Drayden",
+   "title": "Gym Leader",
+   "theme": "dragon",
+   "sets": []
+  },
+  {
+   "order": 8,
+   "id": "marlon",
+   "name": "Marlon",
+   "title": "Gym Leader",
+   "theme": "water",
+   "sets": []
+  },
+  {
+   "order": 9,
+   "id": "shauntal",
+   "name": "Shauntal",
+   "title": "Elite Four",
+   "theme": "ghost",
+   "sets": []
+  },
+  {
+   "order": 10,
+   "id": "marshal",
+   "name": "Marshal",
+   "title": "Elite Four",
+   "theme": "fighting",
+   "sets": []
+  },
+  {
+   "order": 11,
+   "id": "grimsley",
+   "name": "Grimsley",
+   "title": "Elite Four",
+   "theme": "dark",
+   "sets": []
+  },
+  {
+   "order": 12,
+   "id": "caitlin",
+   "name": "Caitlin",
+   "title": "Elite Four",
+   "theme": "psychic",
+   "sets": []
+  },
+  {
+   "order": 13,
+   "id": "iris",
+   "name": "Iris",
+   "title": "Champion",
+   "theme": "dragon",
+   "sets": []
+  },
+  {
+   "order": 14,
+   "id": "rival",
+   "name": "Rival",
+   "title": "Rival",
+   "theme": null,
+   "sets": [],
+   "options": [
+    {
+     "id": "hugh",
+     "name": "Hugh"
+    },
+    {
+     "id": "bianca",
+     "name": "Bianca"
+    },
+    {
+     "id": "cheren",
+     "name": "Cheren"
+    }
+   ]
+  }
+ ]
+}

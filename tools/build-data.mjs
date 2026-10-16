@@ -1,9 +1,12 @@
 // =====================================================
 // BUILD GAME DATA FROM POKEAPI
 // -----------------------------------------------------
-// Downloads Pokémon #1–493 (Gen 1–4) from PokeAPI and
-// writes Gen 4 accurate data into /data and sprites
-// into /images/sprites/gen4.
+// Downloads Pokémon #1–649 (Gen 1–5) from PokeAPI and
+// writes the game data into /data and sprites into
+// /images/sprites/gen4 (Pokémon #1–493, Gen 4 art) and
+// /images/sprites/gen5 (Pokémon #494–649, Black/White art).
+// Gen 1–4 Pokémon keep their Gen 4 values; Gen 5 Pokémon
+// and Gen 5 moves use their Black/White values.
 //
 // Usage:
 //   node tools/build-data.mjs              (data + sprites)
@@ -21,12 +24,17 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const CACHE_DIR = path.join(ROOT, "tools", ".cache");
 const DATA_DIR = path.join(ROOT, "data");
 const SPRITE_DIR = path.join(ROOT, "images", "sprites", "gen4");
+const SPRITE_DIR_5 = path.join(ROOT, "images", "sprites", "gen5");
 
 const API = "https://pokeapi.co/api/v2";
-const MAX_ID = 493;
-const TARGET_GEN = 4;
+const MAX_ID = 649;
+const LAST_GEN4_ID = 493;
+// Values are taken as they were in this generation / version group
+const targetGen = (id) => (id > LAST_GEN4_ID ? 5 : 4);
 const TARGET_VERSION_GROUP = "platinum";
+const TARGET_VERSION_GROUP_5 = "black-white";
 const LEARNSET_VERSION_GROUPS = ["platinum", "heartgold-soulsilver"];
+const LEARNSET_VERSION_GROUPS_5 = ["black-white", "black-2-white-2"];
 const CONCURRENCY = 8;
 const WITH_SPRITES = !process.argv.includes("--no-sprites");
 
@@ -113,10 +121,10 @@ async function mapLimit(items, fn, label) {
 
 // PokeAPI "past_*" entries mean: these values applied up to and including
 // that generation. For Gen 4 we apply every entry with generation >= 4,
-// latest first, so the entry closest to Gen 4 wins.
-function pastEntriesForGen(pastList) {
+// latest first, so the entry closest to Gen 4 wins (same idea for Gen 5).
+function pastEntriesForGen(pastList, gen) {
   return (pastList ?? [])
-    .filter((p) => GEN_NUMBER[p.generation.name] >= TARGET_GEN)
+    .filter((p) => GEN_NUMBER[p.generation.name] >= gen)
     .sort((a, b) => GEN_NUMBER[b.generation.name] - GEN_NUMBER[a.generation.name]);
 }
 
@@ -126,14 +134,14 @@ function pastEntriesForGen(pastList) {
 
 function gen4Types(pokemon) {
   let types = pokemon.types;
-  for (const past of pastEntriesForGen(pokemon.past_types)) types = past.types;
+  for (const past of pastEntriesForGen(pokemon.past_types, targetGen(pokemon.id))) types = past.types;
   return types.sort((a, b) => a.slot - b.slot).map((t) => t.type.name);
 }
 
 function gen4Stats(pokemon) {
   const stats = {};
   for (const s of pokemon.stats) stats[STAT_KEYS[s.stat.name]] = s.base_stat;
-  for (const past of pastEntriesForGen(pokemon.past_stats)) {
+  for (const past of pastEntriesForGen(pokemon.past_stats, targetGen(pokemon.id))) {
     for (const s of past.stats) {
       if (STAT_KEYS[s.stat.name]) stats[STAT_KEYS[s.stat.name]] = s.base_stat;
     }
@@ -146,7 +154,7 @@ function gen4Stats(pokemon) {
 function gameAbilities(pokemon) {
   const slots = {};
   for (const a of pokemon.abilities) slots[a.slot] = a.ability?.name ?? null;
-  for (const past of pastEntriesForGen(pokemon.past_abilities)) {
+  for (const past of pastEntriesForGen(pokemon.past_abilities, targetGen(pokemon.id))) {
     for (const a of past.abilities) {
       if (a.is_hidden) continue;
       slots[a.slot] = a.ability?.name ?? null;
@@ -160,22 +168,41 @@ function gameAbilities(pokemon) {
 function learnset(pokemon) {
   const levelUp = new Map();
   const sets = { machine: new Set(), tutor: new Set(), egg: new Set() };
+  const gen5 = pokemon.id > LAST_GEN4_ID;
+  const groups = gen5 ? LEARNSET_VERSION_GROUPS_5 : LEARNSET_VERSION_GROUPS;
+  const mainGroup = gen5 ? TARGET_VERSION_GROUP_5 : TARGET_VERSION_GROUP;
 
   for (const m of pokemon.moves) {
     const move = m.move.name;
     for (const d of m.version_group_details) {
-      if (!LEARNSET_VERSION_GROUPS.includes(d.version_group.name)) continue;
+      if (!groups.includes(d.version_group.name)) continue;
       const method = d.move_learn_method.name;
       if (method === "level-up") {
         const lvl = d.level_learned_at;
-        // Prefer Platinum levels; only use HGSS if Platinum doesn't have the move
-        const isPlat = d.version_group.name === TARGET_VERSION_GROUP;
+        // Prefer Platinum (Gen 5: Black/White) levels; only use the other game if the first doesn't have the move
+        const isPlat = d.version_group.name === mainGroup;
         const prev = levelUp.get(move);
         if (!prev || (isPlat && !prev.plat) || (isPlat === prev.plat && lvl < prev.lvl)) {
           levelUp.set(move, { lvl, plat: isPlat });
         }
       } else if (sets[method]) {
         sets[method].add(move);
+      }
+    }
+  }
+
+  // Gen 1–4 Pokémon also get what Black/White and Black 2/White 2 added (new TMs, tutors, level-up moves).
+  // Their Platinum/HGSS moves and levels stay exactly as they are; this only adds.
+  if (!gen5) {
+    for (const m of pokemon.moves) {
+      for (const d of m.version_group_details) {
+        if (!LEARNSET_VERSION_GROUPS_5.includes(d.version_group.name)) continue;
+        const method = d.move_learn_method.name;
+        if (method === "level-up") {
+          if (!levelUp.has(m.move.name)) levelUp.set(m.move.name, { lvl: Math.max(1, d.level_learned_at), plat: false });
+        } else if (sets[method]) {
+          sets[method].add(m.move.name);
+        }
       }
     }
   }
@@ -195,7 +222,9 @@ function learnset(pokemon) {
 // ===============================
 
 function gen4Move(move, versionGroupOrder) {
-  const platOrder = versionGroupOrder[TARGET_VERSION_GROUP];
+  // Every move uses its Black/White values (power, accuracy, PP, type), for Gen 1–4 moves too
+  const target = TARGET_VERSION_GROUP_5;
+  const platOrder = versionGroupOrder[target];
   const values = {
     type: move.type.name,
     power: move.power,
@@ -215,6 +244,14 @@ function gen4Move(move, versionGroupOrder) {
     if (p.accuracy !== null) values.accuracy = p.accuracy;
     if (p.pp !== null) values.pp = p.pp;
     if (p.effect_chance !== null) values.effectChance = p.effect_chance;
+  }
+
+  // Moves whose power became variable in Gen 5 (Beat Up, Punishment…) keep their fixed Platinum power
+  if (values.power === null) {
+    const plat = versionGroupOrder[TARGET_VERSION_GROUP];
+    const earlier = (move.past_values ?? []).filter((p) => versionGroupOrder[p.version_group.name] > plat && p.power !== null)
+      .sort((a, b) => versionGroupOrder[a.version_group.name] - versionGroupOrder[b.version_group.name])[0];
+    if (earlier) values.power = earlier.power;
   }
 
   const meta = move.meta;
@@ -315,10 +352,10 @@ async function main() {
       heightM: p.height / 10, // PokeAPI height is in decimeters
       weightKg: p.weight / 10, // PokeAPI weight is in hectograms
       sprites: {
-        front: `images/sprites/gen4/front/${p.id}.png`,
-        back: `images/sprites/gen4/back/${p.id}.png`,
-        frontShiny: `images/sprites/gen4/front-shiny/${p.id}.png`,
-        backShiny: `images/sprites/gen4/back-shiny/${p.id}.png`,
+        front: `images/sprites/${p.id > LAST_GEN4_ID ? "gen5" : "gen4"}/front/${p.id}.png`,
+        back: `images/sprites/${p.id > LAST_GEN4_ID ? "gen5" : "gen4"}/back/${p.id}.png`,
+        frontShiny: `images/sprites/${p.id > LAST_GEN4_ID ? "gen5" : "gen4"}/front-shiny/${p.id}.png`,
+        backShiny: `images/sprites/${p.id > LAST_GEN4_ID ? "gen5" : "gen4"}/back-shiny/${p.id}.png`,
       },
       learnset: learnset(p),
     };
@@ -372,15 +409,19 @@ async function main() {
       "front-shiny": (s) => s.front_shiny,
       "back-shiny": (s) => s.back_shiny,
     };
-    for (const kind of Object.keys(kinds)) await fs.mkdir(path.join(SPRITE_DIR, kind), { recursive: true });
+    for (const kind of Object.keys(kinds)) {
+      await fs.mkdir(path.join(SPRITE_DIR, kind), { recursive: true });
+      await fs.mkdir(path.join(SPRITE_DIR_5, kind), { recursive: true });
+    }
 
     const jobs = [];
     for (const p of pokemonRaw) {
-      const plat = p.sprites.versions["generation-iv"].platinum;
-      const hgss = p.sprites.versions["generation-iv"]["heartgold-soulsilver"];
+      const gen5 = p.id > LAST_GEN4_ID;
+      const plat = gen5 ? p.sprites.versions["generation-v"]["black-white"] : p.sprites.versions["generation-iv"].platinum;
+      const hgss = gen5 ? plat : p.sprites.versions["generation-iv"]["heartgold-soulsilver"];
       for (const [kind, pick] of Object.entries(kinds)) {
         const url = pick(plat) ?? pick(hgss);
-        if (url) jobs.push({ url, file: path.join(SPRITE_DIR, kind, `${p.id}.png`), label: `${p.name} ${kind}` });
+        if (url) jobs.push({ url, file: path.join(gen5 ? SPRITE_DIR_5 : SPRITE_DIR, kind, `${p.id}.png`), label: `${p.name} ${kind}` });
         else missingSprites.push(`${p.name} ${kind}`);
       }
     }
@@ -393,7 +434,7 @@ async function main() {
   const manifest = {
     builtOn: new Date().toISOString().slice(0, 10),
     source: "PokeAPI (https://pokeapi.co)",
-    rules: "Gen 4 types, base stats, normal abilities and move values; Hidden Abilities from latest data; learnsets from Platinum + HeartGold/SoulSilver",
+    rules: "Pokémon #1–493: Gen 4 types, base stats, normal abilities and move values, learnsets from Platinum + HeartGold/SoulSilver plus what Black/White and Black 2/White 2 added. Pokémon #494–649: Black/White values, learnsets from Black/White + Black 2/White 2. All moves: Black/White power, accuracy, PP and type. Hidden Abilities from latest data",
     counts: {
       pokemon: pokemon.length,
       moves: Object.keys(moves).length,

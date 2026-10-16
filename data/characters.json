@@ -1,0 +1,346 @@
+[
+ {
+  "id": "red-gb",
+  "name": "Red",
+  "game": "Red / Blue",
+  "gen": 1,
+  "front": "images/trainers/red-gb.png",
+  "back": "images/trainers/back/red-gb.png"
+ },
+ {
+  "id": "oak",
+  "name": "Prof. Oak",
+  "game": "Yellow",
+  "gen": 1,
+  "front": "images/trainers/oak.png",
+  "back": "images/trainers/back/oak.png"
+ },
+ {
+  "id": "ethan-gsc",
+  "name": "Ethan",
+  "game": "Gold / Silver / Crystal",
+  "gen": 2,
+  "front": "images/trainers/ethan-gsc.png",
+  "back": "images/trainers/back/ethan-gsc.png"
+ },
+ {
+  "id": "kris",
+  "name": "Kris",
+  "game": "Crystal",
+  "gen": 2,
+  "front": "images/trainers/kris.png",
+  "back": "images/trainers/back/kris.png"
+ },
+ {
+  "id": "ethan-sw97",
+  "name": "Ethan",
+  "game": "Spaceworld '97",
+  "gen": 2,
+  "front": "images/trainers/ethan-sw97.png",
+  "back": "images/trainers/back/ethan-sw97.png"
+ },
+ {
+  "id": "ethan",
+  "name": "Ethan",
+  "game": "HeartGold / SoulSilver",
+  "gen": 2,
+  "front": "images/trainers/ethan.png",
+  "back": "images/trainers/back/ethan.png"
+ },
+ {
+  "id": "lyra",
+  "name": "Lyra",
+  "game": "HeartGold / SoulSilver",
+  "gen": 2,
+  "front": "images/trainers/lyra.png",
+  "back": "images/trainers/back/lyra.png"
+ },
+ {
+  "id": "lance",
+  "name": "Lance",
+  "game": "HeartGold / SoulSilver",
+  "gen": 2,
+  "front": "images/trainers/lance.png",
+  "back": "images/trainers/back/lance.png"
+ },
+ {
+  "id": "silver",
+  "name": "Silver",
+  "game": "HeartGold / SoulSilver",
+  "gen": 2,
+  "front": "images/trainers/silver.png",
+  "back": "images/trainers/back/silver.png"
+ },
+ {
+  "id": "gold-beta",
+  "name": "Gold",
+  "game": "HeartGold beta",
+  "gen": 2,
+  "front": "images/trainers/gold-beta.png",
+  "back": "images/trainers/back/gold-beta.png"
+ },
+ {
+  "id": "red",
+  "name": "Red",
+  "game": "FireRed / LeafGreen",
+  "gen": 3,
+  "front": "images/trainers/red.png",
+  "back": "images/trainers/back/red.png"
+ },
+ {
+  "id": "leaf",
+  "name": "Leaf",
+  "game": "FireRed / LeafGreen",
+  "gen": 3,
+  "front": "images/trainers/leaf.png",
+  "back": "images/trainers/back/leaf.png"
+ },
+ {
+  "id": "brendan-rs",
+  "name": "Brendan",
+  "game": "Ruby / Sapphire",
+  "gen": 3,
+  "front": "images/trainers/brendan-rs.png",
+  "back": "images/trainers/back/brendan-rs.png"
+ },
+ {
+  "id": "may-rs",
+  "name": "May",
+  "game": "Ruby / Sapphire",
+  "gen": 3,
+  "front": "images/trainers/may-rs.png",
+  "back": "images/trainers/back/may-rs.png"
+ },
+ {
+  "id": "brendan",
+  "name": "Brendan",
+  "game": "Emerald",
+  "gen": 3,
+  "front": "images/trainers/brendan.png",
+  "back": "images/trainers/back/brendan.png"
+ },
+ {
+  "id": "may",
+  "name": "May",
+  "game": "Emerald",
+  "gen": 3,
+  "front": "images/trainers/may.png",
+  "back": "images/trainers/back/may.png"
+ },
+ {
+  "id": "red-e",
+  "name": "Red",
+  "game": "Emerald (Battle Frontier)",
+  "gen": 3,
+  "front": "images/trainers/red-e.png",
+  "back": "images/trainers/back/red-e.png"
+ },
+ {
+  "id": "leaf-e",
+  "name": "Leaf",
+  "game": "Emerald (Battle Frontier)",
+  "gen": 3,
+  "front": "images/trainers/leaf-e.png",
+  "back": "images/trainers/back/leaf-e.png"
+ },
+ {
+  "id": "steven",
+  "name": "Steven",
+  "game": "Emerald",
+  "gen": 3,
+  "front": "images/trainers/steven.png",
+  "back": "images/trainers/back/steven.png"
+ },
+ {
+  "id": "wally",
+  "name": "Wally",
+  "game": "Ruby / Sapphire",
+  "gen": 3,
+  "front": "images/trainers/wally.png",
+  "back": "images/trainers/back/wally.png"
+ },
+ {
+  "id": "lucas",
+  "name": "Lucas",
+  "game": "Platinum",
+  "gen": 4,
+  "front": "images/trainers/lucas.png",
+  "back": "images/trainers/back/lucas.png"
+ },
+ {
+  "id": "dawn",
+  "name": "Dawn",
+  "game": "Platinum",
+  "gen": 4,
+  "front": "images/trainers/dawn.png",
+  "back": "images/trainers/back/dawn.png"
+ },
+ {
+  "id": "barry",
+  "name": "Barry",
+  "game": "Platinum",
+  "gen": 4,
+  "front": "images/trainers/barry.png",
+  "back": "images/trainers/back/barry.png"
+ },
+ {
+  "id": "lucas-dp",
+  "name": "Lucas",
+  "game": "Diamond / Pearl",
+  "gen": 4,
+  "front": "images/trainers/lucas-dp.png",
+  "back": "images/trainers/back/lucas-dp.png"
+ },
+ {
+  "id": "dawn-dp",
+  "name": "Dawn",
+  "game": "Diamond / Pearl",
+  "gen": 4,
+  "front": "images/trainers/dawn-dp.png",
+  "back": "images/trainers/back/dawn-dp.png"
+ },
+ {
+  "id": "barry-dp",
+  "name": "Barry",
+  "game": "Diamond / Pearl",
+  "gen": 4,
+  "front": "images/trainers/barry-dp.png",
+  "back": "images/trainers/back/barry-dp.png"
+ },
+ {
+  "id": "buck",
+  "name": "Buck",
+  "game": "Diamond / Pearl",
+  "gen": 4,
+  "front": "images/trainers/buck.png",
+  "back": "images/trainers/back/buck.png"
+ },
+ {
+  "id": "cheryl",
+  "name": "Cheryl",
+  "game": "Diamond / Pearl",
+  "gen": 4,
+  "front": "images/trainers/cheryl.png",
+  "back": "images/trainers/back/cheryl.png"
+ },
+ {
+  "id": "marley",
+  "name": "Marley",
+  "game": "Diamond / Pearl",
+  "gen": 4,
+  "front": "images/trainers/marley.png",
+  "back": "images/trainers/back/marley.png"
+ },
+ {
+  "id": "mira",
+  "name": "Mira",
+  "game": "Diamond / Pearl",
+  "gen": 4,
+  "front": "images/trainers/mira.png",
+  "back": "images/trainers/back/mira.png"
+ },
+ {
+  "id": "riley",
+  "name": "Riley",
+  "game": "Diamond / Pearl",
+  "gen": 4,
+  "front": "images/trainers/riley.png",
+  "back": "images/trainers/back/riley.png"
+ },
+ {
+  "id": "hilbert",
+  "name": "Hilbert",
+  "game": "Black / White",
+  "gen": 5,
+  "front": "images/trainers/hilbert.png",
+  "back": "images/trainers/back/hilbert.png"
+ },
+ {
+  "id": "hilda",
+  "name": "Hilda",
+  "game": "Black / White",
+  "gen": 5,
+  "front": "images/trainers/hilda.png",
+  "back": "images/trainers/back/hilda.png"
+ },
+ {
+  "id": "cheren-bw",
+  "name": "Cheren",
+  "game": "Black / White",
+  "gen": 5,
+  "front": "images/trainers/cheren-bw.png",
+  "back": "images/trainers/back/cheren-bw.png"
+ },
+ {
+  "id": "juniper",
+  "name": "Prof. Juniper",
+  "game": "Black / White",
+  "gen": 5,
+  "front": "images/trainers/juniper.png",
+  "back": "images/trainers/back/juniper.png"
+ },
+ {
+  "id": "nate",
+  "name": "Nate",
+  "game": "Black 2 / White 2",
+  "gen": 5,
+  "front": "images/trainers/nate.png",
+  "back": "images/trainers/back/nate.png"
+ },
+ {
+  "id": "rosa",
+  "name": "Rosa",
+  "game": "Black 2 / White 2",
+  "gen": 5,
+  "front": "images/trainers/rosa.png",
+  "back": "images/trainers/back/rosa.png"
+ },
+ {
+  "id": "bianca",
+  "name": "Bianca",
+  "game": "Black 2 / White 2",
+  "gen": 5,
+  "front": "images/trainers/bianca.png",
+  "back": "images/trainers/back/bianca.png"
+ },
+ {
+  "id": "cheren",
+  "name": "Cheren",
+  "game": "Black 2 / White 2",
+  "gen": 5,
+  "front": "images/trainers/cheren.png",
+  "back": "images/trainers/back/cheren.png"
+ },
+ {
+  "id": "hugh",
+  "name": "Hugh",
+  "game": "Black 2 / White 2",
+  "gen": 5,
+  "front": "images/trainers/hugh.png",
+  "back": "images/trainers/back/hugh.png"
+ },
+ {
+  "id": "chili",
+  "name": "Chili",
+  "game": "Black 2 / White 2",
+  "gen": 5,
+  "front": "images/trainers/chili.png",
+  "back": "images/trainers/back/chili.png"
+ },
+ {
+  "id": "cilan",
+  "name": "Cilan",
+  "game": "Black 2 / White 2",
+  "gen": 5,
+  "front": "images/trainers/cilan.png",
+  "back": "images/trainers/back/cilan.png"
+ },
+ {
+  "id": "cress",
+  "name": "Cress",
+  "game": "Black 2 / White 2",
+  "gen": 5,
+  "front": "images/trainers/cress.png",
+  "back": "images/trainers/back/cress.png"
+ }
+]

@@ -425,6 +425,8 @@ export function usePatch(run, ctx, uid, kind) {
     mon.ability = others[0];
     mon.abilitySlot = String(p.abilities.normal.indexOf(others[0]));
   }
+  run.bag[kind] -= 1; // patches are used up
+  if (run.bag[kind] <= 0) delete run.bag[kind];
   run.messages.push(`${displayName(ctx, mon)}'s Ability became ${ctx.data.abilities[mon.ability]?.name ?? mon.ability}!`);
   return { ok: true };
 }
@@ -593,13 +595,26 @@ export function chooseOpponent(run, ctx, order) {
 }
 
 // One random opponent Pokémon at the battle level
+// Smeargle only knows Sketch, and the AI uses it badly (it needs the foe to have moved first).
+// Opponent Smeargle come with moves already sketched, like a trainer's Smeargle in the games.
+const SMEARGLE_SKETCHES = [
+  "thunderbolt", "ice-beam", "flamethrower", "shadow-ball", "psychic", "earthquake", "surf", "energy-ball",
+  "crunch", "aura-sphere", "thunder-wave", "recover", "protect", "swords-dance", "calm-mind", "will-o-wisp",
+];
+function smeargleMoves(run, ctx) {
+  const pool = SMEARGLE_SKETCHES.filter((m) => ctx.data.moves[m]);
+  const picked = [];
+  while (picked.length < 4 && pool.length) picked.push(pool.splice(Math.floor(nextRandom(run) * pool.length), 1)[0]);
+  return picked;
+}
+
 function opponentMon(run, ctx, species, level) {
   const p = ctx.data.pokemonByKey[species];
   return {
     species, level,
     ability: p.abilities.normal[Math.floor(nextRandom(run) * p.abilities.normal.length)],
     nature: NATURES[Math.floor(nextRandom(run) * NATURES.length)],
-    moves: levelUpMovesAt(p, level, ctx.data),
+    moves: species === "smeargle" ? smeargleMoves(run, ctx) : levelUpMovesAt(p, level, ctx.data),
     item: null,
   };
 }

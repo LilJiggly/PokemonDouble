@@ -1,0 +1,625 @@
+{
+ "aaron": {
+  "showdown": "aaron",
+  "avail": [
+   "aaron"
+  ],
+  "have": []
+ },
+ "agatha": {
+  "showdown": "agatha",
+  "avail": [
+   "agatha-gen1",
+   "agatha-gen1rb",
+   "agatha-gen3",
+   "agatha-lgpe"
+  ],
+  "have": []
+ },
+ "barry": {
+  "showdown": "barry",
+  "avail": [
+   "barry-masters",
+   "barry"
+  ],
+  "have": []
+ },
+ "bertha": {
+  "showdown": "bertha",
+  "avail": [
+   "bertha"
+  ],
+  "have": []
+ },
+ "blaine": {
+  "showdown": "blaine",
+  "avail": [
+   "blaine-gen1",
+   "blaine-gen1rb",
+   "blaine-gen2",
+   "blaine-gen3",
+   "blaine-lgpe",
+   "blaine"
+  ],
+  "have": []
+ },
+ "blue": {
+  "showdown": "blue",
+  "avail": [
+   "blue-gen1",
+   "blue-gen1champion",
+   "blue-gen1rb",
+   "blue-gen1rbchampion",
+   "blue-gen1rbtwo",
+   "blue-gen1two",
+   "blue-gen2",
+   "blue-gen3",
+   "blue-gen3champion",
+   "blue-gen3two",
+   "blue-gen7",
+   "blue-lgpe",
+   "blue-masters",
+   "blue-masters2",
+   "blue"
+  ],
+  "have": []
+ },
+ "brawly": {
+  "showdown": "brawly",
+  "avail": [
+   "brawly-gen3",
+   "brawly-gen6",
+   "brawly"
+  ],
+  "have": []
+ },
+ "brendan": {
+  "showdown": "brendan",
+  "avail": [
+   "brendan-contest",
+   "brendan-e",
+   "brendan-gen3",
+   "brendan-gen3rs",
+   "brendan-masters",
+   "brendan-masters2",
+   "brendan-masters3",
+   "brendan-rs",
+   "brendan"
+  ],
+  "have": []
+ },
+ "brock": {
+  "showdown": "brock",
+  "avail": [
+   "brock-gen1",
+   "brock-gen1rb",
+   "brock-gen2",
+   "brock-gen3",
+   "brock-lgpe",
+   "brock-masters",
+   "brock"
+  ],
+  "have": []
+ },
+ "bruno": {
+  "showdown": "bruno",
+  "avail": [
+   "bruno-gen1",
+   "bruno-gen1rb",
+   "bruno-gen2",
+   "bruno-gen3",
+   "bruno"
+  ],
+  "have": []
+ },
+ "bugsy": {
+  "showdown": "bugsy",
+  "avail": [
+   "bugsy-gen2",
+   "bugsy-masters",
+   "bugsy"
+  ],
+  "have": []
+ },
+ "byron": {
+  "showdown": "byron",
+  "avail": [
+   "byron"
+  ],
+  "have": []
+ },
+ "candice": {
+  "showdown": "candice",
+  "avail": [
+   "candice-masters",
+   "candice"
+  ],
+  "have": []
+ },
+ "chuck": {
+  "showdown": "chuck",
+  "avail": [
+   "chuck-gen2",
+   "chuck"
+  ],
+  "have": []
+ },
+ "clair": {
+  "showdown": "clair",
+  "avail": [
+   "clair-gen2",
+   "clair-masters",
+   "clair"
+  ],
+  "have": []
+ },
+ "crasher-wake": {
+  "showdown": "crasherwake",
+  "avail": [
+   "crasherwake"
+  ],
+  "have": []
+ },
+ "cynthia": {
+  "showdown": "cynthia",
+  "avail": [
+   "cynthia-anime",
+   "cynthia-anime2",
+   "cynthia-gen4",
+   "cynthia-gen7",
+   "cynthia-masters",
+   "cynthia-masters2",
+   "cynthia-masters3",
+   "cynthia-masters4",
+   "cynthia-masters5",
+   "cynthia"
+  ],
+  "have": []
+ },
+ "dawn": {
+  "showdown": "dawn",
+  "avail": [
+   "dawn-contest",
+   "dawn-gen4pt",
+   "dawn-masters",
+   "dawn-masters2",
+   "dawn-masters3",
+   "dawn"
+  ],
+  "have": []
+ },
+ "drake": {
+  "showdown": "drake",
+  "avail": [
+   "drake-gen3"
+  ],
+  "have": []
+ },
+ "erika": {
+  "showdown": "erika",
+  "avail": [
+   "erika-gen1",
+   "erika-gen1rb",
+   "erika-gen2",
+   "erika-gen3",
+   "erika-lgpe",
+   "erika-masters",
+   "erika-masters2",
+   "erika-masters3",
+   "erika"
+  ],
+  "have": []
+ },
+ "ethan": {
+  "showdown": "ethan",
+  "avail": [
+   "ethan-gen2",
+   "ethan-gen2c",
+   "ethan-masters",
+   "ethan-pokeathlon",
+   "ethan"
+  ],
+  "have": []
+ },
+ "falkner": {
+  "showdown": "falkner",
+  "avail": [
+   "falkner-gen2",
+   "falkner"
+  ],
+  "have": []
+ },
+ "fantina": {
+  "showdown": "fantina",
+  "avail": [
+   "fantina"
+  ],
+  "have": []
+ },
+ "flannery": {
+  "showdown": "flannery",
+  "avail": [
+   "flannery-gen3",
+   "flannery-gen6",
+   "flannery"
+  ],
+  "have": []
+ },
+ "flint": {
+  "showdown": "flint",
+  "avail": [
+   "flint"
+  ],
+  "have": []
+ },
+ "gardenia": {
+  "showdown": "gardenia",
+  "avail": [
+   "gardenia-masters",
+   "gardenia"
+  ],
+  "have": []
+ },
+ "giovanni": {
+  "showdown": "giovanni",
+  "avail": [
+   "giovanni-gen1",
+   "giovanni-gen1rb",
+   "giovanni-gen3",
+   "giovanni-lgpe",
+   "giovanni-masters",
+   "giovanni-masters2",
+   "giovanni"
+  ],
+  "have": []
+ },
+ "glacia": {
+  "showdown": "glacia",
+  "avail": [
+   "glacia-gen3",
+   "glacia"
+  ],
+  "have": []
+ },
+ "gold": {
+  "showdown": "ethan",
+  "avail": [
+   "ethan-gen2",
+   "ethan-gen2c",
+   "ethan-masters",
+   "ethan-pokeathlon",
+   "ethan"
+  ],
+  "have": []
+ },
+ "green": {
+  "showdown": "green",
+  "avail": [
+   "green"
+  ],
+  "have": []
+ },
+ "jasmine": {
+  "showdown": "jasmine",
+  "avail": [
+   "jasmine-contest",
+   "jasmine-gen2",
+   "jasmine-masters",
+   "jasmine-masters2",
+   "jasmine-masters3",
+   "jasmine"
+  ],
+  "have": []
+ },
+ "juan": {
+  "showdown": "juan",
+  "avail": [
+   "juan-gen3",
+   "juan"
+  ],
+  "have": []
+ },
+ "karen": {
+  "showdown": "karen",
+  "avail": [
+   "karen-gen2",
+   "karen"
+  ],
+  "have": []
+ },
+ "koga": {
+  "showdown": "koga",
+  "avail": [
+   "koga-gen1",
+   "koga-gen1rb",
+   "koga-gen2",
+   "koga-gen3",
+   "koga-lgpe",
+   "koga"
+  ],
+  "have": []
+ },
+ "lance": {
+  "showdown": "lance",
+  "avail": [
+   "lance-gen1",
+   "lance-gen1rb",
+   "lance-gen2",
+   "lance-gen3",
+   "lance-lgpe",
+   "lance-masters",
+   "lance-masters2",
+   "lance"
+  ],
+  "have": []
+ },
+ "leaf": {
+  "showdown": "leaf",
+  "avail": [
+   "leaf-gen3",
+   "leaf-masters",
+   "leaf-masters2"
+  ],
+  "have": []
+ },
+ "liza": {
+  "showdown": "liza",
+  "avail": [
+   "liza-gen6",
+   "liza-masters",
+   "liza"
+  ],
+  "have": []
+ },
+ "lorelei": {
+  "showdown": "lorelei",
+  "avail": [
+   "lorelei-gen1",
+   "lorelei-gen1rb",
+   "lorelei-gen3",
+   "lorelei-lgpe"
+  ],
+  "have": []
+ },
+ "lt-surge": {
+  "showdown": "ltsurge",
+  "avail": [
+   "ltsurge-gen1",
+   "ltsurge-gen1rb",
+   "ltsurge-gen2",
+   "ltsurge-gen3",
+   "ltsurge"
+  ],
+  "have": []
+ },
+ "lucas": {
+  "showdown": "lucas",
+  "avail": [
+   "lucas-contest",
+   "lucas-gen4pt",
+   "lucas"
+  ],
+  "have": []
+ },
+ "lucian": {
+  "showdown": "lucian",
+  "avail": [
+   "lucian"
+  ],
+  "have": []
+ },
+ "lyra": {
+  "showdown": "lyra",
+  "avail": [
+   "lyra-masters",
+   "lyra-masters2",
+   "lyra-pokeathlon",
+   "lyra"
+  ],
+  "have": []
+ },
+ "may": {
+  "showdown": "may",
+  "avail": [
+   "may-contest",
+   "may-e",
+   "may-gen3",
+   "may-gen3rs",
+   "may-masters",
+   "may-masters2",
+   "may-masters3",
+   "may-masters4",
+   "may-rs",
+   "may"
+  ],
+  "have": []
+ },
+ "maylene": {
+  "showdown": "maylene",
+  "avail": [
+   "maylene"
+  ],
+  "have": []
+ },
+ "misty": {
+  "showdown": "misty",
+  "avail": [
+   "misty-gen1",
+   "misty-gen1rb",
+   "misty-gen2",
+   "misty-gen3",
+   "misty-lgpe",
+   "misty-masters",
+   "misty"
+  ],
+  "have": []
+ },
+ "morty": {
+  "showdown": "morty",
+  "avail": [
+   "morty-gen2",
+   "morty-masters",
+   "morty-masters2",
+   "morty-masters3",
+   "morty"
+  ],
+  "have": []
+ },
+ "norman": {
+  "showdown": "norman",
+  "avail": [
+   "norman-gen3",
+   "norman-gen6",
+   "norman"
+  ],
+  "have": []
+ },
+ "phoebe": {
+  "showdown": "phoebe",
+  "avail": [
+   "phoebe-gen3",
+   "phoebe-gen6",
+   "phoebe-masters"
+  ],
+  "have": []
+ },
+ "pryce": {
+  "showdown": "pryce",
+  "avail": [
+   "pryce-gen2",
+   "pryce"
+  ],
+  "have": []
+ },
+ "red": {
+  "showdown": "red",
+  "avail": [
+   "red-gen1",
+   "red-gen1main",
+   "red-gen1rb",
+   "red-gen1title",
+   "red-gen2",
+   "red-gen3",
+   "red-gen7",
+   "red-lgpe",
+   "red-masters",
+   "red-masters2",
+   "red-masters3",
+   "red-masters4",
+   "red"
+  ],
+  "have": []
+ },
+ "roark": {
+  "showdown": "roark",
+  "avail": [
+   "roark"
+  ],
+  "have": []
+ },
+ "roxanne": {
+  "showdown": "roxanne",
+  "avail": [
+   "roxanne-gen3",
+   "roxanne-gen6",
+   "roxanne-masters",
+   "roxanne"
+  ],
+  "have": []
+ },
+ "sabrina": {
+  "showdown": "sabrina",
+  "avail": [
+   "sabrina-frlg",
+   "sabrina-gen1",
+   "sabrina-gen1rb",
+   "sabrina-gen2",
+   "sabrina-gen3",
+   "sabrina-lgpe",
+   "sabrina-masters",
+   "sabrina"
+  ],
+  "have": []
+ },
+ "sidney": {
+  "showdown": "sidney",
+  "avail": [
+   "sidney-gen3",
+   "sidney"
+  ],
+  "have": []
+ },
+ "silver": {
+  "showdown": "silver",
+  "avail": [
+   "silver-gen2",
+   "silver-gen2kanto",
+   "silver-masters",
+   "silver-masters2",
+   "silver"
+  ],
+  "have": []
+ },
+ "tate": {
+  "showdown": "tate",
+  "avail": [
+   "tate-gen6",
+   "tate-masters",
+   "tate"
+  ],
+  "have": []
+ },
+ "volkner": {
+  "showdown": "volkner",
+  "avail": [
+   "volkner-masters",
+   "volkner"
+  ],
+  "have": []
+ },
+ "wallace": {
+  "showdown": "wallace",
+  "avail": [
+   "wallace-gen3",
+   "wallace-gen3rs",
+   "wallace-gen6",
+   "wallace-masters",
+   "wallace"
+  ],
+  "have": []
+ },
+ "wattson": {
+  "showdown": "wattson",
+  "avail": [
+   "wattson-gen3",
+   "wattson"
+  ],
+  "have": []
+ },
+ "whitney": {
+  "showdown": "whitney",
+  "avail": [
+   "whitney-gen2",
+   "whitney-masters",
+   "whitney"
+  ],
+  "have": []
+ },
+ "will": {
+  "showdown": "will",
+  "avail": [
+   "will-gen2",
+   "will"
+  ],
+  "have": []
+ },
+ "winona": {
+  "showdown": "winona",
+  "avail": [
+   "winona-gen3",
+   "winona-gen6",
+   "winona"
+  ],
+  "have": []
+ }
+}

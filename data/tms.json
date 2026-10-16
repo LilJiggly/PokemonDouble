@@ -458,5 +458,161 @@
   "tm": "TM92",
   "number": 92,
   "move": "trick-room"
+ },
+ {
+  "tm": "TM93",
+  "number": 93,
+  "move": "hone-claws",
+  "blackWhite": "TM01"
+ },
+ {
+  "tm": "TM94",
+  "number": 94,
+  "move": "psyshock",
+  "blackWhite": "TM03"
+ },
+ {
+  "tm": "TM95",
+  "number": 95,
+  "move": "venoshock",
+  "blackWhite": "TM09"
+ },
+ {
+  "tm": "TM96",
+  "number": 96,
+  "move": "telekinesis",
+  "blackWhite": "TM19"
+ },
+ {
+  "tm": "TM97",
+  "number": 97,
+  "move": "smack-down",
+  "blackWhite": "TM23"
+ },
+ {
+  "tm": "TM98",
+  "number": 98,
+  "move": "sludge-wave",
+  "blackWhite": "TM34"
+ },
+ {
+  "tm": "TM99",
+  "number": 99,
+  "move": "flame-charge",
+  "blackWhite": "TM43"
+ },
+ {
+  "tm": "TM100",
+  "number": 100,
+  "move": "low-sweep",
+  "blackWhite": "TM47"
+ },
+ {
+  "tm": "TM101",
+  "number": 101,
+  "move": "round",
+  "blackWhite": "TM48"
+ },
+ {
+  "tm": "TM102",
+  "number": 102,
+  "move": "echoed-voice",
+  "blackWhite": "TM49"
+ },
+ {
+  "tm": "TM103",
+  "number": 103,
+  "move": "ally-switch",
+  "blackWhite": "TM51"
+ },
+ {
+  "tm": "TM104",
+  "number": 104,
+  "move": "scald",
+  "blackWhite": "TM55"
+ },
+ {
+  "tm": "TM105",
+  "number": 105,
+  "move": "sky-drop",
+  "blackWhite": "TM58"
+ },
+ {
+  "tm": "TM106",
+  "number": 106,
+  "move": "incinerate",
+  "blackWhite": "TM59"
+ },
+ {
+  "tm": "TM107",
+  "number": 107,
+  "move": "quash",
+  "blackWhite": "TM60"
+ },
+ {
+  "tm": "TM108",
+  "number": 108,
+  "move": "acrobatics",
+  "blackWhite": "TM62"
+ },
+ {
+  "tm": "TM109",
+  "number": 109,
+  "move": "retaliate",
+  "blackWhite": "TM67"
+ },
+ {
+  "tm": "TM110",
+  "number": 110,
+  "move": "volt-switch",
+  "blackWhite": "TM72"
+ },
+ {
+  "tm": "TM111",
+  "number": 111,
+  "move": "struggle-bug",
+  "blackWhite": "TM76"
+ },
+ {
+  "tm": "TM112",
+  "number": 112,
+  "move": "bulldoze",
+  "blackWhite": "TM78"
+ },
+ {
+  "tm": "TM113",
+  "number": 113,
+  "move": "frost-breath",
+  "blackWhite": "TM79"
+ },
+ {
+  "tm": "TM114",
+  "number": 114,
+  "move": "dragon-tail",
+  "blackWhite": "TM82"
+ },
+ {
+  "tm": "TM115",
+  "number": 115,
+  "move": "work-up",
+  "blackWhite": "TM83"
+ },
+ {
+  "tm": "TM116",
+  "number": 116,
+  "move": "wild-charge",
+  "blackWhite": "TM93"
+ },
+ {
+  "tm": "TM117",
+  "number": 117,
+  "move": "rock-smash",
+  "blackWhite": "TM94"
+ },
+ {
+  "tm": "TM118",
+  "number": 118,
+  "move": "snarl",
+  "blackWhite": "TM95"
  }
 ]

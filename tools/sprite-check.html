@@ -6,45 +6,177 @@
   <title>Sprite check</title>
   <link rel="stylesheet" href="../css/styles.css">
   <style>
-    body { display: block; font-family: system-ui, sans-serif; color: #eee; }
+    body { display: block; font-family: system-ui, sans-serif; color: #eee; padding-bottom: 300px; }
     .controls { margin-bottom: 12px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-    .cells { display: grid; grid-template-columns: repeat(auto-fill, 128px); gap: 6px; }
-    .cell { position: relative; width: 128px; height: 150px; background: #c8e8f8; overflow: hidden; border-radius: 6px; }
-    .cell .plat { position: absolute; left: 4px; right: 4px; top: 104px; height: 22px; border-radius: 50%; background: #b8d080; }
-    .cell .feet { position: absolute; left: 0; right: 0; top: 114px; border-top: 1px dashed #c03028; }
-    .cell img { position: absolute; left: 24px; top: 34px; width: 80px; height: 80px; image-rendering: pixelated; }
-    .cell.back img { top: 54px; }
-    .cell.back .textbox-line { position: absolute; left: 0; right: 0; top: 120px; bottom: 0; background: rgba(255,255,255,0.85); }
+    .controls input[type=number] { width: 70px; }
+    .cells { display: grid; grid-template-columns: repeat(auto-fill, 256px); gap: 8px; }
+    /* Each cell is one 256 px wide stage, like the battle screen, so sprite sizes match the game */
+    /* Each cell is one 256 px wide stage, like the battle screen (top screen = 256 × 216), so sizes match the game.
+       --feet = where the feet stand in the cell; --top = the scene's top edge (cut-off line):
+       foes stand 97 px below it, your Pokémon 170 px below it. */
+    .cell { --feet: 130px; --top: 33px; position: relative; width: 256px; height: 170px; background: #c8e8f8; overflow: hidden; border-radius: 6px; cursor: pointer; }
+    .cell.back { --feet: 180px; --top: 10px; height: 220px; }
+    .cell.selected { outline: 3px solid #e04040; }
+    .cell.edited::after { content: "●"; position: absolute; right: 6px; top: 2px; color: #d08000; font-size: 12px; }
+    .cell .plat { position: absolute; left: 60px; right: 60px; top: calc(var(--feet) - 18px); height: 30px; border-radius: 50%; background: #b8d080; }
+    .cell .feet { position: absolute; left: 0; right: 0; top: var(--feet); border-top: 1px dashed #c03028; }
+    .cell .topline { position: absolute; left: 0; right: 0; top: var(--top); border-top: 2px dotted #7030a0; z-index: 5; pointer-events: none; }
+    .cell .centerline { position: absolute; top: 0; bottom: 0; left: 50%; border-left: 2px dotted #7030a0; z-index: 5; pointer-events: none; }
+    .cell .topline::after { content: "top edge"; position: absolute; right: 4px; top: 2px; font-size: 9px; color: #7030a0; }
+    .cell img { position: absolute; left: 34.375%; top: calc(var(--feet) - 80px); width: 31.25%; image-rendering: pixelated; }
+    .cell .textbox-line { position: absolute; left: 0; right: 0; top: var(--feet); bottom: 0; background: rgba(255,255,255,0.85); z-index: 4; }
     .cell span { position: absolute; left: 4px; top: 2px; font-size: 11px; color: #303030; }
+    .editor { position: fixed; left: 0; right: 0; bottom: 0; background: #222; border-top: 2px solid #555; padding: 8px 12px;
+      display: flex; gap: 10px; align-items: center; flex-wrap: wrap; z-index: 10; }
+    .editor button, .controls button { padding: 4px 10px; }
+    .editor .name { min-width: 200px; font-weight: bold; }
+    .pad { display: grid; grid-template-columns: repeat(3, 30px); gap: 2px; }
+    .pad button { padding: 2px 0; }
   </style>
 </head>
 <body>
   <div class="controls">
     <label><input type="radio" name="side" value="front" checked> Front</label>
     <label><input type="radio" name="side" value="back"> Back</label>
-    <label>From # <input id="from" type="number" value="1" min="1" max="493" style="width:60px"></label>
-    <button id="go">Show 60</button>
+    <label><input type="checkbox" id="shiny"> Shiny</label>
+    <label>Sprites <select id="mode"><option value="gen5">Gen 5 static</option><option value="gen5-ani">Gen 5 moving</option><option value="gen4">Gen 4</option></select></label>
+    <label title="Gen 5 back sprites: size (1 = same as foes)">Back size <input id="backScale" type="number" step="0.01" min="0.5" max="2"></label>
+    <label title="Gen 5 back sprites: share of the height hidden behind the textbox">Back sink <input id="backSink" type="number" step="0.01" min="0" max="0.6"></label>
+    <label>From # <input id="from" type="number" value="1" min="1" max="649"></label>
+    <button id="prev">◀ 30</button><button id="go">Show 30</button><button id="next">30 ▶</button>
+    <label><input type="checkbox" id="onlyEdited"> Only edited</label>
+    <span id="count"></span>
   </div>
   <div class="cells" id="cells"></div>
+
+  <div class="editor">
+    <span class="name" id="selName">Click a Pokémon to adjust it</span>
+    <label>X <input id="ox" type="number" step="0.5" value="0"></label>
+    <label>Y <input id="oy" type="number" step="0.5" value="0"></label>
+    <div class="pad">
+      <span></span><button data-n="0,-0.5" title="Up">↑</button><span></span>
+      <button data-n="-0.5,0" title="Left">←</button><button data-n="0,0" title="Reset">⟲</button><button data-n="0.5,0" title="Right">→</button>
+      <span></span><button data-n="0,0.5" title="Down">↓</button><span></span>
+    </div>
+    <small>Arrow keys nudge 0.5% (Shift = 2%). Units are % of the sprite frame; Y down is positive.</small>
+    <button id="copy">Copy JSON</button>
+    <button id="download">Download sprite-offsets.json</button>
+    <button id="clearAll">Clear all edits</button>
+  </div>
+
   <script type="module">
     import { loadData } from "../js/engine/data.js";
-    import { alignSprite, hovers } from "../js/ui/sprite-align.js";
+    import { alignSprite, hovers, setSpriteOffsets, spriteKey, getSpriteSettings } from "../js/ui/sprite-align.js";
+    import { applySpriteMode } from "../js/game/sprite-mode.js";
     const data = await loadData("../data");
-    const cells = document.getElementById("cells");
+    const saved = await fetch("../data/sprite-offsets.json").then((r) => r.json()).catch(() => ({}));
+    let draft = {};
+    try { draft = JSON.parse(localStorage.getItem("pd.spriteOffsets") ?? "null") ?? saved; } catch { draft = saved; }
+    setSpriteOffsets(draft);
+    const $s = (id) => document.getElementById(id);
+    $s("backScale").value = getSpriteSettings().backScale;
+    $s("backSink").value = getSpriteSettings().backSink;
+
+    const $ = (id) => document.getElementById(id);
+    const cells = $("cells");
+    let selected = null; // the <img> being edited
+
+    const persist = () => {
+      for (const k of Object.keys(draft)) if (k !== "_settings" && !draft[k].x && !draft[k].y) delete draft[k];
+      try { localStorage.setItem("pd.spriteOffsets", JSON.stringify(draft)); } catch { /* ignore */ }
+      $("count").textContent = `${Object.keys(draft).filter((k) => k !== "_settings").length} edited sprites`;
+    };
+
+    const realign = (img) => {
+      const p = data.pokemonByKey[img.dataset.species];
+      alignSprite(img, { hover: hovers(p) });
+      img.closest(".cell").classList.toggle("edited", !!draft[spriteKey(img)]);
+    };
+
+    const select = (img) => {
+      selected?.closest(".cell").classList.remove("selected");
+      selected = img;
+      if (!img) return;
+      img.closest(".cell").classList.add("selected");
+      const o = draft[spriteKey(img)] ?? {};
+      $("selName").textContent = `${img.dataset.name} (${spriteKey(img).replace("images/sprites/", "")})`;
+      $("ox").value = o.x ?? 0;
+      $("oy").value = o.y ?? 0;
+    };
+
+    const setOffset = (x, y) => {
+      if (!selected) return;
+      draft[spriteKey(selected)] = { x: +x.toFixed(2), y: +y.toFixed(2) };
+      $("ox").value = x; $("oy").value = y;
+      persist();
+      realign(selected);
+    };
+    const current = () => [Number($("ox").value) || 0, Number($("oy").value) || 0];
+
     const draw = () => {
+      applySpriteMode(data, $("mode").value);
       const side = document.querySelector("input[name=side]:checked").value;
-      const from = Number(document.getElementById("from").value);
-      const list = data.pokemon.slice(from - 1, from - 1 + 60);
+      const shiny = $("shiny").checked;
+      const from = Number($("from").value);
+      const key = (side === "back" ? "back" : "front") + (shiny ? "Shiny" : "");
+      let list = data.pokemon.filter((p) => p.id >= from);
+      if ($("onlyEdited").checked) list = data.pokemon.filter((p) => draft[p.sprites[key].replace("-shiny/", "/")]);
+      list = list.slice(0, 30);
+      selected = null;
       cells.innerHTML = list.map((p) => `<div class="cell ${side}">
-        <div class="plat"></div><div class="feet"></div>
-        <img class="${side === "back" ? "player" : "foe"}" data-species="${p.key}" src="../${side === "back" ? p.sprites.back : p.sprites.front}" alt="">
+        <div class="plat"></div><div class="feet"></div><div class="topline"></div><div class="centerline"></div>
+        <img class="${side === "back" ? "player" : "foe"}" data-species="${p.key}" data-name="#${p.id} ${p.name}" src="../${p.sprites[key]}" alt="">
         ${side === "back" ? `<div class="textbox-line"></div>` : ""}
         <span>${p.id} ${p.name}</span></div>`).join("");
-      for (const img of cells.querySelectorAll("img")) {
-        alignSprite(img, { hover: hovers(data.pokemonByKey[img.dataset.species]), back: side === "back" });
-      }
+      for (const img of cells.querySelectorAll("img")) realign(img);
+      persist();
     };
-    document.getElementById("go").onclick = draw;
+
+    cells.addEventListener("click", (e) => {
+      const cell = e.target.closest(".cell");
+      if (cell) select(cell.querySelector("img"));
+    });
+    $("ox").oninput = $("oy").oninput = () => setOffset(...current());
+    for (const b of document.querySelectorAll(".pad button")) {
+      b.onclick = () => {
+        const [dx, dy] = b.dataset.n.split(",").map(Number);
+        if (!dx && !dy) setOffset(0, 0);
+        else setOffset(current()[0] + dx, current()[1] + dy);
+      };
+    }
+    document.addEventListener("keydown", (e) => {
+      if (!selected || e.target.tagName === "INPUT") return;
+      const step = e.shiftKey ? 2 : 0.5;
+      const move = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] }[e.key];
+      if (!move) return;
+      e.preventDefault();
+      setOffset(current()[0] + move[0], current()[1] + move[1]);
+    });
+
+    const json = () => JSON.stringify(Object.fromEntries(Object.entries(draft).sort()), null, 2) + "\n";
+    $("copy").onclick = () => navigator.clipboard.writeText(json());
+    $("download").onclick = () => {
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([json()], { type: "application/json" }));
+      a.download = "sprite-offsets.json";
+      a.click();
+    };
+    $("clearAll").onclick = () => {
+      if (!confirm("Remove every sprite edit from this page?")) return;
+      draft = {}; setSpriteOffsets(draft); persist(); draw();
+    };
+    const page = (d) => { $("from").value = Math.max(1, Number($("from").value) + d); draw(); };
+    $("go").onclick = draw;
+    $("prev").onclick = () => page(-30);
+    $("next").onclick = () => page(30);
+    for (const id of ["shiny", "onlyEdited", "mode"]) $(id).onchange = draw;
+    const settingsChanged = () => {
+      draft._settings = { backScale: Number($("backScale").value) || 1, backSink: Number($("backSink").value) || 0 };
+      setSpriteOffsets(draft); persist();
+      for (const el of cells.querySelectorAll("img")) realign(el);
+    };
+    $("backScale").oninput = $("backSink").oninput = settingsChanged;
+    for (const r of document.querySelectorAll("input[name=side]")) r.onchange = draw;
     draw();
   </script>
 </body>

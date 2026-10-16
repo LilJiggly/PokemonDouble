@@ -99,9 +99,9 @@ export const ITEMS = {
   "oval-stone": held("rare", "Oval Stone", "Evolves Happiny."),
   "max-potion": bag("rare", "Max Potion", "Fully restores HP.", { heal: "full" }),
   ...Object.fromEntries(["fire-stone", "water-stone", "thunder-stone", "leaf-stone", "moon-stone", "sun-stone",
-    "shiny-stone", "dusk-stone", "dawn-stone", "ice-stone"].map((id) => [id, evo("rare", titleCase(id), "Evolves certain Pokémon. Not used up.")])),
-  "link-cable": evo("rare", "Link Cable", "Triggers trade evolutions. Not used up.", { sprite: "linking-cord" }),
-  "ability-patch": { kind: "patch", tier: "rare", name: "Ability Patch", desc: "Switches a Pokémon to its other normal Ability. Not used up.", sprite: "ability-capsule" },
+    "shiny-stone", "dusk-stone", "dawn-stone", "ice-stone"].map((id) => [id, evo("rare", titleCase(id), "Evolves certain Pokémon. Not used up upon evolution.")])),
+  "link-cable": evo("rare", "Link Cable", "Triggers trade evolutions. Not used up upon evolution.", { sprite: "linking-cord" }),
+  "ability-patch": { kind: "patch", tier: "rare", name: "Ability Patch", desc: "Switches a Pokémon to its other normal Ability. Used up on use.", sprite: "ability-capsule" },
 
   // ---------- Epic ----------
   "choice-band": held("epic", "Choice Band", "Attack ×1.5, but locks the holder into one move."),
@@ -109,7 +109,7 @@ export const ITEMS = {
   "choice-scarf": held("epic", "Choice Scarf", "Speed ×1.5, but locks the holder into one move."),
   "life-orb": held("epic", "Life Orb", "Moves do 30% more damage; costs 10% HP per hit."),
   "full-restore": bag("epic", "Full Restore", "Fully restores HP and cures status.", { heal: "full", cure: ["psn", "tox", "par", "brn", "slp", "frz", "confusion"] }),
-  "hidden-ability-patch": { kind: "patch", tier: "epic", name: "Hidden Ability Patch", desc: "Switches a Pokémon to its Hidden Ability. Not used up.", sprite: "ability-patch" },
+  "hidden-ability-patch": { kind: "patch", tier: "epic", name: "Hidden Ability Patch", desc: "Switches a Pokémon to its Hidden Ability. Used up on use.", sprite: "ability-patch" },
 
   // ---------- Species-only (roll as Rare) ----------
   "light-ball": held("rare", "Light Ball", "Doubles Pikachu's Attack and Sp. Atk.", { species: ["pikachu"] }),

@@ -22,6 +22,7 @@ import {
   makesContact, PUNCH, SOUND, RECOIL, TWO_TURN, HITS_INVULNERABLE, RECHARGE, RAMPAGE, THAWS_USER, WEATHER_HEAL,
   CALL_BANNED, MIMIC_BANNED, SKETCH_BANNED, ME_FIRST_BANNED, MIRRORABLE_TARGETS, GRAVITY_BANNED,
   REFLECT_TARGETS, REFLECT_BANNED, SNATCH_TARGETS, SNATCH_BANNED,
+  ALWAYS_CRIT, IGNORE_STAGES, USES_DEFENSE, PLEDGE,
 } from "./moveflags.js";
 import {
   TYPE_BOOST_ITEMS, SPECIES_STAT_ITEMS, CHOICE_ITEMS, RESIST_BERRIES, CURE_BERRIES, PINCH_BERRIES,
@@ -191,7 +192,7 @@ export class Battle {
   }
 
   item(mon) {
-    if (!mon?.item || mon.volatile.embargo || mon.ability === "klutz") return null;
+    if (!mon?.item || mon.volatile.embargo || mon.ability === "klutz" || this.state.field.magicRoom > 0) return null;
     return mon.item;
   }
 
@@ -204,7 +205,8 @@ export class Battle {
 
   isGrounded(mon) {
     if (this.state.field.gravity > 0) return true;
-    if (mon.item === "iron-ball" || mon.volatile.ingrain) return true;
+    if (mon.item === "iron-ball" || mon.volatile.ingrain || mon.volatile.smackedDown) return true;
+    if (mon.volatile.telekinesis > 0) return false;
     if (mon.types.includes("flying") || this.ability(mon) === "levitate" || mon.volatile.magnetRise) return false;
     return true;
   }
@@ -246,6 +248,7 @@ export class Battle {
     if (sp && sp.species.includes(mon.species) && sp.mods.spe) s *= sp.mods.spe;
     if (mon.status === "par" && ab !== "quick-feet") s *= 0.25;
     if (this.state.sides[mon.side].conditions.tailwind) s *= 2;
+    if (this.state.sides[mon.side].conditions.swamp) s *= 0.25;
     return Math.floor(s);
   }
 
@@ -279,6 +282,7 @@ export class Battle {
       if (ab === "flare-boost" && user.status === "brn") v *= 1.5;
     }
     const item = this.item(user);
+    if (ab === "defeatist" && user.hp <= user.maxHp / 2) v *= 0.5;
     if (CHOICE_ITEMS[item] === stat) v *= 1.5;
     const sp = SPECIES_STAT_ITEMS[item];
     if (sp && sp.species.includes(user.species) && sp.mods[stat]) v *= sp.mods[stat];
@@ -289,7 +293,10 @@ export class Battle {
     let stage = target.boosts[stat];
     if (user && user.ability === "unaware" && !user.volatile.abilitySuppressed) stage = 0;
     if (crit && stage > 0) stage = 0;
-    let v = target.stats[stat] * stageMultiplier(stage);
+    const cm = this.currentMove;
+    if (cm && cm.user === user && IGNORE_STAGES.has(cm.move.key)) stage = 0;
+    const base = this.state.field.wonderRoom > 0 ? (stat === "def" ? "spd" : "def") : stat; // Wonder Room swaps the stats, not the stages
+    let v = target.stats[base] * stageMultiplier(stage);
     const ab = this.ability(target);
     const w = this.weather();
     if (stat === "def" && ab === "marvel-scale" && target.status) v *= 1.5;
@@ -419,7 +426,7 @@ export class Battle {
       v.magicCoat = false; v.snatch = false;
       v.lastDamage = null;
     }
-    for (const side of st.sides) side.conditions.followMe = null;
+    for (const side of st.sides) { side.conditions.followMe = null; delete side.conditions.wideGuard; delete side.conditions.quickGuard; }
     for (const a of actions) if (a.type === "move") a.mon.volatile.pendingMove = a.moveId;
 
     // Switches first, then moves by priority → speed
@@ -443,7 +450,9 @@ export class Battle {
     });
     this.turnOrder = actions.map((a) => a.mon);
 
+    this.queue = actions; // After You moves an action forward in this list
     for (const a of actions) {
+      this.currentAction = a;
       if (st.phase === "ended") break;
       if (a.mon.fainted || !this.isActive(a.mon)) continue;
       if (a.type === "switch") {
@@ -481,7 +490,9 @@ export class Battle {
       const chosen = opts.moves[choice.move];
       moveId = chosen && !chosen.disabled ? chosen.id : opts.moves.find((m) => !m.disabled).id;
     }
-    return { type: "move", mon, slot, moveId, target: choice.target ?? null, priority: this.move(moveId).priority };
+    // Prankster: status moves go first
+    const prank = mon.ability === "prankster" && !mon.volatile.abilitySuppressed && this.move(moveId).category === "status" ? 1 : 0;
+    return { type: "move", mon, slot, moveId, target: choice.target ?? null, priority: this.move(moveId).priority + prank };
   }
 
   // After the turn: who needs replacing?
@@ -649,6 +660,9 @@ export class Battle {
       mon.weightKg = v.original.weightKg;
       mon.moves = v.original.moves;
     }
+    if (v.originalAbility) mon.ability = v.originalAbility;
+    if (v.originalWeight !== undefined) mon.weightKg = v.originalWeight;
+    if (v.splitBackup) Object.assign(mon.stats, v.splitBackup);
     if (v.mimic && !v.mimic.afterTransform) mon.moves[v.mimic.index] = v.mimic.move;
     if (v.powerTrick && !v.powerTrickSkip) [mon.stats.atk, mon.stats.def] = [mon.stats.def, mon.stats.atk];
     if (v.originalTypes) mon.types = v.originalTypes;
@@ -741,7 +755,7 @@ export class Battle {
       const options = this.foesOf(mon).filter((f) => !["trace", "multitype", "forecast", "flower-gift", "imposter"].includes(f.ability));
       if (options.length) {
         const f = pick(this.state, options);
-        mon.ability = f.ability;
+        this.setAbility(mon, f.ability);
         this.msg(`${this.name(mon, true)} traced ${this.name(f)}'s ${this.data.abilities[f.ability]?.name ?? f.ability}!`);
         this.runSwitchInAbility(mon);
       }
@@ -784,6 +798,7 @@ export class Battle {
 
   faint(mon) {
     if (mon.fainted) return;
+    this.state.sides[mon.side].lastFaintTurn = this.state.turn;
     mon.hp = 0;
     mon.fainted = true;
     this.log({ t: "faint", ...this.ref(mon), text: `${this.name(mon, true)} fainted!` });
@@ -835,7 +850,7 @@ export class Battle {
 
     target.status = status;
     if (status === "slp") {
-      target.statusTurns = randomInt(this.state, 2, 5); // can't move for 1–4 turns
+      target.statusTurns = randomInt(this.state, 2, 4); // can't move for 1–3 turns (Gen 5 rule)
       if (ab === "early-bird") target.statusTurns = Math.ceil(target.statusTurns / 2);
     } else if (status === "tox") {
       target.statusTurns = 1;
@@ -1036,6 +1051,23 @@ export class Battle {
       }
       case "fury-cutter": return Math.min(160, 10 * 2 ** (user.volatile.furyCutter ?? 0));
       case "pursuit": return 40;
+      case "venoshock": return target.status === "psn" || target.status === "tox" ? 130 : 65;
+      case "hex": return target.status ? 100 : 50;
+      case "acrobatics": return this.item(user) ? 55 : 110;
+      case "retaliate": return this.state.sides[user.side].lastFaintTurn === st.turn - 1 || this.state.sides[user.side].lastFaintTurn === st.turn ? 140 : 70;
+      case "stored-power": return 20 + 20 * Object.values(user.boosts).reduce((a, b) => a + Math.max(0, b), 0);
+      case "heavy-slam": case "heat-crash": {
+        const r = user.weightKg / Math.max(0.1, target.weightKg);
+        return r >= 5 ? 120 : r >= 4 ? 100 : r >= 3 ? 80 : r >= 2 ? 60 : 40;
+      }
+      case "electro-ball": {
+        const r = this.speed(user) / Math.max(1, this.speed(target));
+        return r >= 4 ? 150 : r >= 3 ? 120 : r >= 2 ? 80 : r >= 1 ? 60 : 40;
+      }
+      case "echoed-voice": return 40 * (st.field.echoCount ?? 1);
+      case "round": return st.field.roundTurn === st.turn ? 120 : 60;
+      case "fusion-flare": case "fusion-bolt": return st.field.fusion?.turn === st.turn && st.field.fusion.key !== move.key ? 200 : 100;
+      case "water-pledge": case "fire-pledge": case "grass-pledge": return user.volatile.pledgeCombo ? 150 : 50;
       case "spit-up": return 100 * (user.volatile.stockpile ?? 1);
       case "present": return user.volatile.present ?? 40;
       case "triple-kick": return 10 * (user.volatile.hitNumber ?? 1);
@@ -1119,8 +1151,8 @@ export class Battle {
   calcDamage(user, target, move, { type, crit, spread, roll }) {
     const bp = this.modifiedPower(user, target, move, type, this.basePower(user, target, move));
     const physical = move.category === "physical";
-    const atk = this.attackStat(user, physical ? "atk" : "spa", crit, target);
-    let def = this.defenseStat(target, physical ? "def" : "spd", crit, user);
+    const atk = move.key === "foul-play" ? this.attackStat(target, "atk", crit, user) : this.attackStat(user, physical ? "atk" : "spa", crit, target);
+    let def = this.defenseStat(target, physical || USES_DEFENSE.has(move.key) ? "def" : "spd", crit, user);
     if (move.key === "self-destruct" || move.key === "explosion") def = Math.max(1, Math.floor(def / 2));
 
     let d = Math.floor(Math.floor((Math.floor((2 * user.level) / 5) + 2) * bp * atk / 50) / def);
@@ -1129,7 +1161,7 @@ export class Battle {
     if (physical && user.status === "brn" && user.ability !== "guts") d = Math.floor(d / 2);
     const tside = this.state.sides[target.side];
     const screen = physical ? tside.conditions.reflect : tside.conditions.lightScreen;
-    if (screen && !crit) {
+    if (screen && !crit && user.ability !== "infiltrator") {
       const doubles = this.activeMons().filter((m) => m.side === target.side).length > 1;
       d = Math.floor(doubles ? (d * 2) / 3 : d / 2);
     }
@@ -1351,6 +1383,12 @@ export class Battle {
 
     // Two-turn moves
     const two = TWO_TURN[moveId];
+    if (two && !v.charging && moveId === "sky-drop") {
+      // Picks the target up: it can't move this turn. Fails on Flying types and heavy Pokémon.
+      const t = chosenTarget && this.monAt(chosenTarget.side, chosenTarget.slot);
+      if (!t || t.fainted || t.types.includes("flying") || t.weightKg >= 200 || t.volatile.substitute) { this.msg("But it failed!"); return; }
+      if (!t.volatile.moved) t.volatile.flinch = true;
+    }
     if (two && !v.charging) {
       const skip = (moveId === "solar-beam" && this.weather() === "sun");
       if (!skip) {
@@ -1388,11 +1426,15 @@ export class Battle {
       return;
     }
 
-    const targets = this.resolveTargets(user, move, chosenTarget);
+    let targets = this.resolveTargets(user, move, chosenTarget);
     if (!targets.length) {
       this.msg("But there was no target...");
       return;
     }
+
+    // Wide Guard / Quick Guard
+    targets = this.applyGuards(user, move, targets);
+    if (!targets.length) return;
 
     // Snatch: another Pokémon steals a self-targeted status move
     if (move.category === "status" && this.trySnatch(user, move)) return;
@@ -1400,7 +1442,7 @@ export class Battle {
     // Future Sight / Doom Desire: hits two turns later
     if (moveId === "future-sight" || moveId === "doom-desire") { this.scheduleFutureAttack(user, move, targets[0]); return; }
 
-    const moldBreaker = user.ability === "mold-breaker" && !v.abilitySuppressed;
+    const moldBreaker = ["mold-breaker", "turboblaze", "teravolt"].includes(user.ability) && !v.abilitySuppressed;
     this.currentMove = { user, move, moldBreaker };
     try {
       if (move.category === "status") this.runStatusMove(user, move, targets, chosenTarget);
@@ -1512,6 +1554,17 @@ export class Battle {
     }
   }
 
+  // Wide Guard blocks multi-target moves, Quick Guard blocks priority moves, for the Pokémon on their side
+  applyGuards(user, move, targets) {
+    const spread = ["all-opponents", "all-other-pokemon"].includes(move.target);
+    return targets.filter((t) => {
+      const c = this.state.sides[t.side].conditions;
+      if (spread && c.wideGuard) { this.msg(`Wide Guard protected ${this.name(t)}!`); return false; }
+      if (move.priority > 0 && t.side !== user.side && c.quickGuard) { this.msg(`Quick Guard protected ${this.name(t)}!`); return false; }
+      return true;
+    });
+  }
+
   // Magic Coat: the first status move aimed at the holder this turn goes back to the user
   reflectedByCoat(user, move, target) {
     if (this.reflecting || target === user || !target.volatile.magicCoat) return false;
@@ -1550,6 +1603,66 @@ export class Battle {
   sportActive(key) {
     const k = this.state.field[key];
     return !!k && this.isActive(this.findMon(k));
+  }
+
+  // Abilities that react to being hit (the target is still standing)
+  hitAbilities(user, target, move, type, crit) {
+    const ab = this.ability(target);
+    if (!ab) return;
+    if (ab === "weak-armor" && move.category === "physical") {
+      this.msg(`${this.name(target, true)}'s Weak Armor!`);
+      this.boost(target, { def: -1, spe: 1 }, target);
+    }
+    if (ab === "justified" && type === "dark") this.boost(target, { atk: 1 }, target);
+    if (ab === "rattled" && ["bug", "ghost", "dark"].includes(type)) this.boost(target, { spe: 1 }, target);
+    if (ab === "anger-point" && crit && target.boosts.atk < 6) {
+      target.boosts.atk = 6;
+      this.msg(`${this.name(target, true)} maxed its Attack!`);
+    }
+  }
+
+  // Pledge moves: used right after an ally's different Pledge move they combine (150 power + a side effect)
+  pledgeStep(user, key) {
+    const st = this.state;
+    const f = st.field.pledge;
+    if (f && f.turn === st.turn && f.side === user.side && f.key !== key) {
+      delete st.field.pledge;
+      user.volatile.pledgeCombo = [f.key, key].sort().join("+");
+      return "combo";
+    }
+    const ally = this.allyOf(user);
+    const next = ally && !ally.volatile.moved ? ally.volatile.pendingMove : null;
+    if (next && PLEDGE.has(next) && next !== key) {
+      st.field.pledge = { turn: st.turn, side: user.side, key };
+      this.msg(`${this.name(user, true)} is waiting for ${this.name(ally)}'s move...`);
+      return "wait";
+    }
+    return "normal";
+  }
+
+  pledgeEffect(user, combo) {
+    const mine = this.state.sides[user.side].conditions;
+    const theirs = this.state.sides[1 - user.side].conditions;
+    if (combo === "fire-pledge+water-pledge") { mine.rainbow = 4; this.msg("A rainbow appeared in the sky on your side!"); }
+    else if (combo === "fire-pledge+grass-pledge") { theirs.seaOfFire = 4; this.msg("A sea of fire enveloped the opposing side!"); }
+    else if (combo === "grass-pledge+water-pledge") { theirs.swamp = 4; this.msg("A swamp enveloped the opposing side!"); }
+  }
+
+  // The Pokémon is replaced by a random one from its team (Dragon Tail, Circle Throw, Roar…)
+  dragOut(target) {
+    if (target.fainted || this.ability(target) === "suction-cups" || target.volatile.ingrain) {
+      if (!target.fainted) this.msg(`${this.name(target, true)} anchored itself!`);
+      return false;
+    }
+    const bench = this.bench(target.side);
+    if (!bench.length) return false;
+    return this.doSwitch(target.side, this.slotOf(target), pick(this.state, bench).teamIndex);
+  }
+
+  // Skill Swap, Entrainment, Mummy…: the old Ability comes back when the Pokémon leaves the field
+  setAbility(mon, ability) {
+    if (!mon.volatile.transformed) mon.volatile.originalAbility ??= mon.ability;
+    mon.ability = ability;
   }
 
   changesObj(move) {
@@ -1618,7 +1731,7 @@ export class Battle {
     if (move.key === "thunder") acc = w === "rain" ? null : w === "sun" ? 50 : acc;
     if (move.key === "blizzard" && w === "hail") acc = null;
     if (acc === null || acc === undefined) return true;
-    if (user.ability === "no-guard" || tab === "no-guard" || target.volatile.lockedOnBy === this.monKey(user)) return true;
+    if (user.ability === "no-guard" || tab === "no-guard" || target.volatile.lockedOnBy === this.monKey(user) || target.volatile.telekinesis > 0) return true;
 
     let accStage = user.boosts.accuracy;
     let evaStage = target.boosts.evasion;
@@ -1626,6 +1739,7 @@ export class Battle {
     if (user.ability === "unaware" || target.volatile.foresight || target.volatile.miracleEye) evaStage = Math.min(0, evaStage);
     let a = acc * accuracyStageMultiplier(accStage - evaStage);
     if (st.field.gravity > 0) a *= 5 / 3;
+    if ([user, this.allyOf(user)].some((m) => m && m.ability === "victory-star")) a *= 1.1;
     if (user.ability === "compound-eyes") a *= 1.3;
     if (user.ability === "hustle" && move.category === "physical") a *= 0.8;
     const item = this.item(user);
@@ -1695,6 +1809,15 @@ export class Battle {
       user.volatile.present = r <= 60 ? 40 : r <= 90 ? 80 : 120;
     }
 
+    // Moves whose power depends on earlier uses
+    if (key === "echoed-voice") {
+      const e = st.field.echo;
+      const count = e && e.turn === st.turn ? e.count : e && e.turn === st.turn - 1 ? Math.min(5, e.count + 1) : 1;
+      st.field.echo = { turn: st.turn, count };
+      st.field.echoCount = count;
+    }
+    if (PLEDGE.has(key) && this.pledgeStep(user, key) === "wait") return;
+
     const spread = targets.length > 1;
     let totalDealt = 0;
     let anyHit = false;
@@ -1702,6 +1825,11 @@ export class Battle {
 
     for (const target of targets) {
       if (target.fainted || user.fainted) continue;
+      // Synchronoise only hits Pokémon that share a type with the user
+      if (key === "synchronoise" && !target.types.some((t) => user.types.includes(t))) {
+        this.log({ t: "immune", ...this.ref(target), text: `It doesn't affect ${this.name(target)}...` });
+        continue;
+      }
       if (!this.checkProtectAndHit(user, move, target, { type })) continue;
       if (key === "feint" && target.volatile.protect) {
         target.volatile.protect = false;
@@ -1720,7 +1848,7 @@ export class Battle {
         user.volatile.hitNumber = h;
         const crit = fixed === null && !["battle-armor", "shell-armor"].includes(this.ability(target))
           && !this.state.sides[target.side].conditions.luckyChant
-          && nextRandom(st) < CRIT_CHANCE[this.critStage(user, move)];
+          && (ALWAYS_CRIT.has(key) || nextRandom(st) < CRIT_CHANCE[this.critStage(user, move)]);
         let dmg = fixed ?? this.calcDamage(user, target, move, { type, crit, spread, roll: randomInt(st, 85, 100) });
 
         // Resist berries
@@ -1774,6 +1902,7 @@ export class Battle {
           effectiveness: fixed === null ? eff : 1, move: key, text: crit ? "A critical hit!" : "" });
         if (hits === 1) this.logEffectiveness(target, eff, fixed);
 
+        if (target.hp > 0) this.hitAbilities(user, target, move, type, crit);
         if (target.hp <= 0) {
           if (target.volatile.grudge) {
             const slotUsed = user.moves.find((m) => m.id === key);
@@ -1790,6 +1919,7 @@ export class Battle {
             this.indirectDamage(user, Math.floor(user.maxHp / 4), `${this.name(user, true)} was caught in the aftermath!`);
           }
           this.faint(target);
+          if (user.ability === "moxie" && !user.fainted && !user.volatile.abilitySuppressed) this.boost(user, { atk: 1 }, user);
         } else {
           if (makesContact(move)) this.contactEffects(user, target);
           if (!sheerForce) this.secondaryEffects(user, target, move, dealt);
@@ -1804,6 +1934,28 @@ export class Battle {
         this.msg(`Hit ${hitsLanded} time(s)!`);
       }
       totalDealt += dealtToTarget;
+
+      if (hitsLanded && !target.fainted) {
+        if (key === "smack-down") {
+          target.volatile.smackedDown = true;
+          delete target.volatile.magnetRise; delete target.volatile.telekinesis;
+          if (target.volatile.charging?.invulnerable === "air") delete target.volatile.charging;
+          this.msg(`${this.name(target, true)} fell straight down!`);
+        }
+        if (key === "flame-burst") {
+          const next = this.allyOf(target);
+          if (next) this.indirectDamage(next, Math.max(1, Math.floor(next.maxHp / 16)), `${this.name(next, true)} was hurt by the bursting flame!`);
+        }
+        if (key === "clear-smog" && !target.volatile.substitute) {
+          target.boosts = emptyBoosts();
+          this.msg(`${this.name(target, true)}'s stat changes were removed!`);
+        }
+        if (key === "incinerate" && target.item && isBerry(target.item) && this.ability(target) !== "sticky-hold") {
+          this.msg(`${this.name(target, true)}'s ${this.itemName(target.item)} was burned up!`);
+          target.item = null;
+        }
+        if ((key === "dragon-tail" || key === "circle-throw") && !user.fainted) this.dragOut(target);
+      }
 
       // Effects that happen once per target, after all hits
       if (dealtToTarget > 0 && !user.fainted) {
@@ -1853,7 +2005,11 @@ export class Battle {
     }
 
     // User faints / needs to recharge / switches
-    if (key === "self-destruct" || key === "explosion" || key === "memento") this.faint(user);
+    if (key === "self-destruct" || key === "explosion" || key === "memento" || (key === "final-gambit" && anyHit)) this.faint(user);
+    if (user.volatile.pledgeCombo && anyHit) this.pledgeEffect(user, user.volatile.pledgeCombo);
+    delete user.volatile.pledgeCombo;
+    if (key === "round") st.field.roundTurn = st.turn;
+    if (key === "fusion-flare" || key === "fusion-bolt") st.field.fusion = { turn: st.turn, key };
     if (RECHARGE.has(key) && anyHit && !user.fainted) user.volatile.recharge = true;
     if ((key === "rollout" || key === "ice-ball") && anyHit && !user.fainted) {
       const r = user.volatile.rollout ?? { move: key, count: 0, target: targets[0] && this.ref(targets[0]) };
@@ -1867,7 +2023,7 @@ export class Battle {
       delete c.spikes; delete c.toxicSpikes; delete c.stealthRock;
       delete user.volatile.leechSeed; delete user.volatile.trapped;
     }
-    if ((key === "u-turn") && anyHit && !user.fainted) this.autoSwitch(user);
+    if ((key === "u-turn" || key === "volt-switch") && anyHit && !user.fainted) this.autoSwitch(user);
     if (key === "spit-up") delete user.volatile.stockpile;
     delete user.volatile.magnitude;
     delete user.volatile.present;
@@ -1888,6 +2044,7 @@ export class Battle {
       case "dragon-rage": return 40;
       case "sonic-boom": return 20;
       case "super-fang": return Math.max(1, Math.floor(target.hp / 2));
+      case "final-gambit": return Math.max(1, user.hp);
       case "psywave": return Math.max(1, Math.floor((user.level * randomInt(st, 50, 150)) / 100));
       case "endeavor":
         if (target.hp <= user.hp) { this.msg("But it failed!"); return false; }
@@ -1922,7 +2079,11 @@ export class Battle {
     else if (tab === "flame-body" && chance(st, 30)) this.trySetStatus(user, "brn", target);
     else if (tab === "poison-point" && chance(st, 30)) this.trySetStatus(user, "psn", target);
     else if (tab === "rough-skin") this.indirectDamage(user, Math.floor(user.maxHp / 8), `${this.name(user, true)} was hurt by Rough Skin!`);
-    else if (tab === "effect-spore" && chance(st, 30)) this.trySetStatus(user, pick(st, ["psn", "par", "slp"]), target);
+    else if (tab === "iron-barbs") this.indirectDamage(user, Math.floor(user.maxHp / 8), `${this.name(user, true)} was hurt by Iron Barbs!`);
+    else if (tab === "mummy" && !["mummy", "multitype", "wonder-guard"].includes(user.ability)) {
+      this.setAbility(user, "mummy");
+      this.msg(`${this.name(user, true)}'s Ability became Mummy!`);
+    } else if (tab === "effect-spore" && chance(st, 30)) this.trySetStatus(user, pick(st, ["psn", "par", "slp"]), target);
     else if (tab === "cute-charm" && chance(st, 30) && user.gender && target.gender && user.gender !== target.gender && !user.volatile.attract) {
       user.volatile.attract = this.monKey(target);
       this.msg(`${this.name(user, true)} fell in love!`);
@@ -1941,12 +2102,13 @@ export class Battle {
     const st = this.state;
     const meta = move.meta;
     if (!meta) return;
-    const serene = user.ability === "serene-grace" ? 2 : 1;
+    const serene = (user.ability === "serene-grace" ? 2 : 1) * (this.state.sides[user.side].conditions.rainbow ? 2 : 1);
     const shieldDust = this.ability(target) === "shield-dust";
 
     if (meta.category === "damage-ailment" && meta.ailmentChance > 0 && !shieldDust) {
       if (chance(st, meta.ailmentChance * serene)) this.applyAilment(user, target, move, {});
     }
+    if (user.ability === "stench" && !meta.flinchChance && !shieldDust && chance(st, 10)) this.flinch(target);
     if (meta.flinchChance > 0 && !shieldDust) {
       if (chance(st, meta.flinchChance * serene)) this.flinch(target);
     } else if (["kings-rock", "razor-fang"].includes(this.item(user)) && !shieldDust && chance(st, 10)) {
@@ -2131,6 +2293,11 @@ export class Battle {
       const item = this.item(m);
 
       if (v.ingrain) this.heal(m, m.maxHp / 16, `${this.name(m, true)} absorbed nutrients with its roots!`);
+      if (ab === "healer") {
+        const friend = this.allyOf(m);
+        if (friend?.status && chance(st, 30)) this.cureStatus(friend, `${this.name(m, true)}'s Healer cured ${this.name(friend)}'s status!`);
+      }
+      if (st.sides[m.side].conditions.seaOfFire && !m.types.includes("fire")) this.indirectDamage(m, Math.floor(m.maxHp / 8), `${this.name(m, true)} is hurt by the sea of fire!`);
       if (v.aquaRing) this.heal(m, m.maxHp / 16, `A veil of water restored ${this.name(m)}'s HP!`);
       if (ab === "speed-boost" && v.activeTurns > 0) this.boost(m, { spe: 1 }, m);
       if (ab === "shed-skin" && m.status && chance(st, 30)) this.cureStatus(m);
@@ -2187,6 +2354,7 @@ export class Battle {
       if (v.disabled) { v.disabled.turns -= 1; if (v.disabled.turns <= 0) { delete v.disabled; this.msg(`${this.name(m, true)} is no longer disabled!`); } }
       if (v.encore) { v.encore.turns -= 1; if (v.encore.turns <= 0) delete v.encore; }
       if (v.embargo) { v.embargo -= 1; if (v.embargo <= 0) delete v.embargo; }
+      if (v.telekinesis) { v.telekinesis -= 1; if (v.telekinesis <= 0) { delete v.telekinesis; this.msg(`${this.name(m, true)} was freed from the telekinesis!`); } }
       if (v.healBlock) { v.healBlock -= 1; if (v.healBlock <= 0) delete v.healBlock; }
       if (v.magnetRise) { v.magnetRise -= 1; if (v.magnetRise <= 0) delete v.magnetRise; }
       if (v.slowStart > 0) { v.slowStart -= 1; if (v.slowStart === 0) this.msg(`${this.name(m, true)} finally got its act together!`); }
@@ -2220,7 +2388,8 @@ export class Battle {
     for (const side of st.sides) {
       const c = side.conditions;
       for (const [k, label] of [["reflect", "Reflect"], ["lightScreen", "Light Screen"], ["tailwind", "tailwind"],
-        ["safeguard", "Safeguard"], ["mist", "mist"], ["luckyChant", "Lucky Chant"]]) {
+        ["safeguard", "Safeguard"], ["mist", "mist"], ["luckyChant", "Lucky Chant"],
+        ["rainbow", "rainbow"], ["seaOfFire", "sea of fire"], ["swamp", "swamp"]]) {
         if (c[k]) {
           c[k] -= 1;
           if (c[k] <= 0) {
@@ -2229,6 +2398,9 @@ export class Battle {
           }
         }
       }
+    }
+    for (const [k, text] of [["wonderRoom", "Wonder Room wore off, and the Defense stats returned to normal!"], ["magicRoom", "Magic Room wore off, and held items regained their effects!"]]) {
+      if (field[k] > 0) { field[k] -= 1; if (field[k] === 0) this.msg(text); }
     }
     if (field.gravity > 0) {
       field.gravity -= 1;
@@ -2479,19 +2651,21 @@ const STATUS_MOVES = {
   "skill-swap"(user, move, targets) {
     const t = targets[0];
     if (!t || ["wonder-guard", "multitype"].includes(t.ability) || ["wonder-guard", "multitype"].includes(user.ability)) { this.msg("But it failed!"); return; }
-    [user.ability, t.ability] = [t.ability, user.ability];
+    const mine = user.ability;
+    this.setAbility(user, t.ability);
+    this.setAbility(t, mine);
     this.msg(`${this.name(user, true)} swapped Abilities with its target!`);
   },
   "role-play"(user, move, targets) {
     const t = targets[0];
     if (!t || ["wonder-guard", "multitype", "trace"].includes(t.ability)) { this.msg("But it failed!"); return; }
-    user.ability = t.ability;
+    this.setAbility(user, t.ability);
     this.msg(`${this.name(user, true)} copied ${this.name(t)}'s Ability!`);
   },
   "worry-seed"(user, move, targets) {
     const t = targets[0];
     if (!t || !this.checkProtectAndHit(user, move, t) || ["truant", "multitype"].includes(t.ability)) { this.msg("But it failed!"); return; }
-    t.ability = "insomnia";
+    this.setAbility(t, "insomnia");
     if (t.status === "slp") this.cureStatus(t);
     this.msg(`${this.name(t, true)} acquired Insomnia!`);
   },
@@ -2658,6 +2832,104 @@ const STATUS_MOVES = {
     this.msg(`${this.name(user, true)} found one ${this.itemName(user.item)}!`);
   },
 
+  // ---------- Gen 5 ----------
+  "heal-pulse"(user, move, targets) {
+    const t = targets[0];
+    if (!t || !this.checkProtectAndHit(user, move, t)) return;
+    if (t.hp >= t.maxHp) { this.msg(`${this.name(t, true)}'s HP is full!`); return; }
+    this.heal(t, Math.ceil(t.maxHp / 2), `${this.name(t, true)} regained health!`);
+  },
+  "wide-guard"(user) { if (protectMove.call(this, user)) { this.state.sides[user.side].conditions.wideGuard = true; this.msg("Wide Guard protected the team!"); } },
+  "quick-guard"(user) { if (protectMove.call(this, user)) { this.state.sides[user.side].conditions.quickGuard = true; this.msg("Quick Guard protected the team!"); } },
+  "rage-powder"(user) {
+    this.state.sides[user.side].conditions.followMe = this.monKey(user);
+    this.msg(`${this.name(user, true)} became the center of attention!`);
+  },
+  "guard-split"(user, move, targets) { splitStats.call(this, user, targets[0], ["def", "spd"], "defensive"); },
+  "power-split"(user, move, targets) { splitStats.call(this, user, targets[0], ["atk", "spa"], "offensive"); },
+  "wonder-room"() {
+    const f = this.state.field;
+    if (f.wonderRoom > 0) { f.wonderRoom = 0; this.msg("Wonder Room wore off, and the Defense stats returned to normal!"); }
+    else { f.wonderRoom = 5; this.msg("It created a bizarre area in which the Defense and Sp. Def stats are swapped!"); }
+  },
+  "magic-room"() {
+    const f = this.state.field;
+    if (f.magicRoom > 0) { f.magicRoom = 0; this.msg("Magic Room wore off, and held items regained their effects!"); }
+    else { f.magicRoom = 5; this.msg("It created a bizarre area in which Pokémon's held items lose their effects!"); }
+  },
+  soak(user, move, targets) {
+    const t = targets[0];
+    if (!t || !this.checkProtectAndHit(user, move, t)) return;
+    if (t.types.length === 1 && t.types[0] === "water") { this.msg("But it failed!"); return; }
+    t.volatile.originalTypes ??= [...t.types];
+    t.types = ["water"];
+    this.msg(`${this.name(t, true)} transformed into the Water type!`);
+  },
+  "simple-beam"(user, move, targets) {
+    const t = targets[0];
+    if (!t || !this.checkProtectAndHit(user, move, t) || ["truant", "multitype", "simple"].includes(t.ability)) { this.msg("But it failed!"); return; }
+    this.setAbility(t, "simple");
+    this.msg(`${this.name(t, true)} acquired Simple!`);
+  },
+  entrainment(user, move, targets) {
+    const t = targets[0];
+    if (!t || !this.checkProtectAndHit(user, move, t) || ["truant", "multitype"].includes(t.ability) || ["trace", "multitype", "flower-gift", "forecast"].includes(user.ability)) { this.msg("But it failed!"); return; }
+    this.setAbility(t, user.ability);
+    this.msg(`${this.name(t, true)} acquired ${this.data.abilities[user.ability]?.name ?? user.ability}!`);
+  },
+  bestow(user, move, targets) {
+    const t = targets[0];
+    if (!t || !user.item || t.item || !this.checkProtectAndHit(user, move, t)) { this.msg("But it failed!"); return; }
+    t.item = user.item;
+    user.item = null;
+    if (user.ability === "unburden") user.volatile.unburden = true;
+    this.msg(`${this.name(user, true)} gave its ${this.itemName(t.item)} to ${this.name(t)}!`);
+  },
+  "after-you"(user, move, targets) {
+    const t = targets[0];
+    const queue = this.queue ?? [];
+    const here = queue.indexOf(this.currentAction);
+    const there = queue.findIndex((a, i) => i > here && a.mon === t && a.type === "move");
+    if (!t || there === -1 || there === here + 1) { this.msg("But it failed!"); return; }
+    queue.splice(here + 1, 0, ...queue.splice(there, 1));
+    this.msg(`${this.name(t, true)} took the kind offer!`);
+  },
+  "ally-switch"(user) {
+    const ally = this.allyOf(user);
+    if (!ally) { this.msg("But it failed!"); return; }
+    const side = this.state.sides[user.side];
+    side.active = [side.active[1], side.active[0]];
+    const occupants = [0, 1].map((slot) => { const m = this.monAt(user.side, slot); return { teamIndex: m.teamIndex, hp: m.hp, maxHp: m.maxHp }; });
+    this.log({ t: "swapPlaces", side: user.side, occupants, text: `${this.name(user, true)} and ${this.name(ally)} swapped places!` });
+  },
+  quash(user, move, targets) {
+    const t = targets[0];
+    const queue = this.queue ?? [];
+    const here = queue.indexOf(this.currentAction);
+    const there = queue.findIndex((a, i) => i > here && a.mon === t && a.type === "move");
+    if (!t || there === -1 || there === queue.length - 1 || !this.checkProtectAndHit(user, move, t)) { this.msg("But it failed!"); return; }
+    queue.push(...queue.splice(there, 1));
+    this.msg(`${this.name(t, true)}'s move was postponed!`);
+  },
+  "reflect-type"(user, move, targets) {
+    const t = targets[0];
+    if (!t || !this.checkProtectAndHit(user, move, t)) return;
+    user.volatile.originalTypes ??= [...user.types];
+    user.types = [...t.types];
+    this.msg(`${this.name(user, true)}'s type changed to match ${this.name(t)}'s!`);
+  },
+  telekinesis(user, move, targets) {
+    const t = targets[0];
+    if (!t || !this.checkProtectAndHit(user, move, t) || t.volatile.telekinesis || t.volatile.ingrain || t.volatile.smackedDown || this.state.field.gravity > 0) { this.msg("But it failed!"); return; }
+    t.volatile.telekinesis = 3;
+    this.msg(`${this.name(t, true)} was hurled into the air!`);
+  },
+  autotomize(user) {
+    this.boost(user, { spe: 2 }, user, { statusMove: true });
+    if (!user.volatile.transformed) user.volatile.originalWeight ??= user.weightKg;
+    user.weightKg = Math.max(0.1, user.weightKg - 100);
+  },
+
   // ---------- Defence and field ----------
   ingrain(user) {
     if (user.volatile.ingrain) { this.msg("But it failed!"); return; }
@@ -2694,6 +2966,22 @@ const STATUS_MOVES = {
     this.msg("Gravity intensified!");
   },
 };
+
+// Guard Split / Power Split: both Pokémon get the average (back to normal when they leave the field)
+function splitStats(user, t, keys, label) {
+  if (!t || !this.checkProtectAndHit(user, this.currentMove.move, t)) return;
+  for (const m of [user, t]) {
+    if (m.volatile.transformed) continue;
+    m.volatile.splitBackup ??= {};
+    for (const k of keys) m.volatile.splitBackup[k] ??= m.stats[k];
+  }
+  for (const k of keys) {
+    const avg = Math.floor((user.stats[k] + t.stats[k]) / 2);
+    user.stats[k] = avg;
+    t.stats[k] = avg;
+  }
+  this.msg(`${this.name(user, true)} shared its ${label} power with the target!`);
+}
 
 // Assist / Copycat: use another move, aimed at a random foe when it needs a target
 function callAnother(user, moveId, chosen, calledBy) {

@@ -31,7 +31,7 @@ _Last updated: October 09, 2026_
   - **Lightningrod:** pulls in Electric moves, is **immune** to them and gets **+1 Sp. Atk** when hit by one.
   - **Storm Drain:** pulls in Water moves, is **immune** to them and gets **+1 Sp. Atk** when hit by one.
 - **Physical/Special split** per move (Gen 4 already has it).
-- **No Fairy type** (it doesn't exist in Gen 1–4).
+- **No Fairy type** (it doesn't exist in Gen 1–5).
 - **Doubles features:** targeting, spread moves at 75% damage, speed order, Protect, Follow Me, Helping Hand, Fake Out.
 
 ### Opponent AI
@@ -99,7 +99,7 @@ _Last updated: October 09, 2026_
 
 ### Items
 - **Held items** (1 per Pokémon) and a **bag**. Full item pool and odds in **§3d–3e**.
-- Only items that exist **up to Gen 4** (no Eviolite, Assault Vest, Rocky Helmet, etc.). **Exceptions:** Ice Stone (for Glaceon), **Ability Patch** (switch between a Pokémon's normal abilities) and **Hidden Ability Patch** (switch to its Hidden Ability). Both patches are multi-use.
+- Only items that exist **up to Gen 4** (no Eviolite, Assault Vest, Rocky Helmet, etc.). **Exceptions:** Ice Stone (for Glaceon), **Ability Patch** (switch between a Pokémon's normal abilities) and **Hidden Ability Patch** (switch to its Hidden Ability). Both patches are single-use (used up when applied).
 - **No Revives** of any kind. Permadeath is the core of the game.
 - **Consumable held items** (berries, Focus Sash, herbs) are **used up for good** once triggered.
 - **Bag items** are **used up for good** once used. They **can be used in battle**, which takes up that Pokémon's turn.
@@ -230,7 +230,7 @@ Every run starts with these items in the bag.
 
 ### 3g. TM rewards
 
-Every opponent (gyms, Elite Four, Champion, Rival) gives a **reusable TM** when beaten, drawn from the Gen 4 TMs (TM01–TM92) of their **type theme**. Opponents without a theme (Champion Blue, Cynthia, Rivals) give any type. You never get a TM you already have. Teach it in the hub to any team member that can learn it in Gen 4.
+Every opponent (gyms, Elite Four, Champion, Rival) gives a **reusable TM** when beaten, drawn from the TMs (TM01–TM92 from Gen 4, TM93–TM118 from Gen 5) of their **type theme**. Opponents without a theme (Champion Blue, Cynthia, Rivals) give any type. You never get a TM you already have. Teach it in the hub to any team member that can learn it (Gen 4 or Gen 5 learnsets).
 
 | After | Max TM power |
 |---|---|
@@ -311,7 +311,7 @@ Every Challenge Gen uses the same structure: **8 Gyms → 4 Elite Four → Champ
 - **Strategy notes:** each set can include notes that tell the AI how to play it (e.g. "turn 1: burn your own Larvitar").
 - **No ace rule.** Each set stands on its own.
 - **No duplicate species** within a set.
-- **Leader Pokémon** can be any species from the **National Dex up to Gen 4 (#001–493)**, whatever the Challenge Gen. Teams can follow a theme rather than a strict single type (e.g. Lorelei's Water/Ice).
+- **Leader Pokémon** can be any species from the **National Dex up to Gen 4 (#001–493)** in Gens 1–4, and up to **Gen 5 (#001–649)** for Unova, whatever the Challenge Gen. Teams can follow a theme rather than a strict single type (e.g. Lorelei's Water/Ice).
 - Leader Pokémon follow the **level gating in §3c** (no Golem at level 12).
 - **No fixed move or item rules** for leaders: the designer picks freely. Gym order follows the base game.
 - Pools are **crafted together with the designer**, one leader at a time.
@@ -325,6 +325,7 @@ Every Challenge Gen uses the same structure: **8 Gyms → 4 Elite Four → Champ
 | 2 | Johto | HeartGold / SoulSilver | Silver or Gold |
 | 3 | Hoenn | Emerald | Brendan or May |
 | 4 | Sinnoh | Platinum | Dawn, Lucas or Barry |
+| 5 | Unova | Black 2 / White 2 | Hugh, Bianca or Cheren |
 
 - **Based on game** decides the leader lineup and gym order. Moves, learnsets and sprites come from **Gen 4 data** for every Pokémon.
 
@@ -1079,6 +1080,184 @@ Every trainer has a pool of **every species of their type** (Gen 1–4, Gen 4 ty
 | 4 | Alakazam, Floatzel, Rapidash, Heracross, Roserade, Torterra, Empoleon, Infernape | — |
 | 5 | Snorlax, Garchomp | — |
 
+#### Team pools — Gen 5 (Unova)
+
+##### Gym Leader Cheren · Normal (`gen5:cheren`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | — | — |
+| 1 | Sentret, Zigzagoon, Whismur, Starly, Smeargle, Bidoof, Pidgey, Rattata, Patrat, Skitty, Spearow, Hoothoot, Pidove, Jigglypuff, Taillow, Lillipup, Slakoth, Ditto, Meowth, Snubbull, Minccino, Doduo, Swablu, Glameow, Clefairy, Eevee, Teddiursa, Deerling, Staravia, Pidgeotto | — |
+| 2 | Buneary, Rufflet, Farfetch’d, Tranquill, Aipom, Loudred, Spinda, Herdier, Delcatty, Lickitung, Porygon, Togetic, Bibarel, Chatot, Raticate, Furret, Dunsparce, Linoone, Castform, Watchog, Wigglytuff | — |
+| 3 | Swellow, Persian, Vigoroth, Kecleon, Fearow, Noctowl, Audino, Chansey, Granbull, Purugly, Girafarig, Zangoose, Dodrio, Stantler, Pidgeot, Cinccino, Clefable, Staraptor, Sawsbuck, Unfezant, Exploud, Lopunny, Ambipom | — |
+| 4 | Kangaskhan, Tauros, Miltank, Stoutland, Bouffalant, Ursaring, Braviary, Porygon2, Lickilicky | — |
+| 5 | Porygon-Z, Snorlax, Blissey, Togekiss, Meloetta, Slaking, Regigigas, Arceus | — |
+
+##### Gym Leader Roxie · Poison (`gen5:roxie`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | Weedle, Kakuna | Wurmple, Cascoon |
+| 1 | Zubat, Spinarak, Venipede, Nidoran♂, Nidoran♀, Ekans, Foongus, Bellsprout, Croagunk, Gulpin, Venonat, Gastly, Bulbasaur, Oddish, Grimer, Stunky, Trubbish, Skorupi, Tentacool, Koffing | — |
+| 2 | Whirlipede, Nidorina, Nidorino, Beedrill, Dustox, Weepinbell, Ariados, Gloom, Roselia, Ivysaur, Haunter | — |
+| 3 | Qwilfish, Arbok, Venomoth, Golbat, Seviper, Amoonguss, Swalot, Garbodor, Scolipede, Skuntank, Vileplume, Victreebel | — |
+| 4 | Weezing, Toxicroak, Nidoqueen, Nidoking, Muk, Gengar, Drapion, Roserade, Tentacruel, Venusaur | — |
+| 5 | Crobat | — |
+
+##### Gym Leader Burgh · Bug (`gen5:burgh`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | Kricketot, Caterpie, Weedle, Wurmple, Metapod, Kakuna, Silcoon, Cascoon, Burmy, Shedinja | — |
+| 1 | Combee, Spinarak, Venipede, Ledyba, Nincada, Surskit, Paras, Pineco, Venonat, Shelmet, Sewaddle, Karrablast, Joltik, Dwebble, Skorupi | — |
+| 2 | Anorith, Whirlipede, Larvesta, Swadloon, Kricketune, Butterfree, Beedrill, Beautifly, Dustox, Ledian, Ariados, Yanma, Volbeat, Illumise, Parasect, Masquerain, Wormadam, Mothim | — |
+| 3 | Venomoth, Ninjask, Forretress, Galvantula, Vespiquen, Scolipede, Crustle, Durant | — |
+| 4 | Leavanny, Armaldo, Escavalier, Accelgor, Scyther, Pinsir, Scizor, Heracross, Shuckle, Yanmega | — |
+| 5 | Volcarona, Genesect | — |
+
+##### Gym Leader Elesa · Electric (`gen5:elesa`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | — | — |
+| 1 | Shinx, Tynamo, Mareep, Electrike, Blitzle, Pikachu, Joltik, Magnemite, Voltorb, Chinchou | — |
+| 2 | Luxio, Flaaffy, Plusle, Minun, Pachirisu, Eelektrik, Emolga | — |
+| 3 | Rotom, Lanturn, Magneton, Stunfisk, Galvantula, Raichu, Manectric, Electrode | — |
+| 4 | Electabuzz, Zebstrika, Ampharos, Eelektross, Luxray, Jolteon | — |
+| 5 | Magnezone, Electivire, Zapdos, Raikou, Thundurus, Zekrom | — |
+
+##### Gym Leader Clay · Ground (`gen5:clay`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | — | — |
+| 1 | Wooper, Swinub, Diglett, Nincada, Barboach, Trapinch, Sandile, Sandshrew, Geodude, Larvitar, Baltoy, Gible, Golett, Numel, Cubone, Drilbur, Phanpy, Hippopotas, Vibrava, Rhyhorn | Nidoran♂, Nidoran♀, Tympole, Mudkip, Turtwig, Shellos |
+| 2 | Krokorok, Palpitoad, Onix, Graveler, Dugtrio, Marshtomp, Pupitar, Gabite, Marowak | Nidorina, Nidorino, Grotle |
+| 3 | Quagsire, Gligar, Sandslash, Piloswine, Camerupt, Whiscash, Stunfisk, Gastrodon, Golurk, Golem, Rhydon | — |
+| 4 | Nidoqueen, Nidoking, Seismitoad, Donphan, Claydol, Excadrill, Krookodile, Steelix, Gliscor, Flygon, Torterra, Hippowdon, Mamoswine | — |
+| 5 | Swampert, Rhyperior, Garchomp, Landorus, Groudon | — |
+
+##### Gym Leader Skyla · Flying (`gen5:skyla`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | — | Caterpie, Wurmple, Magikarp, Metapod, Silcoon, Burmy |
+| 1 | Combee, Zubat, Starly, Hoppip, Pidgey, Spearow, Hoothoot, Pidove, Ledyba, Taillow, Wingull, Ducklett, Doduo, Swablu, Woobat, Natu, Delibird, Skiploom, Staravia, Drifloon, Pidgeotto | Nincada, Surskit, Dratini, Bagon, Charmander |
+| 2 | Rufflet, Farfetch’d, Tranquill, Vullaby, Butterfree, Beautifly, Ledian, Yanma, Archen, Togetic, Murkrow, Chatot, Masquerain, Mothim, Swoobat, Emolga | Charmeleon, Dragonair, Shelgon |
+| 3 | Gligar, Swellow, Pelipper, Fearow, Noctowl, Jumpluff, Golbat, Ninjask, Dodrio, Tropius, Mantine, Skarmory, Pidgeot, Xatu, Swanna, Vespiquen, Staraptor, Unfezant | — |
+| 4 | Altaria, Sigilyph, Drifblim, Scyther, Honchkrow, Gliscor, Braviary, Mandibuzz, Aerodactyl, Yanmega, Charizard | — |
+| 5 | Crobat, Gyarados, Togekiss, Archeops, Articuno, Zapdos, Moltres, Tornadus, Thundurus, Dragonite, Salamence, Landorus, Lugia, Ho-Oh, Rayquaza | — |
+
+##### Gym Leader Drayden · Dragon (`gen5:drayden`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | — | Magikarp |
+| 1 | Dratini, Bagon, Gible, Deino, Axew, Vibrava | Trapinch, Horsea, Charmander, Swablu |
+| 2 | Gabite, Fraxure, Dragonair, Shelgon, Zweilous | Charmeleon |
+| 3 | Druddigon | Seadra |
+| 4 | Altaria, Flygon | Aerodactyl, Charizard |
+| 5 | Kingdra, Haxorus, Dragonite, Salamence, Latias, Latios, Garchomp, Hydreigon, Kyurem, Rayquaza, Dialga, Palkia, Giratina, Reshiram, Zekrom | Gyarados |
+
+##### Gym Leader Marlon · Water (`gen5:marlon`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | Magikarp, Feebas | — |
+| 1 | Wooper, Lotad, Marill, Surskit, Wingull, Barboach, Spheal, Tympole, Horsea, Poliwag, Remoraid, Shellder, Carvanha, Ducklett, Corphish, Oshawott, Mudkip, Squirtle, Totodile, Piplup, Slowpoke, Panpour, Psyduck, Goldeen, Seel, Krabby, Shellos, Chinchou, Luvdisc, Buizel, Finneon, Tentacool, Frillish, Staryu, Lombre, Clamperl | Bidoof |
+| 2 | Omanyte, Kabuto, Tirtouga, Corsola, Palpitoad, Poliwhirl, Wailmer, Wartortle, Croconaw, Marshtomp, Prinplup, Azumarill, Sealeo, Bibarel, Dewott | — |
+| 3 | Quagsire, Qwilfish, Pelipper, Seadra, Seaking, Lanturn, Sharpedo, Lumineon, Basculin, Mantine, Whiscash, Crawdaunt, Alomomola, Swanna, Dewgong, Kingler, Gastrodon, Octillery, Ludicolo, Phione, Jellicent, Huntail, Gorebyss, Relicanth | — |
+| 4 | Slowbro, Slowking, Omastar, Kabutops, Floatzel, Carracosta, Simipour, Seismitoad, Golduck, Poliwrath, Politoed, Wailord, Tentacruel, Starmie, Cloyster, Vaporeon, Samurott, Blastoise, Feraligatr, Walrein, Empoleon | — |
+| 5 | Lapras, Swampert, Gyarados, Kingdra, Milotic, Suicune, Keldeo, Manaphy, Kyogre, Palkia | — |
+
+##### Elite Four Shauntal · Ghost (`gen5:shauntal`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | Shedinja | — |
+| 1 | Litwick, Shuppet, Duskull, Yamask, Golett, Gastly, Frillish, Drifloon | Zubat, Nincada, Ekans, Snorunt |
+| 2 | Lampent, Sableye, Haunter | — |
+| 3 | Misdreavus, Rotom, Banette, Dusclops, Froslass, Jellicent, Cofagrigus, Golurk, Spiritomb | Arbok, Golbat |
+| 4 | Mismagius, Drifblim, Gengar, Chandelure, Dusknoir | — |
+| 5 | Giratina | Crobat |
+
+##### Elite Four Marshal · Fighting (`gen5:marshal`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | — | — |
+| 1 | Makuhita, Meditite, Croagunk, Mankey, Machop, Timburr, Scraggy | Ralts, Kirlia, Shroomish, Poliwag, Tepig, Chimchar, Torchic |
+| 2 | Mienfoo, Machoke, Combusken, Monferno, Gurdurr, Medicham, Pignite | Poliwhirl, Onix |
+| 3 | Primeape, Hitmonlee, Hitmonchan, Hitmontop, Breloom, Throh, Sawk, Hariyama, Scrafty | — |
+| 4 | Toxicroak, Poliwrath, Heracross, Machamp, Conkeldurr, Mienshao, Gallade, Lucario, Emboar, Blaziken, Infernape | Steelix |
+| 5 | Cobalion, Terrakion, Virizion, Keldeo | — |
+
+##### Elite Four Grimsley · Dark (`gen5:grimsley`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | — | — |
+| 1 | Poochyena, Purrloin, Sandile, Deino, Carvanha, Stunky, Houndour, Zorua, Nuzleaf, Pawniard, Scraggy | Seedot, Litwick, Larvitar, Corphish, Oddish, Skorupi, Cacnea |
+| 2 | Krokorok, Vullaby, Sableye, Murkrow, Mightyena, Zweilous | Lampent, Gloom, Pupitar |
+| 3 | Sneasel, Liepard, Sharpedo, Absol, Crawdaunt, Cacturne, Skuntank, Shiftry, Spiritomb, Scrafty | Vileplume |
+| 4 | Bisharp, Houndoom, Drapion, Honchkrow, Krookodile, Weavile, Zoroark, Mandibuzz, Umbreon | Chandelure |
+| 5 | Tyranitar, Darkrai, Hydreigon | — |
+
+##### Elite Four Caitlin · Psychic (`gen5:caitlin`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | Unown | — |
+| 1 | Ralts, Kirlia, Meditite, Gothita, Solosis, Munna, Baltoy, Beldum, Bronzor, Abra, Woobat, Slowpoke, Natu, Exeggcute, Drowzee, Spoink, Elgyem | Staryu |
+| 2 | Duosion, Gothorita, Kadabra, Wobbuffet, Medicham, Metang, Chimecho, Swoobat | — |
+| 3 | Lunatone, Solrock, Jynx, Girafarig, Mr. Mime, Xatu, Grumpig, Hypno, Beheeyem, Musharna | — |
+| 4 | Alakazam, Slowbro, Slowking, Sigilyph, Gothitelle, Reuniclus, Claydol, Bronzong, Gardevoir, Gallade, Exeggutor, Starmie, Espeon | — |
+| 5 | Uxie, Mesprit, Azelf, Mew, Celebi, Metagross, Latias, Latios, Jirachi, Deoxys, Cresselia, Victini, Meloetta, Mewtwo, Lugia | — |
+
+##### Champion Iris · Dragon (`gen5:iris`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | — | Magikarp |
+| 1 | Dratini, Bagon, Gible, Deino, Axew, Vibrava | Trapinch, Horsea, Charmander, Swablu |
+| 2 | Gabite, Fraxure, Dragonair, Shelgon, Zweilous | Charmeleon |
+| 3 | Druddigon | Seadra |
+| 4 | Altaria, Flygon | Aerodactyl, Charizard |
+| 5 | Kingdra, Haxorus, Dragonite, Salamence, Latias, Latios, Garchomp, Hydreigon, Kyurem, Rayquaza, Dialga, Palkia, Giratina, Reshiram, Zekrom | Gyarados |
+
+##### Hugh (Final Rival) · signature lines (`gen5:rival-hugh`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | — | — |
+| 1 | Starly, Litwick, Gible, Deino, Timburr, Snivy, Tepig, Oshawott, Axew, Drilbur, Zorua, Staravia | — |
+| 2 | Lampent, Gurdurr, Gabite, Fraxure, Servine, Dewott, Pignite, Zweilous | — |
+| 3 | Staraptor | — |
+| 4 | Conkeldurr, Excadrill, Zoroark, Chandelure, Lucario, Serperior, Emboar, Samurott | — |
+| 5 | Haxorus, Garchomp, Hydreigon | — |
+
+##### Bianca (Final Rival) · signature lines (`gen5:rival-bianca`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | — | — |
+| 1 | Ralts, Kirlia, Petilil, Solosis, Munna, Blitzle, Snivy, Tepig, Oshawott, Eevee | — |
+| 2 | Duosion, Vullaby, Roselia, Togetic, Servine, Dewott, Pignite | — |
+| 3 | Lilligant, Musharna | — |
+| 4 | Reuniclus, Zebstrika, Roserade, Mandibuzz, Gardevoir, Flareon, Serperior, Emboar, Samurott | — |
+| 5 | Togekiss | — |
+
+##### Cheren (Final Rival) · signature lines (`gen5:rival-cheren`)
+
+| Group | Species | Filler |
+|---|---|---|
+| 0 | — | — |
+| 1 | Pidove, Lillipup, Slakoth, Blitzle, Gible, Snivy, Tepig, Oshawott, Eevee, Pawniard | — |
+| 2 | Tranquill, Aipom, Herdier, Vullaby, Gabite, Servine, Dewott, Pignite | — |
+| 3 | Vigoroth, Unfezant, Ambipom | — |
+| 4 | Stoutland, Bisharp, Zebstrika, Mandibuzz, Jolteon, Serperior, Emboar, Samurott | — |
+| 5 | Garchomp, Slaking | — |
+
 ### Leader data (planned format)
 Each opponent is defined in a data file with: name, title, gen, order, level, badge/sprite, and a list of **team sets**. Each set has a name, strategy notes, and its Pokémon (species, nature, ability, held item, moves).
 A browser-based **team builder** may come later. For now teams are written in the data file.
@@ -1175,6 +1354,13 @@ _AI:_ turn 1, Aron uses Rock Polish while Lunatone uses Hypnosis. Afterwards, Lu
 - [ ] **Draw rule:** if both sides lose their last Pokémon at the same time (e.g. Explosion), does the run end? The engine currently reports a draw.
 - [ ] **Gym 1 difficulty:** in simulations Brock wins 61–95% of AI-vs-AI battles against random first-stage teams with level-up moves only. The real player is smarter than the AI, but Gym 1 may still need tuning (or a stronger starter draft). In full AI-played runs, 34 of 40 died at Brock.
 
+### Gen 5 rules (decision pending)
+Showdown's Gen 4 rules differ from Gen 5 in 56 abilities, 59 items, 132 moves and a few status rules, but most differences are tiny. Our data already uses modern move priorities (Protect +4, Fake Out +3, Extreme Speed +2), and Sturdy, Lightning Rod and Storm Drain already work the Gen 5 way. Candidates, from most to least worthwhile:
+- [x] **Gen 5 move values** (power, accuracy, PP), applied to every Challenge Gen: 35 Gen 1–4 moves changed (Curse is now Ghost type). E.g. Tackle 35→50, Thrash/Outrage/Petal Dance 90→120, Fire Spin/Whirlpool/Sand Tomb 15→35, Giga Drain 60→75, Toxic 85→90, Glare 75→90, Jump Kicks stronger but 10 PP.
+- [x] **Shorter sleep:** 1–3 turns for every Challenge Gen (Gen 4: 1–4).
+- [ ] **Protect:** each consecutive use has 1/3 the chance (Gen 4: halves, never below 1/8).
+- [ ] **Not recommended:** the other ability, item and damage-order differences (rare or tiny); rewriting the damage formula.
+
 ### Later
 - [ ] **TMs** as items.
 - [ ] **Leader team builder** UI in the browser.
@@ -1195,11 +1381,12 @@ Run `node tools/build-data.mjs` (add `--no-sprites` to skip sprites). API respon
 
 | Output | Contents |
 |---|---|
-| `data/pokemon.json` | #001–493: Gen 4 types and base stats, BST, normal abilities (Gen 4) + Hidden Ability (latest gen), gender ratio, legendary/mythical/baby flags, pre-evolution, height (m), weight (kg), sprite paths, learnset (level-up, TM, tutor, egg) |
+| `data/pokemon.json` | #001–649 (Gen 5 added: Black/White values, Black/White sprites in `images/sprites/gen5`); #001–493: Gen 4 types and base stats, BST, normal abilities (Gen 4) + Hidden Ability (latest gen), gender ratio, legendary/mythical/baby flags, pre-evolution, height (m), weight (kg), sprite paths, learnset (level-up, TM, tutor, egg) |
 | `data/moves.json` | Every move those Pokémon can learn (+ Struggle), with Gen 4 type, power, accuracy and PP, category, priority, target, effect text and battle meta (status chance, flinch, crit, drain, multi-hit…) |
 | `data/abilities.json` | Every normal and Hidden Ability used, with effect text |
 | `data/evolutions.json` | Evolution links (from → to) with the official conditions. The game applies our own rules (§2 Evolution) on top. |
 | `data/manifest.json` | Build date, source, counts, missing sprites |
+| `images/sprites/gen5/`, `gen5-ani/` | Black/White sprites for #001–649: static PNG (`gen5`) and animated GIF (`gen5-ani`), same folder layout. Downloaded with `node tools/fetch-pokemon-sprites.mjs` |
 | `images/sprites/gen4/` | Platinum sprites: `front`, `back`, `front-shiny`, `back-shiny`, named by dex number |
 
 - **Gen 4 accuracy:** later changes are rolled back using PokeAPI's history (e.g. Clefairy is Normal, Tackle is 35 power / 95 accuracy, Gengar has Levitate, Butterfree has 80 Sp. Atk).
@@ -1227,9 +1414,16 @@ Code in `js/engine/` (plain ES modules, runs in the browser and in Node):
 - **Leader data:** `data/leaders/gen1.json` holds Brock's 8 sets. Team size and level are read from the §3a table in this file.
 - **Simplified for now:**
   - U-turn and Baton Pass switch to the next healthy Pokémon in team order (the player will get to choose once the UI exists).
-  - Every Gen 1–4 move now does something. The rules of the copy/call/field moves are listed below.
+  - Every Gen 1–5 move now does something. The rules of the copy/call/field moves are listed below. Gen 5 Abilities that still do nothing: Zen Mode and Illusion (they need alternate forms); Run Away, Illuminate and Pickup have no use in this game.
   - Alternate forms (Castform, Cherrim, Rotom, etc.) aren't in the data yet.
 - Damage formula referenced against **Pokémon Showdown** for accuracy.
+
+#### Gen 5 Pokémon
+
+- **Data:** Pokémon #494–649 use their Black/White types, stats and abilities, and learn the moves they learn in Black/White and Black 2/White 2. Gen 1–4 Pokémon keep their Gen 4 values and **keep every move and level they had; they also get what Black/White and Black 2/White 2 added** (new TMs, tutors and level-up moves). 486 of them gained moves, 3,155 entries in total (e.g. Gengar: Hex, Foul Play, Venoshock, Telekinesis, Wonder Room, Round).
+- **Sprites:** Gen 5 Pokémon use Black/White art (96 px); Gen 1–4 keep Platinum/HGSS art (80 px). The battle screen scales each to its own size, with the feet on the same line.
+- **Unova trainers:** Black 2 / White 2 line-up: Cheren, Roxie, Burgh, Elesa, Clay, Skyla, Drayden, Marlon; Shauntal, Marshal, Grimsley, Caitlin; Champion Iris; Final Rival Hugh, Bianca or Cheren.
+- **Gen 5 moves:** every Gen 5 move is implemented (rules below). Pledge moves combine when both partners use different ones (150 power + rainbow / sea of fire / swamp for 4 turns). Sky Drop is a two-turn move that stops the target from moving on the first turn.
 
 #### Rules of the special moves (Gen 4, simplified where noted)
 
@@ -1255,6 +1449,10 @@ Code in `js/engine/` (plain ES modules, runs in the browser and in Node):
 | Grudge | If the user is knocked out by a move this turn, that move's PP drops to 0 |
 | Recycle | Returns the item the user used up this battle |
 | Mud Sport / Water Sport | Halve Electric / Fire move power while the user is on the field |
+| Wide Guard / Quick Guard | Block multi-target moves / priority moves for your side this turn (can't be used twice in a row) |
+| Guard Split / Power Split | Average Defense and Sp. Def / Attack and Sp. Atk with the target until you leave the field |
+| Wonder Room / Magic Room | 5 turns: Defense and Sp. Def stats swapped / held items do nothing. Use again to end |
+| Rage Powder, Soak, Simple Beam, Entrainment, Bestow, After You, Ally Switch, Heal Pulse, Telekinesis, Autotomize | As in Gen 5. Telekinesis: moves never miss, grounded moves can't hit, 3 turns |
 | Gravity | 5 turns: everyone is grounded (Ground hits Flying and Levitate), accuracy ×5/3, and Fly, Bounce, Jump Kick, Hi Jump Kick, Magnet Rise and Splash can't be used |
 
 ### Battle screen (step 2)
@@ -1271,13 +1469,21 @@ Open `index.html` through a local server (Live Server, or `python3 -m http.serve
 
 - **Arenas:** one colour palette per type (sky, ground, platforms), picked by the opponent's type theme (`js/ui/terrain.js`). Opponents without a theme (Champion, Rival) use the Normal palette. No decorations.
 - **Sprite alignment** (`js/ui/sprite-align.js`): each sprite's lowest visible pixel is put on one baseline per side (foes on their platform, your Pokémon on the top edge of the text box), centred in its spot. Only Levitate users and the `FLOATERS` list hover. The right-hand Pokémon on each side is drawn in front.
-- **Sprite check:** open `tools/sprite-check.html` to see 60 Pokémon at a time (front or back) standing on a feet line, to spot sprites that need a correction. Floating sprites are listed in `FLOATERS` in `js/ui/sprite-align.js`.
+- **Sprite check:** open `tools/sprite-check.html` (through the local server) to see 30 Pokémon at a time (front/back/shiny, Gen 4 / Gen 5 static / Gen 5 moving) on a feet line, with a dotted top-edge line and centre line. Click a sprite and nudge it with the arrow keys; "Download sprite-offsets.json" saves the nudges to `data/sprite-offsets.json` (shiny shares the regular sprite's nudge). Floating sprites are listed in `FLOATERS` in `js/ui/sprite-align.js`.
+- **Sprite style:** chosen on the New run screen (saved in the meta save): Static (Gen 5 art), Moving (animated Gen 5), or Gen 4 (static, Gen 5 art only for #494–649). `js/game/sprite-mode.js` rewrites every species' sprite paths. Gen 5 back sprites (static and moving) are drawn bigger and sink behind the textbox so they look closer than the foes: `backScale` 1.15 and `backSink` 0.25 (share of the sprite's height), editable in `_settings` of `data/sprite-offsets.json` or live on the sprite check page.
 - **Scene preview:** open `tools/scene-preview.html` through the local server to see every terrain and weather side by side.
 - Click the text box (or press Enter/Space) to skip text. Text speed Normal/Fast is on the command menu.
 - **Bag** in battle: use a bag item on any team member (takes that Pokémon's turn). There's no Run button (trainer battles).
 - The files `js/scripts.js`, `data/data.json` and `images/background.jpg` from the original template aren't used anymore.
 - **Saving:** auto-save **every turn** in the browser (`localStorage`). Reloading or closing the page resumes the battle exactly where it was, so faints can't be undone. A **Hall of Fame** stores winning teams.
 - Personal fan project: Pokémon names and sprites belong to Nintendo / Game Freak / The Pokémon Company. Not for commercial release.
+
+### Debug panel (press L)
+Hidden until you press **L** (not while typing in a field). Code: `js/ui/dev-tools.js`. Opening it once turns the options on; they're remembered in the browser.
+- **Live CSS:** when `css/styles.css` changes, the new styles are swapped in without reloading the page (checked every ~0.8 s).
+- **Stay on this screen after a reload:** the screen, scroll position and panel are restored after any reload (Live Server, F5). Per browser tab, so a new tab starts at the title as usual.
+- **Freeze animations:** pauses CSS animations and the title banner, so a screen holds still while you adjust it.
+- **Screens:** jump to menus, every run screen (draft, starter items, hub, hub grid, details window, recruit, item pick, game over, Hall of Fame) and battle screens (intro, commands, moves, targets, Pokémon list, switch-in summary). Previews are built from a fixed test run (seed 1234) and **never touch your real save, Trainer Points or Hall of Fame**. "Back to my real game" resumes your run.
 
 ### Versioning
 - The version lives in `js/version.js` and is shown on the title screen (e.g. `v0.1.0`).
@@ -1293,8 +1499,9 @@ Open `index.html` through a local server (Live Server, or `python3 -m http.serve
 
 ### Credits
 - **Pokémon data, Pokémon sprites and item sprites:** [PokeAPI](https://pokeapi.co) and the PokeAPI/sprites repository.
+- **Black 2 / White 2 trainer sprites:** [Bulbagarden Archives](https://archives.bulbagarden.net) (category "Generation V Trainer sprites"), 52 of our trainers, saved as `images/trainers/variants/<id>-b2w2.png` by `node tools/fetch-b2w2-trainer-sprites.mjs` (file list from `sprites.html`; the category page blocks scripts). Not used in battle yet: they are for the trainer sprite picker.
 - **Trainer sprites:** [Pokémon Showdown](https://play.pokemonshowdown.com/sprites/trainers/) and its sprite artists (downloaded with `node tools/fetch-trainer-sprites.mjs` into `images/trainers/`). Gold uses Showdown's HeartGold/SoulSilver Ethan sprite; Tate & Liza are shown as two sprites.
-- **Player character back sprites:** [Bulbagarden Archives](https://archives.bulbagarden.net) (FRLG Red & Leaf, HGSS Ethan & Lyra, Emerald Brendan & May, Platinum Lucas & Dawn), in `images/trainers/back/`. Front sprites for the picker from Pokémon Showdown (Ethan = Showdown's HGSS Ethan, Lyra added).
+- **Player character sprites:** back sprites from [Bulbagarden Archives](https://archives.bulbagarden.net) (category "Trainer back sprites"), front sprites for the picker from Pokémon Showdown. 43 characters in `data/characters.json`, made by `node tools/fetch-back-sprites.mjs` (the category page blocks scripts, so the file list comes from `sprites.html`). Back sprites are in `images/trainers/back/`, fronts in `images/trainers/`. Only trainers with a front sprite are playable (no Old Man, Dude, Pokémon Dude or Roxie's Father) and only one Nate and one Rosa (Black 2 / White 2).
 - **Pokémon** © Nintendo / Creatures / Game Freak / The Pokémon Company. This is a non-commercial fan project.
 - A credits line is shown on the title screen.
 
@@ -1327,7 +1534,7 @@ Open `index.html` through a local server (Live Server, or `python3 -m http.serve
 **Shop, TMs and progression (step 4):**
 - `js/game/run.js`: prize money, the shop (5 items, refreshed after every battle, sell at half price), TM rewards from every opponent and teaching TMs.
 - `js/game/meta.js`: Trainer Points and Trainer upgrades, saved in `localStorage` key `pd.meta` (separate from runs, so it survives losing). A new run copies your upgrades at the start.
-- `data/tms.json`: TM01–TM92 from Platinum (`node tools/build-tms.mjs`).
+- `data/tms.json`: TM01–TM92 from Platinum, then the moves Black/White added as TMs, numbered TM93–TM118 in Black/White order (`node tools/build-tms.mjs`).
 - Screens: money and shop in the hub, a TM button per Pokémon and a TM Case, a rewards banner after each win, Trainer Upgrades on the title screen, TP earned on the end screens.
 
 **Tools:**
@@ -1430,3 +1637,22 @@ All Rock-type lines up to Gen 4. Slugma (Fire) and Steelix (Steel/Ground) are in
 - **v0.2.2 · October 13, 2026:** iOS Safari: controls no longer sit in the bottom-edge strip where the first tap only brought the toolbar back (page, sticky confirm bar and dialogs stop ~56 px above the edge). Could not be tested on a real iPhone.
 - **v0.3.0 · October 13, 2026:** All 23 moves that did nothing are implemented (Disable, Mimic, Mirror Move, Transform, Conversion, Sketch, Conversion 2, Spite, Assist, Ingrain, Magic Coat, Recycle, Imprison, Grudge, Snatch, Camouflage, Mud Sport, Water Sport, Gravity, Psycho Shift, Power Trick, Me First, Copycat); rules in §7. Sketch is permanent for the run. Camouflage uses the arena type. The AI knows when to use them. 23 new engine tests.
 - **v0.3.1 · October 14, 2026:** Smeargle now has 4 Sketch slots (recruits and opponents). Team pools for **all four gens**: Johto, Hoenn and Sinnoh trainers use their specialty type plus a few canon or fitting filler Pokémon (shown in each table's Filler column), the same rules as Kanto. Typeless trainers (Silver, Gold, Brendan, May, Cynthia, Barry, Dawn, Lucas) use signature lines.
+- **v0.3.2 · October 14, 2026:** Debug panel on the L key: live CSS without reloading, stay on the same screen after a reload, freeze animations, and a quick screen switcher (previews never touch your save). §7.
+- **v0.3.3 · October 15, 2026:** Repaired css/styles.css after all closing braces were lost (630 added back; your two edits to the choice chips were kept).
+- **v0.3.4 · October 15, 2026:** The Confirm bar no longer floats at the bottom of the screen (it was in the strip where iOS Safari swallows the first tap). It sits in the page, right under the cards on the recruit screen.
+- **v0.4.0 · October 16, 2026:** **Gen 5 (Unova)** is playable: 156 new Pokémon with Black/White sprites, all 86 Gen 5 moves, 15 Gen 5 abilities, Black 2/White 2 trainers and team pools, and Gen 5 in the New run screen and Pokémon Pool. Gens 1–4 are unchanged. Trainer sprites for the Unova leaders are still to be downloaded. 65 engine tests.
+- **v0.4.1 · October 16, 2026:** Unova trainer sprites downloaded. Gen 1–4 Pokémon now also learn what Black/White and Black 2/White 2 added (nothing removed; 486 Pokémon gained moves), with 26 new TMs (TM93–TM118). Quash and Reflect Type implemented, so every move through Gen 5 works. 66 engine tests. Gen 5 rule options listed in §6.
+- **v0.4.2 · October 15, 2026:** Every move now uses its Black/White power, accuracy and PP in all Challenge Gens (35 moves changed, e.g. Tackle 50, Thrash 120, Fire Spin 35, Toxic 90%). Sleep now lasts 1–3 turns. Protect keeps its 1/2 odds.
+- **v0.4.3 · October 16, 2026:** Ability Patch and Hidden Ability Patch are now used up when applied (they were reusable by mistake). Evolution items keep "Not used up upon evolution".
+- **v0.4.4 · October 16, 2026:** Shop shows every section stacked under each other instead of tabs (empty sections are hidden). Sprite check page (`tools/sprite-check.html`) now has a position editor: click a Pokémon, nudge it with the arrow keys, download `data/sprite-offsets.json`; the game applies those nudges per sprite file. Sprite check shows Gen 1–5, front/back/shiny at the real battle size. Opponent Smeargle now start with 4 moves already sketched (the AI couldn't use Sketch well).
+- **v0.4.5 · October 16, 2026:** Sprite check page shows a dotted purple "top edge" line in every cell (the battle scene's top: 75.5 px above a foe's feet, 153 px above your Pokémon's feet) so sprites aren't placed too high.
+- **v0.4.6 · October 16, 2026:** More room above the battle scene: the headroom strip is 24 px instead of 12 (top screen 256×216). Sprites, platforms and HP boxes stay where they were; the opponent's balls, turn counter and weather moved up with the strip. The sprite check's "top edge" line now uses the real distances (97 px above a foe's feet, 170 px above yours; the earlier line was too low).
+- **v0.4.7 · October 16, 2026:** Sprite check page also shows a dotted vertical centre line in every cell.
+- **v0.4.8 · October 16, 2026:** Shiny sprites reuse the regular sprite's position nudge (one entry in `data/sprite-offsets.json` covers both).
+- **v0.5.0 · October 16, 2026:** Gen 5 sprites for every Pokémon, static and animated (downloaded with `node tools/fetch-pokemon-sprites.mjs`). New run screen has a "Pokémon sprites" choice: Static, Moving or Gen 4. Gen 5 back sprites are 15% bigger and sink 25% behind the textbox so your Pokémon look closer than the opponent's. Sprites keep their real pixel size (animated ones vary). Sprite check page: sprite style selector, back size and sink controls.
+- **v0.5.1 · October 16, 2026:** Sprites no longer look squashed in the offer cards and other fixed boxes (animated sprites keep their proportions). (The trainer hop idea was dropped: trainers stay static.) Downloaded Black 2 / White 2 art for 52 trainers as sprite variants for the later picker.
+- **v0.5.2 · October 16, 2026:** Removed the trainer hop animation (trainer sprites stay static). Animated Pokémon sprites in cards and lists are drawn at one shared scale (`js/ui/sprite-fit.js`), so small Pokémon look small and big ones fill the box, instead of every sprite filling the box.
+- **v0.6.0 · October 16, 2026:** 61 playable characters: every trainer with a back sprite (Gen 1: Red, Oak, Old Man · Gen 2: Ethan, Kris, Lance, Silver, Dude… · Gen 3: Red, Leaf, Brendan, May, Steven, Wally… · Gen 4: Lucas, Dawn, Barry, Buck, Cheryl, Marley, Mira, Riley · Gen 5: Hilbert, Hilda, Nate, Rosa, Cheren, Bianca, Hugh, Chili, Cilan, Cress, Juniper, Pokéstar costumes…). The character picker on the New run screen is grouped by generation and shows each sprite's game. Small old sprites are enlarged so every character is about as tall as Lucas; Gen 5 sprites keep their size. You can play as a trainer you also fight (mirror battles).
+- **v0.6.1 · October 16, 2026:** Target menu ("Use … on…"): bigger Pokémon sprites, and the sprite and the name now sit in two balanced columns.
+- **v0.6.2 · October 16, 2026:** Playable characters cut to 43: removed the ones without a front sprite (Old Man, Dude, Pokémon Dude, Roxie's Father…) and the Pokéstar costumes of Nate and Rosa (one version each now). The picker no longer shows the game under each name.
+- **v0.6.3 · October 16, 2026:** Player characters are scaled to one visible height (74 px, `CHARACTER_HEIGHT` in `js/ui/sprite-align.js`): the big Gen 5 sprites were too large at the start of a battle, so they are shrunk to about two thirds.

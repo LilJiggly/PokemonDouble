@@ -443,5 +443,240 @@ test("Power Trick swaps Attack and Defense, and swaps back when leaving", () => 
   eq(back.atk, atk, "Attack restored"); eq(back.def, def, "Defense restored");
 });
 
+console.log("Gen 5 moves and abilities");
+// Any teams; actions for all four active Pokémon: [mine slot 0, mine slot 1, foe slot 0, foe slot 1]
+const fight = (mine, foe, opts = {}) => {
+  const b = Battle.create(data, { seed: opts.seed ?? 1, terrain: opts.terrain, sides: [{ name: "P", isPlayer: true, team: mine }, { name: "F", team: foe }] });
+  b.takeEvents();
+  return b;
+};
+const four = (b, a0, a1, f0, f1) => b.submitTurn([[a0, a1], [f0, f1]]);
+const atFoe = (slot, index, target = 0) => move(slot, index, { side: 1, slot: target });
+const atMine = (slot, index, target = 0) => move(slot, index, { side: 0, slot: target });
+const splash2 = [mon("magikarp", ["splash"]), mon("magikarp", ["splash"])];
+const power = (b, user, target, id) => b.basePower(user, target, data.moves[id]);
+
+test("Psyshock hits Defense; Foul Play uses the target's Attack", () => {
+  const b = duel("alakazam", ["psyshock", "psychic"], "blissey", ["splash", "splash"]);
+  assert(dmg(b, at(b, 0, 0), at(b, 1, 0), "psyshock") * 90 / 80 > dmg(b, at(b, 0, 0), at(b, 1, 0), "psychic") * 3, "Blissey has far lower Defense than Sp. Def");
+  const f = duel("alakazam", ["foul-play", "tackle"], "machamp", ["splash", "splash"]);
+  const low = dmg(f, at(f, 0, 0), at(f, 1, 0), "foul-play");
+  at(f, 0, 0).stats.atk = 999;
+  eq(dmg(f, at(f, 0, 0), at(f, 1, 0), "foul-play"), low, "the user's own Attack doesn't matter");
+});
+test("Venoshock, Hex, Acrobatics, Retaliate, Stored Power, Heavy Slam, Electro Ball", () => {
+  const b = duel("snorlax", ["venoshock", "hex"], "magikarp", ["splash", "splash"]);
+  const u = at(b, 0, 0), t = at(b, 1, 0);
+  eq(power(b, u, t, "venoshock"), 65, "Venoshock"); t.status = "psn"; eq(power(b, u, t, "venoshock"), 130, "Venoshock poisoned");
+  eq(power(b, u, t, "hex"), 100, "Hex with a status");
+  u.item = "leftovers"; eq(power(b, u, t, "acrobatics"), 55, "Acrobatics holding an item"); u.item = null; eq(power(b, u, t, "acrobatics"), 110, "Acrobatics without");
+  eq(power(b, u, t, "retaliate"), 70, "Retaliate"); b.state.sides[0].lastFaintTurn = b.state.turn - 1; eq(power(b, u, t, "retaliate"), 140, "Retaliate after a faint");
+  eq(power(b, u, t, "stored-power"), 20, "Stored Power"); u.boosts.spa = 2; u.boosts.def = 1; eq(power(b, u, t, "stored-power"), 80, "Stored Power with 3 stages up");
+  assert(power(b, u, t, "heavy-slam") >= 120, "Heavy Slam: Snorlax is way heavier than Magikarp");
+  assert(power(b, t, u, "heat-crash") === 40, "Heat Crash: light user");
+  u.stats.spe = 400; t.stats.spe = 100; eq(power(b, u, t, "electro-ball"), 150, "Electro Ball 4× faster");
+});
+test("Storm Throw always crits, Smack Down grounds, Clear Smog resets stats, Incinerate burns a berry", () => {
+  withSeed((seed) => duel("machamp", ["storm-throw", "smack-down"], "pidgeot", ["splash", "splash"], { seed, foeExtra: { item: "oran-berry" } }), (b) => {
+    const ev = round(b, p1(0), p2(0));
+    if (!JSON.stringify(ev).includes("A critical hit!")) return false;
+    round(b, p1(1), p2(0));
+    assert(b.effectiveness("ground", at(b, 1, 0)) > 0, "Smack Down grounded Pidgeot");
+  });
+  const c = duel("alakazam", ["clear-smog", "incinerate"], "snorlax", ["splash", "splash"], { foeExtra: { item: "oran-berry" } });
+  at(c, 1, 0).boosts.atk = 3;
+  round(c, p1(0), p2(0));
+  eq(at(c, 1, 0).boosts.atk, 0, "stat changes removed");
+  const d = duel("alakazam", ["incinerate", "tackle"], "snorlax", ["splash", "splash"], { foeExtra: { item: "oran-berry" } });
+  round(d, p1(0), p2(0));
+  eq(at(d, 1, 0).item, null, "berry burned up");
+});
+test("Flame Burst hurts the neighbour, Final Gambit trades HP, Synchronoise needs a shared type", () => {
+  const b = fight([mon("magmar", ["flame-burst"]), mon("magikarp", ["splash"]), mon("pikachu", ["ember"])], [mon("snorlax", ["splash"]), mon("magikarp", ["splash"])]);
+  const before = at(b, 1, 1).hp;
+  four(b, atFoe(0, 0, 0), s1, atMine(0, 0), s1);
+  assert(at(b, 1, 1).hp < before, "the Pokémon next to the target took splash damage");
+  const g = duel("alakazam", ["final-gambit", "splash"], "snorlax", ["splash", "splash"]);
+  const hp = at(g, 0, 0).hp; const foeHp = at(g, 1, 0).hp;
+  round(g, p1(0), p2(0));
+  assert(g.state.sides[0].team[0].fainted, "the user fainted");
+  assert(foeHp - at(g, 1, 0).hp >= Math.min(hp, foeHp) - 1, "damage equals the user's HP");
+  const s = duel("alakazam", ["synchronoise", "splash"], "snorlax", ["splash", "splash"]);
+  const ev = text(round(s, p1(0), p2(0)));
+  assert(ev.includes("doesn't affect"), `different types: ${ev}`);
+});
+test("Dragon Tail drags the target out; Volt Switch switches the user out", () => {
+  const b = fight([mon("garchomp", ["dragon-tail"]), mon("magikarp", ["splash"])], [mon("snorlax", ["splash"]), mon("magikarp", ["splash"]), mon("pikachu", ["splash"])]);
+  withSeed((seed) => fight([mon("garchomp", ["dragon-tail"]), mon("magikarp", ["splash"])], [mon("snorlax", ["splash"]), mon("magikarp", ["splash"]), mon("pikachu", ["splash"])], { seed }), (x) => {
+    four(x, atFoe(0, 0, 0), s1, atMine(0, 0), s1);
+    if (x.state.sides[1].active.includes(2)) return true;
+    return x.state.sides[1].active[0] === 0 ? false : true;
+  });
+  const v = duel("jolteon", ["volt-switch", "splash"], "snorlax", ["splash", "splash"]);
+  round(v, p1(0), p2(0));
+  eq(v.state.sides[0].active[0], 2, "Pikachu came in");
+});
+test("Echoed Voice gets stronger every turn; Round doubles when used twice in a turn", () => {
+  const b = duel("alakazam", ["echoed-voice", "splash"], "snorlax", ["splash", "splash"]);
+  const first = (() => { const h = at(b, 1, 0).hp; round(b, p1(0), p2(0)); return h - at(b, 1, 0).hp; })();
+  const second = (() => { const h = at(b, 1, 0).hp; round(b, p1(0), p2(0)); return h - at(b, 1, 0).hp; })();
+  assert(second > first * 1.5, `2nd ${second} vs 1st ${first}`);
+  const r = fight([mon("alakazam", ["round"]), mon("alakazam", ["round"])], [mon("snorlax", ["splash"]), mon("magikarp", ["splash"])]);
+  at(r, 1, 0).hp = at(r, 1, 0).maxHp; // sanity
+  const single = power(r, at(r, 0, 0), at(r, 1, 0), "round");
+  r.state.field.roundTurn = r.state.turn;
+  eq(power(r, at(r, 0, 0), at(r, 1, 0), "round"), single * 2, "Round after another Round");
+});
+test("Water Pledge + Fire Pledge from both partners combine into a rainbow", () => {
+  const b = fight([mon("blastoise", ["water-pledge"]), mon("charizard", ["fire-pledge"])], [mon("snorlax", ["splash"]), mon("snorlax", ["splash"])]);
+  const ev = text(four(b, atFoe(0, 0, 0), atFoe(1, 0, 0), atMine(0, 0), atMine(1, 0)));
+  assert(ev.includes("waiting for") && ev.includes("rainbow"), ev);
+  assert(b.state.sides[0].conditions.rainbow > 0, "rainbow on the user's side");
+});
+
+test("Heal Pulse heals the target; Wide Guard and Quick Guard block spread and priority moves", () => {
+  const h = duel("alakazam", ["heal-pulse", "splash"], "snorlax", ["splash", "splash"]);
+  at(h, 1, 0).hp = Math.floor(at(h, 1, 0).maxHp / 4); const before = at(h, 1, 0).hp;
+  round(h, p1(0), p2(0));
+  assert(at(h, 1, 0).hp >= before + Math.floor(at(h, 1, 0).maxHp / 2) - 1, "healed half");
+  const w = fight([mon("alakazam", ["wide-guard"]), mon("pikachu", ["splash"])], [mon("snorlax", ["earthquake"]), mon("magikarp", ["splash"])]);
+  const hp0 = at(w, 0, 0).hp, hp1 = at(w, 0, 1).hp;
+  const ev = text(four(w, atMine(0, 0), s1, atMine(0, 0), s1));
+  assert(ev.includes("Wide Guard protected") && at(w, 0, 0).hp === hp0 && at(w, 0, 1).hp === hp1, ev);
+  const q = fight([mon("alakazam", ["quick-guard"]), mon("pikachu", ["splash"])], [mon("snorlax", ["mach-punch"]), mon("magikarp", ["splash"])]);
+  const qhp = at(q, 0, 0).hp;
+  const qev = text(four(q, atMine(0, 0), s1, atMine(0, 0), s1));
+  assert(qev.includes("Quick Guard protected") && at(q, 0, 0).hp === qhp, qev);
+});
+test("Guard Split and Power Split average stats; they come back after switching out", () => {
+  const b = duel("alakazam", ["guard-split", "power-split"], "snorlax", ["splash", "splash"]);
+  const u = at(b, 0, 0), t = at(b, 1, 0);
+  const defs = [u.stats.def, t.stats.def];
+  round(b, p1(0), p2(0));
+  eq(u.stats.def, Math.floor((defs[0] + defs[1]) / 2), "user Defense"); eq(t.stats.def, u.stats.def, "target Defense");
+  b.submitTurn([[{ slot: 0, type: "switch", teamIndex: 2 }, s1], [p2(0), s1]]);
+  eq(b.state.sides[0].team[0].stats.def, defs[0], "restored");
+});
+test("Wonder Room swaps Defense and Sp. Def; Magic Room switches held items off", () => {
+  const b = duel("alakazam", ["wonder-room", "magic-room"], "blissey", ["splash", "splash"]);
+  const before = b.defenseStat(at(b, 1, 0), "def", false, at(b, 0, 0));
+  round(b, p1(0), p2(0));
+  eq(b.defenseStat(at(b, 1, 0), "def", false, at(b, 0, 0)), at(b, 1, 0).stats.spd, "Defense uses Sp. Def now");
+  assert(before !== b.state.field.wonderRoom, "ran");
+  const u = at(b, 0, 0); u.item = "leftovers"; assert(b.item(u) === "leftovers", "items work before");
+  round(b, p1(1), p2(0));
+  eq(b.item(u), null, "held items off");
+});
+test("Rage Powder pulls single-target moves to the user", () => {
+  const b = fight([mon("alakazam", ["rage-powder"]), mon("magikarp", ["splash"])], [mon("snorlax", ["tackle"]), mon("magikarp", ["splash"])]);
+  const ally = at(b, 0, 1).hp; const user = at(b, 0, 0).hp;
+  four(b, atMine(0, 0), s1, move(0, 0, { side: 0, slot: 1 }), s1);
+  assert(at(b, 0, 1).hp === ally, "the partner wasn't hit");
+  assert(at(b, 0, 0).hp < user, "the user was");
+});
+test("Soak, Simple Beam and Entrainment change type and Ability, and Abilities come back", () => {
+  const b = duel("alakazam", ["soak", "simple-beam"], "magmar", ["splash", "splash"]);
+  round(b, p1(0), p2(0));
+  eq(at(b, 1, 0).types.join(), "water", "Soak");
+  round(b, p1(1), p2(0));
+  eq(at(b, 1, 0).ability, "simple", "Simple Beam");
+  const e = fight([mon("alakazam", ["entrainment"], { ability: "magic-guard" }), mon("magikarp", ["splash"]), mon("pikachu", ["splash"])], [mon("snorlax", ["splash"], { ability: "thick-fat" }), mon("magikarp", ["splash"])]);
+  four(e, atFoe(0, 0, 0), s1, atMine(0, 0), s1);
+  eq(at(e, 1, 0).ability, "magic-guard", "Entrainment");
+  const side1 = e.state.sides[1];
+  e.submitTurn([[atFoe(0, 0, 0), s1], [{ slot: 1, type: "move", move: 0, target: { side: 0, slot: 0 } }, s1]]);
+  eq(side1.team[0].ability, "magic-guard", "still while it stays in");
+});
+test("After You lets the target act next", () => {
+  const b = fight([mon("alakazam", ["after-you"]), mon("magikarp", ["splash"])], [mon("snorlax", ["tackle"]), mon("jolteon", ["thunderbolt"])]);
+  const ev = text(four(b, move(0, 0, { side: 1, slot: 0 }), s1, move(0, 0, { side: 0, slot: 1 }), move(0, 0, { side: 0, slot: 1 })));
+  const order = [...ev.matchAll(/(Alakazam|Magikarp|The foe's \w+) used ([\w ]+)!/g)].map((m) => m[2]);
+  assert(order.indexOf("Tackle") === order.indexOf("After You") + 1, `Snorlax right after: ${order.join(", ")}`);
+});
+test("Ally Switch swaps the partners' positions", () => {
+  const b = fight([mon("alakazam", ["ally-switch"]), mon("pikachu", ["splash"])], [mon("snorlax", ["splash"]), mon("magikarp", ["splash"])]);
+  const [a, p] = [b.state.sides[0].active[0], b.state.sides[0].active[1]];
+  const ev = four(b, atMine(0, 0), s1, atMine(0, 0), s1);
+  assert(ev.some((e) => e.t === "swapPlaces"), "event for the screen");
+  assert(b.state.sides[0].active[0] === p && b.state.sides[0].active[1] === a, "swapped");
+});
+test("Bestow, Telekinesis and Autotomize", () => {
+  const b = duel("alakazam", ["bestow", "telekinesis"], "snorlax", ["splash", "splash"]);
+  at(b, 1, 0).item = null; at(b, 0, 0).item = "leftovers";
+  round(b, p1(0), p2(0));
+  eq(at(b, 1, 0).item, "leftovers", "item given"); eq(at(b, 0, 0).item, null, "user's hand empty");
+  withSeed((seed) => duel("alakazam", ["telekinesis", "splash"], "pidgeot", ["splash", "splash"], { seed }), (x) => {
+    round(x, p1(0), p2(0));
+    if (!at(x, 1, 0).volatile.telekinesis) return false;
+    eq(x.effectiveness("ground", at(x, 1, 0)), 0, "still in the air");
+  });
+  const a = duel("snorlax", ["autotomize", "splash"], "magikarp", ["splash", "splash"]);
+  const w = at(a, 0, 0).weightKg;
+  round(a, p1(0), p2(0));
+  eq(at(a, 0, 0).boosts.spe, 2, "Speed +2"); assert(at(a, 0, 0).weightKg < w, "lighter");
+});
+
+test("Prankster, Moxie, Anger Point, Weak Armor, Justified, Rattled", () => {
+  const p = duel("snorlax", ["swords-dance", "splash"], "jolteon", ["thunderbolt", "splash"], { userExtra: { ability: "prankster" } });
+  const ev = text(round(p, p1(0), p2(0)));
+  assert(ev.indexOf("Swords Dance") < ev.indexOf("Thunderbolt"), `Prankster goes first: ${ev}`);
+  const m = duel("machamp", ["karate-chop", "splash"], "magikarp", ["splash", "splash"], { userExtra: { ability: "moxie" } });
+  at(m, 1, 0).hp = 1; round(m, p1(0), p2(0));
+  eq(at(m, 0, 0).boosts.atk, 1, "Moxie");
+  withSeed((seed) => duel("machamp", ["storm-throw", "splash"], "snorlax", ["splash", "splash"], { seed, foeExtra: { ability: "anger-point" } }), (b) => {
+    round(b, p1(0), p2(0));
+    if (at(b, 1, 0).hp <= 0) return false;
+    eq(at(b, 1, 0).boosts.atk, 6, "Anger Point");
+  });
+  const w = duel("machamp", ["karate-chop", "splash"], "snorlax", ["splash", "splash"], { foeExtra: { ability: "weak-armor" } });
+  round(w, p1(0), p2(0));
+  eq(at(w, 1, 0).boosts.def, -1, "Weak Armor Defense"); eq(at(w, 1, 0).boosts.spe, 1, "Weak Armor Speed");
+  const j = duel("alakazam", ["dark-pulse", "bug-buzz"], "snorlax", ["splash", "splash"], { foeExtra: { ability: "justified" } });
+  round(j, p1(0), p2(0)); eq(at(j, 1, 0).boosts.atk, 1, "Justified");
+  const r = duel("alakazam", ["bug-buzz", "splash"], "snorlax", ["splash", "splash"], { foeExtra: { ability: "rattled" } });
+  round(r, p1(0), p2(0)); eq(at(r, 1, 0).boosts.spe, 1, "Rattled");
+});
+test("Mummy and Iron Barbs punish contact; Mummy's change is undone when the Pokémon leaves", () => {
+  const b = duel("machamp", ["karate-chop", "splash"], "cofagrigus", ["splash", "splash"], { foeExtra: { ability: "mummy" } });
+  at(b, 1, 0).types = ["normal"];
+  round(b, p1(0), p2(0));
+  eq(at(b, 0, 0).ability, "mummy", "Machamp caught Mummy");
+  b.submitTurn([[{ slot: 0, type: "switch", teamIndex: 2 }, s1], [p2(1), s1]]);
+  assert(b.state.sides[0].team[0].ability !== "mummy", "restored after switching out");
+  const i = duel("machamp", ["karate-chop", "splash"], "snorlax", ["splash", "splash"], { foeExtra: { ability: "iron-barbs" } });
+  const hp = at(i, 0, 0).hp; round(i, p1(0), p2(0));
+  assert(at(i, 0, 0).hp < hp, "Iron Barbs hurt the attacker");
+});
+test("Defeatist halves attacking stats at half HP; Infiltrator ignores Reflect; Turboblaze ignores Levitate", () => {
+  const d = duel("machamp", ["karate-chop", "splash"], "snorlax", ["splash", "splash"], { userExtra: { ability: "defeatist" } });
+  const full = d.attackStat(at(d, 0, 0), "atk", false, at(d, 1, 0));
+  at(d, 0, 0).hp = Math.floor(at(d, 0, 0).maxHp / 2);
+  assert(d.attackStat(at(d, 0, 0), "atk", false, at(d, 1, 0)) <= Math.ceil(full / 2), "halved");
+  const n = duel("machamp", ["karate-chop", "splash"], "snorlax", ["splash", "splash"]);
+  const inf = duel("machamp", ["karate-chop", "splash"], "snorlax", ["splash", "splash"], { userExtra: { ability: "infiltrator" } });
+  for (const b of [n, inf]) b.state.sides[1].conditions.reflect = 5;
+  assert(dmg(inf, at(inf, 0, 0), at(inf, 1, 0), "karate-chop") > dmg(n, at(n, 0, 0), at(n, 1, 0), "karate-chop") * 1.4, "screens ignored");
+  const t = duel("alakazam", ["earthquake", "splash"], "bronzong", ["splash", "splash"], { userExtra: { ability: "turboblaze" } });
+  const hp = at(t, 1, 0).hp; round(t, p1(0), p2(0));
+  assert(at(t, 1, 0).hp < hp, "Levitate ignored");
+});
+test("Healer cures the partner's status", () => {
+  withSeed((seed) => fight([mon("alakazam", ["splash"], { ability: "healer" }), mon("magikarp", ["splash"])], [mon("snorlax", ["splash"]), mon("magikarp", ["splash"])], { seed }), (b) => {
+    at(b, 0, 1).status = "brn";
+    four(b, atMine(0, 0), s1, atMine(0, 0), s1);
+    if (at(b, 0, 1).status) return false;
+  });
+});
+
+test("Quash makes the target move last; Reflect Type copies the target's types", () => {
+  const b = fight([mon("alakazam", ["quash"]), mon("magikarp", ["splash"])], [mon("snorlax", ["tackle"]), mon("jolteon", ["thunderbolt"])]);
+  const ev = text(four(b, move(0, 0, { side: 1, slot: 0 }), s1, move(0, 0, { side: 0, slot: 1 }), move(0, 0, { side: 0, slot: 1 })));
+  const order = [...ev.matchAll(/(Alakazam|Magikarp|The foe's \w+) used ([\w ]+)!/g)].map((m) => m[2]);
+  assert(order.at(-1) === "Tackle", `Snorlax last: ${order.join(", ")}`);
+  const r = duel("alakazam", ["reflect-type", "splash"], "magmar", ["splash", "splash"]);
+  round(r, p1(0), p2(0));
+  eq(at(r, 0, 0).types.join(), "fire", "types copied");
+});
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

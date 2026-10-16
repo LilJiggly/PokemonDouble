@@ -767,6 +767,12 @@
   "gen": 5,
   "shortEffect": "Raises Attack two stages upon having any stat lowered."
  },
+ "defeatist": {
+  "id": 129,
+  "name": "Defeatist",
+  "gen": 5,
+  "shortEffect": "Halves Attack and Special Attack at 50% max HP or less."
+ },
  "cursed-body": {
   "id": 130,
   "name": "Cursed Body",
@@ -881,6 +887,12 @@
   "gen": 5,
   "shortEffect": "Strengthens moves to 1.3× their power when moving last."
  },
+ "illusion": {
+  "id": 149,
+  "name": "Illusion",
+  "gen": 5,
+  "shortEffect": "Takes the appearance of the last conscious party Pokémon upon being sent out until hit by a damaging move."
+ },
  "imposter": {
   "id": 150,
   "name": "Imposter",
@@ -892,6 +904,12 @@
   "name": "Infiltrator",
   "gen": 5,
   "shortEffect": "Bypasses Light Screen, Reflect, and Safeguard."
+ },
+ "mummy": {
+  "id": 152,
+  "name": "Mummy",
+  "gen": 5,
+  "shortEffect": "Changes attacking Pokémon's abilities to Mummy on contact."
  },
  "moxie": {
   "id": 153,
@@ -934,6 +952,36 @@
   "name": "Sand Force",
   "gen": 5,
   "shortEffect": "Strengthens Rock, Ground, and Steel moves to 1.3× their power during a sandstorm. Protects against sandstorm damage."
+ },
+ "iron-barbs": {
+  "id": 160,
+  "name": "Iron Barbs",
+  "gen": 5,
+  "shortEffect": "Damages attacking Pokémon for 1/8 their max HP on contact."
+ },
+ "zen-mode": {
+  "id": 161,
+  "name": "Zen Mode",
+  "gen": 5,
+  "shortEffect": "Changes Darmanitan's form after each turn depending on its HP: Zen Mode below 50% max HP, and Standard Mode otherwise."
+ },
+ "victory-star": {
+  "id": 162,
+  "name": "Victory Star",
+  "gen": 5,
+  "shortEffect": "Increases moves' accuracy to 1.1× for friendly Pokémon."
+ },
+ "turboblaze": {
+  "id": 163,
+  "name": "Turboblaze",
+  "gen": 5,
+  "shortEffect": "Bypasses targets' abilities if they could hinder or prevent moves."
+ },
+ "teravolt": {
+  "id": 164,
+  "name": "Teravolt",
+  "gen": 5,
+  "shortEffect": "Bypasses targets' abilities if they could hinder or prevent moves."
  },
  "protean": {
   "id": 168,

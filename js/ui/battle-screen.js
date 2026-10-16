@@ -147,7 +147,7 @@ export class BattleScreen {
     if (!this.trainer?.sprites?.length) return;
     const intro = document.createElement("div");
     intro.className = "trainer-intro";
-    intro.innerHTML = this.trainer.sprites.map((src) => `<img src="${src}" alt="">`).join("");
+    intro.innerHTML = this.trainer.sprites.map((src) => `<img src="${src}" alt="" onerror="this.remove()">`).join("");
     this.scene.appendChild(intro);
     intro.querySelectorAll("img").forEach((img) => alignSprite(img)); // feet on the foe baseline
     let me = null;
@@ -339,6 +339,11 @@ export class BattleScreen {
         this.placeMon(e.side, e.slot, e.teamIndex, e.hp, e.maxHp);
         await this.animateSprite(e.side, e.slot, "enter", 450);
         return this.say(e.text);
+      case "swapPlaces": {
+        // Ally Switch: the two Pokémon trade positions
+        e.occupants.forEach((o, slot) => this.placeMon(e.side, slot, o.teamIndex, o.hp, o.maxHp));
+        return this.say(e.text);
+      }
       case "transform": {
         // The Pokémon looks like its target until it leaves the field
         const img = this.sprite(e.side, e.slot);

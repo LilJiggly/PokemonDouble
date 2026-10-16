@@ -1,12 +1,12 @@
 {
- "builtOn": "2026-10-09",
+ "builtOn": "2026-10-15",
  "source": "PokeAPI (https://pokeapi.co)",
- "rules": "Gen 4 types, base stats, normal abilities and move values; Hidden Abilities from latest data; learnsets from Platinum + HeartGold/SoulSilver",
+ "rules": "Pokémon #1–493: Gen 4 types, base stats, normal abilities and move values, learnsets from Platinum + HeartGold/SoulSilver plus what Black/White and Black 2/White 2 added. Pokémon #494–649: Black/White values, learnsets from Black/White + Black 2/White 2. All moves: Black/White power, accuracy, PP and type. Hidden Abilities from latest data",
  "counts": {
-  "pokemon": 493,
-  "moves": 466,
-  "abilities": 158,
-  "evolutionLinks": 247
+  "pokemon": 649,
+  "moves": 555,
+  "abilities": 166,
+  "evolutionLinks": 321
  },
  "missingSprites": []
 }

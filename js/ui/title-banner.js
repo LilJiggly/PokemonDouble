@@ -75,6 +75,7 @@ export function startTitleBanner(container, data, leaders = null, playerBack = n
   const timer = setInterval(() => {
     // Stop when the title screen is gone
     if (!container.isConnected) { clearInterval(timer); return; }
+    if (document.documentElement.classList.contains("dev-freeze")) return; // debug panel: Freeze
     show();
   }, reduceMotion ? SLIDE_MS * 2 : SLIDE_MS);
 }

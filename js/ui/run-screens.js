@@ -10,7 +10,8 @@ import { Battle } from "../engine/battle.js";
 import { BattleScreen, moveStats, CATEGORY_LABEL } from "./battle-screen.js";
 import { startTitleBanner } from "./title-banner.js";
 import { terrainFor } from "./terrain.js";
-import { CHARACTERS, characterById } from "../game/characters.js";
+import { CHARACTERS, GEN_LABELS, characterById } from "../game/characters.js";
+import { SPRITE_MODES, applySpriteMode } from "../game/sprite-mode.js";
 import { VERSION } from "../version.js";
 import * as Run from "../game/run.js";
 import { loadMeta, saveMeta, buyUpgrade, canBuyUpgrade, upgradeLevel, perksFromMeta, trainerPointsFor } from "../game/meta.js";
@@ -41,13 +42,40 @@ export class RunUI {
     this.hub = document.getElementById("hub");
     this.app = document.getElementById("app");
     this.run = null;
+    this.preview = false; // debug panel preview: nothing is saved (see dev-tools.js)
+    this.battleScreen = null;
     try { this.showEffects = localStorage.getItem("pd.showEffects") === "1"; } catch { this.showEffects = false; }
     try { this.teamView = localStorage.getItem("pd.teamView") === "grid" ? "grid" : "detailed"; } catch { this.teamView = "detailed"; }
   }
 
-  save() { if (this.run) store.set(RUN_KEY, this.run); }
+  save() { if (this.run && !this.preview) store.set(RUN_KEY, this.run); }
 
-  showHub() { this.app.hidden = true; this.hub.hidden = false; window.scrollTo(0, 0); }
+  // Remember which screen is open, so the debug option "stay on this screen" can come back to it after a reload
+  trackView(name) {
+    if (this.preview) return;
+    try { sessionStorage.setItem("pd.dev.view", name); } catch { /* ignore */ }
+  }
+
+  // Used by the debug panel: show a screen that isn't part of a run, or continue the saved run
+  openView(name) {
+    if (name === "setup") this.renderSetup();
+    else if (name === "upgrades") this.renderUpgrades();
+    else if (name === "hof") this.renderHallOfFame();
+    else this.start();
+  }
+  resumeSaved() {
+    const saved = store.get(RUN_KEY);
+    if (!saved || ["over", "won"].includes(saved.screen)) return false;
+    this.run = saved;
+    this.render();
+    return true;
+  }
+
+  showHub() {
+    this.battleScreen?.destroy();
+    this.battleScreen = null;
+    this.app.hidden = true; this.hub.hidden = false; window.scrollTo(0, 0);
+  }
   showBattle() { this.hub.hidden = true; this.app.hidden = false; this.lastScreen = "battle"; }
 
   // ===============================
@@ -61,6 +89,7 @@ export class RunUI {
 
   render() {
     const run = this.run;
+    this.trackView("run");
     this.save();
     // Staying on the same screen (e.g. after giving an item): keep the scroll
     // position and any move descriptions that were opened
@@ -95,6 +124,7 @@ export class RunUI {
   // ===============================
 
   renderTitle(savedRun) {
+    this.trackView("title");
     this.showHub();
     const hof = store.get(HOF_KEY) ?? [];
     const meta = loadMeta();
@@ -127,6 +157,7 @@ export class RunUI {
   }
 
   renderUpgrades() {
+    this.trackView("upgrades");
     this.showHub();
     const meta = loadMeta();
     const upgrades = this.ctx.rules.upgrades;
@@ -166,25 +197,34 @@ export class RunUI {
   }
 
   renderSetup() {
+    this.trackView("setup");
     this.hub.className = "hub";
     const meta = loadMeta();
-    const gens = [1, 2, 3, 4].map((g) => {
+    const gens = [1, 2, 3, 4, 5].map((g) => {
       const file = this.ctx.leaders[g];
       const pools = this.ctx.rules.teamPools?.[g] ?? {};
       const built = file.opponents.filter((o) => o.id === "rival" ? o.options.every((r) => pools[`rival-${r.id}`]) : pools[o.id]).length;
       return `<label class="choice"><input type="radio" name="gen" value="${g}" ${g === 1 ? "checked" : ""}>
         Gen ${g} · ${file.region} <small>${built}/14 team pools ready</small></label>`;
     }).join("");
-    const pools = [1, 2, 3, 4].map((g) => `<label class="choice"><input type="checkbox" name="pool" value="${g}" checked> Gen ${g}</label>`).join("");
+    const pools = [1, 2, 3, 4, 5].map((g) => `<label class="choice"><input type="checkbox" name="pool" value="${g}" checked> Gen ${g}</label>`).join("");
     this.hub.innerHTML = `
       <h1>New run</h1>
       <section class="card-panel character-picker" aria-label="Choose your character">
         <h2>Your character</h2>
-        <div class="characters" role="radiogroup">${CHARACTERS.map((c) => `
+        <p>Any trainer with a back sprite can be played. Your sprite is only for looks: the opponent can be the same trainer.</p>
+        ${[1, 2, 3, 4, 5].map((g) => `<h3 class="character-gen">${GEN_LABELS[g]}</h3>
+        <div class="characters" role="radiogroup" aria-label="${GEN_LABELS[g]}">${CHARACTERS.filter((c) => c.gen === g).map((c) => `
           <button class="character ${c.id === meta.character ? "selected" : ""}" role="radio" aria-checked="${c.id === meta.character}"
-            data-act="character" data-id="${c.id}" title="${c.name} · ${c.game}">
+            data-act="character" data-id="${c.id}" title="${c.name}">
             <img src="${c.front}" alt=""><span>${c.name}</span>
-          </button>`).join("")}</div>
+          </button>`).join("")}</div>`).join("")}
+      </section>
+      <section class="card-panel">
+        <h2>Pokémon sprites</h2>
+        <p>Applies to every battle and screen. You can change it again here before any run.</p>
+        <div class="choice-row">${SPRITE_MODES.map((m) => `<label class="choice"><input type="radio" name="sprites" value="${m.id}" ${m.id === meta.sprites ? "checked" : ""}>
+          ${m.label} <small>${m.hint}</small></label>`).join("")}</div>
       </section>
       <section class="card-panel">
         <h2>Challenge Gen</h2>
@@ -200,6 +240,13 @@ export class RunUI {
         <button class="btn" data-act="back">◀ Back</button>
         <button class="btn primary" data-act="go">Start the draft</button>
       </div>`;
+    this.hub.onchange = (e) => {
+      if (e.target.name !== "sprites") return;
+      const m = loadMeta();
+      m.sprites = e.target.value;
+      saveMeta(m);
+      applySpriteMode(this.ctx.data, m.sprites);
+    };
     this.hub.onclick = (e) => {
       const act = e.target.closest("[data-act]")?.dataset.act;
       if (act === "back") this.start();
@@ -476,8 +523,8 @@ export class RunUI {
         </div>
       </div>
       <div class="offer-grid" role="${multi ? "group" : "radiogroup"}" aria-label="Recruits">${cards}</div>
-      ${run.team.length ? `<section class="card-panel"><h3>Your team (${run.team.length}/6)</h3><div class="team-grid">${run.team.map((m) => this.miniCard(m)).join("")}</div></section>` : ""}
-      <div class="confirm-bar"><span class="confirm-text"></span><button class="btn primary" data-act="confirm" disabled>Confirm</button></div>`;
+      <div class="confirm-bar"><span class="confirm-text"></span><button class="btn primary" data-act="confirm" disabled>Confirm</button></div>
+      ${run.team.length ? `<section class="card-panel"><h3>Your team (${run.team.length}/6)</h3><div class="team-grid">${run.team.map((m) => this.miniCard(m)).join("")}</div></section>` : ""}`;
 
     const nameOf = (i) => this.ctx.data.pokemonByKey[offer.options[i].spec.species].name;
     const selection = this.setupSelection({
@@ -1088,7 +1135,6 @@ export class RunUI {
     const tms = (run.shop?.tms ?? []).map((t, i) => ({ t, i }));
     const inSection = (id) => stock.filter(({ e }) => pocketOf(e.id) === id);
     const left = (id) => (id === "tms" ? tms.filter(({ t }) => !t.sold) : inSection(id).filter(({ e }) => !e.sold)).length;
-    const active = POCKETS.some((p) => p.id === this.shopTab) ? this.shopTab : "items";
     const cost = Run.shopRerollCost(run, ctx);
 
     const itemRow = ({ e, i }) => {
@@ -1117,16 +1163,12 @@ export class RunUI {
         </div>
       </div>
       <p class="empty-note">New stock after every battle. You have ₽${run.money.toLocaleString()}.</p>
-      <div class="tabs pocket-tabs" role="tablist" aria-label="Shop sections">${POCKETS.map((p) => `
-        <button class="tab ${p.id === active ? "active" : ""} ${left(p.id) ? "" : "empty"}" role="tab" aria-selected="${p.id === active}"
-          data-act="shop-tab" data-pocket="${p.id}" title="${p.label}">
-          <img src="images/items/${p.icon}.png" alt=""><span class="tab-count">${left(p.id)}</span>
-        </button>`).join("")}</div>
       ${POCKETS.map((p) => {
         const rows = p.id === "tms" ? tms.map(tmRow) : inSection(p.id).map(itemRow);
-        return `<div class="pocket" data-shop-panel="${p.id}" role="tabpanel" ${p.id === active ? "" : "hidden"}>
-          <h3>${p.label}</h3>
-          <div class="shop-grid">${rows.join("") || `<p class="empty-note">Nothing in this section today.</p>`}</div>
+        if (!rows.length) return "";
+        return `<div class="pocket shop-section" data-shop-section="${p.id}">
+          <h3><img src="images/items/${p.icon}.png" alt=""> ${p.label} <span class="tab-count">${left(p.id)}</span></h3>
+          <div class="shop-grid">${rows.join("")}</div>
         </div>`;
       }).join("")}
     </section>`;
@@ -1162,16 +1204,6 @@ export class RunUI {
         tab.setAttribute("aria-selected", String(on));
       }
       for (const panel of this.hub.querySelectorAll("[data-pocket-panel]")) panel.hidden = panel.dataset.pocketPanel !== this.bagPocket;
-      return;
-    }
-    if (act === "shop-tab") {
-      this.shopTab = btn.dataset.pocket;
-      for (const tab of this.hub.querySelectorAll("[data-act=shop-tab]")) {
-        const on = tab.dataset.pocket === this.shopTab;
-        tab.classList.toggle("active", on);
-        tab.setAttribute("aria-selected", String(on));
-      }
-      for (const panel of this.hub.querySelectorAll("[data-shop-panel]")) panel.hidden = panel.dataset.shopPanel !== this.shopTab;
       return;
     }
     if (act === "toggle-view") {
@@ -1436,6 +1468,7 @@ export class RunUI {
 
   playBattle(battle, runOpts) {
     this.showBattle();
+    const mine = this.run;
     const screen = new BattleScreen(battle, {
       data: this.ctx.data,
       terrain: terrainFor(this.run.opponent),
@@ -1445,14 +1478,16 @@ export class RunUI {
         name: this.run.opponent.name,
         sprites: this.trainerSprites(this.run.opponent),
       },
-      onSave: (state) => { this.run.battle = state; this.save(); },
+      onSave: (state) => { if (this.run !== mine) return; this.run.battle = state; this.save(); },
       onEnd: async () => {
         screen.destroy();
         await new Promise((r) => setTimeout(r, 900));
+        if (this.run !== mine) return;
         Run.finishBattle(this.run, this.ctx);
         this.render();
       },
     });
+    this.battleScreen = screen;
     screen.run(runOpts);
   }
 
@@ -1464,7 +1499,7 @@ export class RunUI {
   awardTrainerPoints() {
     const run = this.run;
     const tp = trainerPointsFor(run, this.ctx.rules);
-    if (!run.tpAwarded) {
+    if (!run.tpAwarded && !this.preview) {
       const meta = loadMeta();
       meta.tp += tp;
       meta.earned += tp;
@@ -1488,7 +1523,7 @@ export class RunUI {
         <div class="fallen-list">${run.fallen.map((f) => `<div class="mon"><img src="${this.sprite(f)}" alt="">${f.name}<small>Lv ${f.level} · #${f.order}</small></div>`).join("")}</div>
       </section>
       <div class="row-buttons"><button class="btn primary" data-act="new">New run</button><button class="btn" data-act="upgrades">Trainer Upgrades</button><button class="btn" data-act="title">Title</button></div>`;
-    store.remove(RUN_KEY);
+    if (!this.preview) store.remove(RUN_KEY);
     this.hub.onclick = (e) => {
       const act = e.target.closest("[data-act]")?.dataset.act;
       if (act === "new") this.renderSetup();
@@ -1509,13 +1544,13 @@ export class RunUI {
       team: run.team.map((m) => ({ species: m.species, shiny: m.shiny, level: m.level, ability: m.ability, item: m.item, moves: m.moves })),
       fallen: run.fallen.length,
     };
-    if (!run.hallOfFameSaved) {
+    if (!run.hallOfFameSaved && !this.preview) {
       const hof = store.get(HOF_KEY) ?? [];
       hof.unshift(entry);
       store.set(HOF_KEY, hof);
       run.hallOfFameSaved = true;
     }
-    store.remove(RUN_KEY);
+    if (!this.preview) store.remove(RUN_KEY);
     this.hub.className = "hub end-screen";
     this.hub.innerHTML = `
       <div class="big">Hall of Fame!</div>
@@ -1532,6 +1567,7 @@ export class RunUI {
   }
 
   renderHallOfFame() {
+    this.trackView("hof");
     this.showHub();
     const hof = store.get(HOF_KEY) ?? [];
     this.hub.className = "hub";

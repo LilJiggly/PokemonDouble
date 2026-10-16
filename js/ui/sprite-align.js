@@ -9,8 +9,24 @@
 // Flying / Levitate Pokémon hover a little, like in the games.
 // =====================================================
 
+// Hand-tuned nudges per sprite file (data/sprite-offsets.json, made on tools/sprite-check.html):
+// { "images/sprites/gen4/front/25.png": { "x": 1.5, "y": -2 } }, in % of the 80 px sprite frame.
+// "_settings" holds the Gen 5 back-sprite look: backScale (bigger = closer to the camera) and
+// backSink (share of the sprite's height that sinks behind the textbox).
+let offsets = {};
+let settings = { backScale: 1.15, backSink: 0.25 };
+export function setSpriteOffsets(o) {
+  offsets = o ?? {};
+  settings = { backScale: 1.15, backSink: 0.25, ...(offsets._settings ?? {}) };
+}
+export const getSpriteSettings = () => ({ ...settings });
+// Shiny sprites share the regular sprite's nudge (…/front-shiny/25.png → …/front/25.png)
+export const spriteKey = (img) => (img.getAttribute("src") ?? "").replace(/^(\.\.\/)+/, "").split("?")[0].replace("-shiny/", "/");
+
 const boxes = new Map(); // src → { left, right, top, bottom, width, height }
 const HOVER_PERCENT = 5;
+const BASE_SIZE = 80; // Gen 4 sprites
+const CHARACTER_HEIGHT = 74; // visible height every player character is scaled to (Lucas ≈ 67 px, Gen 5 sprites ≈ 110 px)
 
 function measure(img) {
   const cached = boxes.get(img.src);
@@ -47,17 +63,35 @@ function measure(img) {
 // hover: true for floating Pokémon (see hovers()). Every other sprite stands with its
 // lowest pixel on the frame's bottom edge (= the baseline set in CSS).
 // Back sprites (your own Pokémon) never hover: they always stand on the line.
+// Gen 5 back sprites (static or animated) are drawn bigger and sink behind the textbox (see settings).
+// Sizes: sprites keep their real pixel size (Gen 4: 80, Gen 5: 96, animated: varies), 1 px = 1 px of the 256 px screen.
 export function alignSprite(img, { hover = false } = {}) {
   if (img.classList.contains("player")) hover = false;
   const apply = () => {
     const box = measure(img);
     if (!box) return;
-    const dx = ((box.width / 2 - (box.left + box.right) / 2) / box.width) * 100;
-    let dy = ((box.height - box.bottom) / box.height) * 100;
-    if (hover) dy -= HOVER_PERCENT;
-    img.style.translate = `${dx.toFixed(2)}% ${dy.toFixed(2)}%`;
+    const src = img.getAttribute("src") ?? "";
+    const gen5Back = img.classList.contains("player") && src.includes("/gen5") && src.includes("/back");
+    // Player characters: small old sprites (Gen 1–3) are enlarged and the big Gen 5 ones shrunk, so everyone is about as tall
+    const character = img.classList.contains("player-trainer");
+    const visible = box.bottom - box.top;
+    const k = gen5Back ? settings.backScale
+      : character ? Math.min(1.5, Math.max(0.5, CHARACTER_HEIGHT / visible)) : 1;
+    const w = box.width * k;
+    const h = box.height * k;
+    img.style.width = w === BASE_SIZE ? "" : `${(w / 256 * 100).toFixed(3)}%`;
+    img.style.aspectRatio = box.width === box.height ? "" : `${box.width} / ${box.height}`;
+    // Everything below is in sprite px: image top-left sits on the frame's top-left corner
+    let dx = BASE_SIZE / 2 - ((box.left + box.right) / 2) * k;
+    let dy = BASE_SIZE - box.bottom * k;
+    if (gen5Back) dy += settings.backSink * (box.bottom - box.top) * k;
+    if (hover) dy -= BASE_SIZE * HOVER_PERCENT / 100;
+    const nudge = offsets[spriteKey(img)];
+    if (nudge) { dx += (nudge.x ?? 0) / 100 * BASE_SIZE; dy += (nudge.y ?? 0) / 100 * BASE_SIZE; }
+    img.style.translate = `${(dx / w * 100).toFixed(2)}% ${(dy / h * 100).toFixed(2)}%`;
   };
   img.style.translate = "";
+  img.style.width = "";
   if (img.complete && img.naturalWidth) apply();
   else img.addEventListener("load", apply, { once: true });
 }

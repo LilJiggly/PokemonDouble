@@ -1,7 +1,9 @@
 // =====================================================
-// BUILD THE GEN 4 TM LIST
+// BUILD THE TM LIST
 // Usage: node tools/build-tms.mjs  (after build-data.mjs)
-// Writes data/tms.json: TM01–TM92 from Platinum (HMs left out).
+// Writes data/tms.json: TM01–TM92 from Platinum, then the moves that
+// Black/White added as TMs, numbered TM93 onward (in Black/White order).
+// HMs are left out.
 // =====================================================
 
 import fs from "node:fs/promises";
@@ -35,5 +37,22 @@ for (const id of Object.keys(moves)) {
   tms.push({ tm: name.toUpperCase(), number: Number(name.slice(2)), move: id });
 }
 tms.sort((a, b) => a.number - b.number);
+
+// Gen 5 TMs: moves that are a TM in Black/White but not in Platinum's list
+const have = new Set(tms.map((t) => t.move));
+const extra = [];
+for (const id of Object.keys(moves)) {
+  if (have.has(id)) continue;
+  const raw = await getJson(`${API}/move/${id}`);
+  const entry = raw.machines?.find((m) => m.version_group.name === "black-white");
+  if (!entry) continue;
+  const machine = await getJson(entry.machine.url);
+  const name = machine.item.name;
+  if (!name.startsWith("tm")) continue;
+  extra.push({ id, bw: Number(name.slice(2)) });
+}
+extra.sort((a, b) => a.bw - b.bw);
+let next = Math.max(...tms.map((t) => t.number)) + 1;
+for (const e of extra) tms.push({ tm: `TM${next}`, number: next++, move: e.id, blackWhite: `TM${String(e.bw).padStart(2, "0")}` });
 await fs.writeFile(path.join(ROOT, "data", "tms.json"), JSON.stringify(tms, null, 1) + "\n");
 console.log(`${tms.length} TMs written to data/tms.json`);

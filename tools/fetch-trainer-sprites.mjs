@@ -20,7 +20,7 @@ const NAMES = {
 };
 
 const leaders = [];
-for (const g of [1, 2, 3, 4]) {
+for (const g of [1, 2, 3, 4, 5]) {
   const file = JSON.parse(await fs.readFile(path.join(ROOT, "data", "leaders", `gen${g}.json`), "utf8"));
   for (const o of file.opponents) {
     if (o.id === "rival") leaders.push(...o.options.map((r) => r.id));

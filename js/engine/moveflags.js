@@ -13,7 +13,7 @@ const NON_CONTACT_PHYSICAL = set(`
   explosion self-destruct fissure fling gunk-shot ice-shard icicle-spear magnet-bomb magnitude
   natural-gift pay-day pin-missile poison-sting present psycho-cut razor-leaf rock-blast rock-slide
   rock-throw rock-tomb rock-wrecker sand-tomb seed-bomb sky-attack spike-cannon stone-edge
-  twineedle feint metal-burst secret-power sacred-fire
+  twineedle feint metal-burst secret-power sacred-fire bulldoze smack-down icicle-crash fusion-bolt
 `);
 
 // Special moves that DO make contact
@@ -26,13 +26,13 @@ export const PUNCH = set(`
 
 export const SOUND = set(`
   grass-whistle growl heal-bell hyper-voice metal-sound perish-song roar screech sing snore
-  supersonic uproar bug-buzz chatter
+  supersonic uproar bug-buzz chatter snarl relic-song round echoed-voice
 `);
 
 // Reckless boosts these
 export const RECOIL = set(`
   double-edge take-down submission brave-bird flare-blitz head-smash volt-tackle wood-hammer
-  jump-kick hi-jump-kick
+  jump-kick hi-jump-kick wild-charge head-charge
 `);
 
 // Charge on turn 1, hit on turn 2. Semi-invulnerable ones can't be hit (mostly) while charging.
@@ -42,6 +42,7 @@ export const TWO_TURN = {
   dig: { invulnerable: "underground", text: "burrowed its way under the ground!" },
   dive: { invulnerable: "underwater", text: "hid underwater!" },
   "shadow-force": { invulnerable: "vanished", text: "vanished instantly!" },
+  "sky-drop": { invulnerable: "air", text: "took the target high into the air!" },
   "solar-beam": { text: "absorbed light!" },
   "skull-bash": { text: "tucked in its head!" },
   "sky-attack": { text: "became cloaked in a harsh light!" },
@@ -99,3 +100,14 @@ export const REFLECT_BANNED = set(`
 // Snatch steals these kinds of status moves (aimed at the user or its side)
 export const SNATCH_TARGETS = set("user users-field user-and-allies");
 export const SNATCH_BANNED = set("snatch baton-pass copycat assist metronome sleep-talk conversion-2 splash teleport");
+
+// ---------------------------------------------------------------
+// Gen 5 moves
+// ---------------------------------------------------------------
+
+export const ALWAYS_CRIT = set("storm-throw frost-breath");
+// Ignore the target's defensive stat stages
+export const IGNORE_STAGES = set("chip-away sacred-sword");
+// Special moves that hit the target's Defense
+export const USES_DEFENSE = set("psyshock psystrike secret-sword");
+export const PLEDGE = set("water-pledge fire-pledge grass-pledge");

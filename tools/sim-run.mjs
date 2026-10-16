@@ -34,7 +34,7 @@ const data = prepareData({
 const rules = parseRules(await fs.readFile(path.join(ROOT, "DESIGN.md"), "utf8"), data);
 const dex = new Pokedex(data, await readJson("data/evolutions.json"), rules);
 const leaders = {};
-for (const g of [1, 2, 3, 4]) leaders[g] = await readJson(`data/leaders/gen${g}.json`);
+for (const g of [1, 2, 3, 4, 5]) leaders[g] = await readJson(`data/leaders/gen${g}.json`);
 const ctx = { data, dex, rules, leaders, tms: await readJson("data/tms.json") };
 
 const N = Number(arg("n", 30));
@@ -45,7 +45,7 @@ const FIRST_ONLY = process.argv.includes("--first"); // stop after the first bat
 const tierScore = { common: 0, uncommon: 1, rare: 2, epic: 3, legendary: 4 };
 
 function playRun(seed) {
-  const run = Run.newRun(ctx, { gen: GEN, pools: [1, 2, 3, 4], seed });
+  const run = Run.newRun(ctx, { gen: GEN, pools: [1, 2, 3, 4, 5], seed });
   let guard = 0;
   while (!["over", "won"].includes(run.screen) && guard++ < 500) {
     // Every step goes through JSON, like saving and reloading the page
