@@ -454,8 +454,10 @@ export class Battle {
     for (const a of actions) {
       this.currentAction = a;
       if (st.phase === "ended") break;
-      if (a.mon.fainted || !this.isActive(a.mon)) continue;
+      if (a.done || a.mon.fainted || !this.isActive(a.mon)) continue;
       if (a.type === "switch") {
+        this.pursuitBeforeSwitch(a.mon);
+        if (a.mon.fainted) { this.checkWin(); continue; }
         this.doSwitch(a.mon.side, this.slotOf(a.mon), a.teamIndex);
       } else if (a.type === "item") {
         this.useBagItem(a.mon.side, a.item, a.teamIndex);
@@ -469,6 +471,22 @@ export class Battle {
     if (st.phase !== "ended") this.endOfTurn();
     if (st.phase !== "ended") this.afterTurn();
     return this.takeEvents();
+  }
+
+  // Pursuit: a foe that picked Pursuit against a Pokémon that is switching out hits it first, with double power
+  pursuitBeforeSwitch(mon) {
+    const slot = this.slotOf(mon);
+    for (const p of this.queue) {
+      if (p.done || p.type !== "move" || p.moveId !== "pursuit" || p.mon.side === mon.side) continue;
+      if (p.mon.fainted || !this.isActive(p.mon) || p.target?.side !== mon.side || p.target?.slot !== slot) continue;
+      p.done = true;
+      mon.volatile.switching = true;
+      this.msg(`${this.name(mon, true)} is about to be hit as it switches out!`);
+      this.runMoveAction(p);
+      p.mon.volatile.moved = true;
+      delete mon.volatile.switching;
+      if (mon.fainted) break;
+    }
   }
 
   buildAction(mon, slot, choice) {
@@ -851,7 +869,7 @@ export class Battle {
     target.status = status;
     if (status === "slp") {
       target.statusTurns = randomInt(this.state, 2, 4); // can't move for 1–3 turns (Gen 5 rule)
-      if (ab === "early-bird") target.statusTurns = Math.ceil(target.statusTurns / 2);
+      if (ab === "early-bird") target.statusTurns = Math.max(2, Math.ceil(target.statusTurns / 2)); // still loses its next turn
     } else if (status === "tox") {
       target.statusTurns = 1;
     }
@@ -1050,7 +1068,7 @@ export class Battle {
         return 30 * 2 ** n * (user.volatile.defenseCurl ? 2 : 1);
       }
       case "fury-cutter": return Math.min(160, 10 * 2 ** (user.volatile.furyCutter ?? 0));
-      case "pursuit": return 40;
+      case "pursuit": return target.volatile.switching ? 80 : 40; // double power on a Pokémon that is switching out
       case "venoshock": return target.status === "psn" || target.status === "tox" ? 130 : 65;
       case "hex": return target.status ? 100 : 50;
       case "acrobatics": return this.item(user) ? 55 : 110;
@@ -1899,7 +1917,8 @@ export class Battle {
         target.volatile.lastDamage = { amount: dealt, category: move.category, by: this.monKey(user), side: user.side, slot: this.slotOf(user) };
         (target.volatile.damagedBy ??= []).push({ side: user.side, teamIndex: user.teamIndex });
         this.log({ t: "damage", ...this.ref(target), hp: target.hp, maxHp: target.maxHp, amount: dealt, crit,
-          effectiveness: fixed === null ? eff : 1, move: key, text: crit ? "A critical hit!" : "" });
+          effectiveness: fixed === null ? eff : 1, move: key, text: crit ? "A critical hit!" : "",
+          ...(hits > 1 ? { hit: h } : {}) });
         if (hits === 1) this.logEffectiveness(target, eff, fixed);
 
         if (target.hp > 0) this.hitAbilities(user, target, move, type, crit);

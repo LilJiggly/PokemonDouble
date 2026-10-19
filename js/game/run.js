@@ -17,6 +17,8 @@ import { createRecruit, levelUpMovesAt } from "./recruit.js";
 import { itemOddsFor, tmMaxPowerFor, TIERS } from "./rules.js";
 import { ITEMS, pocketOf } from "./item-catalog.js";
 
+// Held items that trigger once per battle and are back afterwards
+const RESTORED_AFTER_BATTLE = new Set(["focus-sash"]);
 export const FINAL_ORDER = 14;
 export const REPLACEMENT_PICK_CAP = 2;
 const NATURES = ["hardy", "adamant", "modest", "jolly", "timid", "bold", "impish", "calm", "careful", "brave", "quiet", "naive", "hasty"];
@@ -737,14 +739,18 @@ export function finishBattle(run, ctx) {
   const survivors = [];
   side.team.forEach((bm, i) => {
     const mon = run.team[i];
+    // Items that are only used up for the length of the battle (the Focus Sash)
+    const keeps = RESTORED_AFTER_BATTLE.has(bm.consumedItem) && !bm.item ? bm.consumedItem : null;
     if (bm.fainted) {
       // Permadeath: gone for good. Its held item (if not used up) returns to the bag.
       if (bm.item) addToBag(run, bm.item);
+      else if (keeps) addToBag(run, keeps);
       run.fallen.push({ species: mon.species, name: displayName(ctx, mon), level: mon.level, order: run.order, opponent: run.opponent.name });
       return;
     }
     if (bm.item) mon.item = bm.item;
-    else if (bm.consumedItem) mon.item = null; // used up for good
+    else if (keeps) mon.item = keeps;
+    else if (bm.consumedItem) mon.item = null; // single use: lost for good
     // Sketch is permanent: the sketched move replaces the Sketch slot for the rest of the run
     for (const { index, move } of bm.sketched ?? []) mon.moves[index] = move;
     // (knocked off / swapped away items come back after battle)

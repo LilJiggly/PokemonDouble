@@ -29,13 +29,13 @@ const titleCase = (id) => id.split("-").map((w) => w[0].toUpperCase() + w.slice(
 
 export const ITEMS = {
   // ---------- Common ----------
-  "oran-berry": held("common", "Oran Berry", "Restores 10 HP at half HP or less. Used up."),
-  "sitrus-berry": held("common", "Sitrus Berry", "Restores 1/4 of max HP at half HP or less. Used up."),
-  "cheri-berry": held("common", "Cheri Berry", "Cures paralysis. Used up."),
-  "chesto-berry": held("common", "Chesto Berry", "Wakes the holder up. Used up."),
-  "pecha-berry": held("common", "Pecha Berry", "Cures poison. Used up."),
-  "rawst-berry": held("common", "Rawst Berry", "Cures a burn. Used up."),
-  "aspear-berry": held("common", "Aspear Berry", "Thaws the holder out. Used up."),
+  "oran-berry": held("common", "Oran Berry", "Restores 10 HP at half HP or less. Single use: lost once it triggers."),
+  "sitrus-berry": held("common", "Sitrus Berry", "Restores 1/4 of max HP at half HP or less. Single use: lost once it triggers."),
+  "cheri-berry": held("common", "Cheri Berry", "Cures paralysis. Single use: lost once it triggers."),
+  "chesto-berry": held("common", "Chesto Berry", "Wakes the holder up. Single use: lost once it triggers."),
+  "pecha-berry": held("common", "Pecha Berry", "Cures poison. Single use: lost once it triggers."),
+  "rawst-berry": held("common", "Rawst Berry", "Cures a burn. Single use: lost once it triggers."),
+  "aspear-berry": held("common", "Aspear Berry", "Thaws the holder out. Single use: lost once it triggers."),
   ...Object.fromEntries(Object.entries(TYPE_BOOSTERS).map(([id, type]) =>
     [id, held("common", titleCase(id), `Boosts ${type}-type moves by 20%.`)])),
   potion: bag("common", "Potion", "Restores 20 HP.", { heal: 20 }),
@@ -47,7 +47,7 @@ export const ITEMS = {
   "ice-heal": bag("common", "Ice Heal", "Thaws a frozen Pokémon.", { cure: ["frz"] }),
 
   // ---------- Uncommon ----------
-  "lum-berry": held("uncommon", "Lum Berry", "Cures any status or confusion. Used up."),
+  "lum-berry": held("uncommon", "Lum Berry", "Cures any status or confusion. Single use: lost once it triggers."),
   "muscle-band": held("uncommon", "Muscle Band", "Boosts physical moves by 10%."),
   "wise-glasses": held("uncommon", "Wise Glasses", "Boosts special moves by 10%."),
   "scope-lens": held("uncommon", "Scope Lens", "Raises the critical-hit ratio."),
@@ -56,8 +56,8 @@ export const ITEMS = {
   "shell-bell": held("uncommon", "Shell Bell", "Heals 1/8 of the damage the holder deals."),
   "black-sludge": held("uncommon", "Black Sludge", "Heals Poison types 1/16 each turn. Hurts others."),
   ...Object.fromEntries(Object.entries(RESIST_BERRIES).map(([id, type]) =>
-    [id, held("uncommon", titleCase(id), `Halves a super-effective ${type} hit once. Used up.`)])),
-  "chilan-berry": held("uncommon", "Chilan Berry", "Halves a Normal-type hit once. Used up."),
+    [id, held("uncommon", titleCase(id), `Halves a super-effective ${type} hit once. Single use: lost once it triggers.`)])),
+  "chilan-berry": held("uncommon", "Chilan Berry", "Halves a Normal-type hit once. Single use: lost once it triggers."),
   "hyper-potion": bag("uncommon", "Hyper Potion", "Restores 200 HP.", { heal: 200 }),
   "full-heal": bag("uncommon", "Full Heal", "Cures any status and confusion.", { cure: ["psn", "tox", "par", "brn", "slp", "frz", "confusion"] }),
   "x-attack": bag("uncommon", "X Attack", "Raises Attack by 1 in battle.", { boost: { atk: 1 } }),
@@ -71,18 +71,18 @@ export const ITEMS = {
   // ---------- Rare ----------
   leftovers: held("rare", "Leftovers", "Restores 1/16 of max HP each turn."),
   "expert-belt": held("rare", "Expert Belt", "Boosts super-effective moves by 20%."),
-  "focus-sash": held("rare", "Focus Sash", "Survives one KO hit from full HP. Used up."),
-  "white-herb": held("rare", "White Herb", "Restores lowered stats once. Used up."),
-  "mental-herb": held("rare", "Mental Herb", "Cures infatuation once. Used up."),
-  "power-herb": held("rare", "Power Herb", "Skips the charge turn of a two-turn move once. Used up."),
+  "focus-sash": held("rare", "Focus Sash", "Survives one KO hit from full HP, once per battle. You keep it after the battle."),
+  "white-herb": held("rare", "White Herb", "Restores lowered stats once. Single use: lost once it triggers."),
+  "mental-herb": held("rare", "Mental Herb", "Cures infatuation once. Single use: lost once it triggers."),
+  "power-herb": held("rare", "Power Herb", "Skips the charge turn of a two-turn move once. Single use: lost once it triggers."),
   "light-clay": held("rare", "Light Clay", "Reflect and Light Screen last 8 turns."),
   "damp-rock": held("rare", "Damp Rock", "Rain Dance lasts 8 turns."),
   "heat-rock": held("rare", "Heat Rock", "Sunny Day lasts 8 turns."),
   "smooth-rock": held("rare", "Smooth Rock", "Sandstorm lasts 8 turns."),
   "icy-rock": held("rare", "Icy Rock", "Hail lasts 8 turns."),
-  "liechi-berry": held("rare", "Liechi Berry", "Raises Attack at 1/4 HP. Used up."),
-  "salac-berry": held("rare", "Salac Berry", "Raises Speed at 1/4 HP. Used up."),
-  "petaya-berry": held("rare", "Petaya Berry", "Raises Sp. Atk at 1/4 HP. Used up."),
+  "liechi-berry": held("rare", "Liechi Berry", "Raises Attack at 1/4 HP. Single use: lost once it triggers."),
+  "salac-berry": held("rare", "Salac Berry", "Raises Speed at 1/4 HP. Single use: lost once it triggers."),
+  "petaya-berry": held("rare", "Petaya Berry", "Raises Sp. Atk at 1/4 HP. Single use: lost once it triggers."),
   "toxic-orb": held("rare", "Toxic Orb", "Badly poisons the holder at the end of a turn."),
   "flame-orb": held("rare", "Flame Orb", "Burns the holder at the end of a turn."),
   "razor-claw": held("rare", "Razor Claw", "Raises the critical-hit ratio. Evolves Sneasel."),
@@ -101,7 +101,7 @@ export const ITEMS = {
   ...Object.fromEntries(["fire-stone", "water-stone", "thunder-stone", "leaf-stone", "moon-stone", "sun-stone",
     "shiny-stone", "dusk-stone", "dawn-stone", "ice-stone"].map((id) => [id, evo("rare", titleCase(id), "Evolves certain Pokémon. Not used up upon evolution.")])),
   "link-cable": evo("rare", "Link Cable", "Triggers trade evolutions. Not used up upon evolution.", { sprite: "linking-cord" }),
-  "ability-patch": { kind: "patch", tier: "rare", name: "Ability Patch", desc: "Switches a Pokémon to its other normal Ability. Used up on use.", sprite: "ability-capsule" },
+  "ability-patch": { kind: "patch", tier: "rare", name: "Ability Patch", desc: "Switches a Pokémon to its other normal Ability. Single use: lost once applied.", sprite: "ability-capsule" },
 
   // ---------- Epic ----------
   "choice-band": held("epic", "Choice Band", "Attack ×1.5, but locks the holder into one move."),
@@ -109,7 +109,7 @@ export const ITEMS = {
   "choice-scarf": held("epic", "Choice Scarf", "Speed ×1.5, but locks the holder into one move."),
   "life-orb": held("epic", "Life Orb", "Moves do 30% more damage; costs 10% HP per hit."),
   "full-restore": bag("epic", "Full Restore", "Fully restores HP and cures status.", { heal: "full", cure: ["psn", "tox", "par", "brn", "slp", "frz", "confusion"] }),
-  "hidden-ability-patch": { kind: "patch", tier: "epic", name: "Hidden Ability Patch", desc: "Switches a Pokémon to its Hidden Ability. Used up on use.", sprite: "ability-patch" },
+  "hidden-ability-patch": { kind: "patch", tier: "epic", name: "Hidden Ability Patch", desc: "Switches a Pokémon to its Hidden Ability. Single use: lost once applied.", sprite: "ability-patch" },
 
   // ---------- Species-only (roll as Rare) ----------
   "light-ball": held("rare", "Light Ball", "Doubles Pikachu's Attack and Sp. Atk.", { species: ["pikachu"] }),

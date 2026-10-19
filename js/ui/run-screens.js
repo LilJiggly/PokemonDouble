@@ -12,9 +12,10 @@ import { startTitleBanner } from "./title-banner.js";
 import { terrainFor } from "./terrain.js";
 import { CHARACTERS, GEN_LABELS, characterById } from "../game/characters.js";
 import { SPRITE_MODES, applySpriteMode } from "../game/sprite-mode.js";
+import { isUnlocked, unlockText, unlockedIds } from "../game/unlocks.js";
 import { VERSION } from "../version.js";
 import * as Run from "../game/run.js";
-import { loadMeta, saveMeta, buyUpgrade, canBuyUpgrade, upgradeLevel, perksFromMeta, trainerPointsFor } from "../game/meta.js";
+import { loadMeta, saveMeta, buyUpgrade, canBuyUpgrade, upgradeLevel, perksFromMeta, trainerPointsFor, recordRun } from "../game/meta.js";
 import { ITEMS, POCKETS, pocketOf, itemInfo, itemSprite } from "../game/item-catalog.js";
 import { itemLabel } from "../game/pokedex.js";
 import { calcStats, DEFAULT_IVS, DEFAULT_EVS } from "../engine/pokemon.js";
@@ -200,6 +201,9 @@ export class RunUI {
     this.trackView("setup");
     this.hub.className = "hub";
     const meta = loadMeta();
+    const unlocks = this.ctx.rules.characterUnlocks ?? {};
+    const locked = (c) => !isUnlocked(meta, unlocks[c.id]);
+    if (locked(characterById(meta.character))) { meta.character = "lucas"; saveMeta(meta); } // a character that is still locked
     const gens = [1, 2, 3, 4, 5].map((g) => {
       const file = this.ctx.leaders[g];
       const pools = this.ctx.rules.teamPools?.[g] ?? {};
@@ -212,12 +216,14 @@ export class RunUI {
       <h1>New run</h1>
       <section class="card-panel character-picker" aria-label="Choose your character">
         <h2>Your character</h2>
-        <p>Any trainer with a back sprite can be played. Your sprite is only for looks: the opponent can be the same trainer.</p>
+        <p>Your sprite is only for looks: the opponent can be the same trainer. Win runs, collect trophies and beat battles to unlock more trainers
+          (${CHARACTERS.filter((c) => !locked(c)).length}/${CHARACTERS.length} unlocked).</p>
         ${[1, 2, 3, 4, 5].map((g) => `<h3 class="character-gen">${GEN_LABELS[g]}</h3>
         <div class="characters" role="radiogroup" aria-label="${GEN_LABELS[g]}">${CHARACTERS.filter((c) => c.gen === g).map((c) => `
-          <button class="character ${c.id === meta.character ? "selected" : ""}" role="radio" aria-checked="${c.id === meta.character}"
-            data-act="character" data-id="${c.id}" title="${c.name}">
-            <img src="${c.front}" alt=""><span>${c.name}</span>
+          <button class="character ${c.id === meta.character ? "selected" : ""} ${locked(c) ? "locked" : ""}" role="radio" aria-checked="${c.id === meta.character}"
+            data-act="character" data-id="${c.id}" title="${locked(c) ? `Locked: ${unlockText(unlocks[c.id])}` : c.name}" ${locked(c) ? "disabled" : ""}>
+            <img src="${c.front}" alt=""><span>${locked(c) ? "🔒 " : ""}${c.name}</span>
+            ${locked(c) ? `<small>${unlockText(unlocks[c.id])}</small>` : ""}
           </button>`).join("")}</div>`).join("")}
       </section>
       <section class="card-panel">
@@ -508,8 +514,9 @@ export class RunUI {
     const headline = starter ? "Choose your starters"
       : `You beat ${run.lastBattle?.opponent}! Recruit time`;
     const replacement = offer.replacementPicks ? ` Includes ${offer.replacementPicks} replacement pick${offer.replacementPicks > 1 ? "s" : ""} for the Pokémon you lost.` : "";
-    const sub = starter ? `Select ${offer.picksLeft} of ${offer.options.length}, then confirm. They'll fight Gym 1 at level ${offer.level}.`
-      : `Select up to ${offer.picksLeft} (${offer.picks} of ${offer.options.length}), then confirm. Recruits join at level ${offer.level}.${replacement}${run.team.length >= 6 ? " Your team is full: picking means replacing someone." : ""}`;
+    const rerollTip = this.rerollsLeft(offer) > 0 && offer.picksLeft > 1 ? ` Not happy with the rest? Confirm your picks first, then use the reroll: cards you picked stay, the others are replaced.` : "";
+    const sub = starter ? `Select ${offer.picksLeft} of ${offer.options.length}, then confirm. They'll fight Gym 1 at level ${offer.level}.${rerollTip}`
+      : `Select up to ${offer.picksLeft} (${offer.picks} of ${offer.options.length}), then confirm. Recruits join at level ${offer.level}.${replacement}${run.team.length >= 6 ? " Your team is full: picking means replacing someone." : ""}${rerollTip}`;
     this.hub.innerHTML = `
       ${starter ? "" : this.track()}
       <div class="post-battle">${this.rewardsBanner()}${this.nextUpCard()}</div>
@@ -518,7 +525,7 @@ export class RunUI {
         <div><h1>${headline}</h1><p>${sub}</p></div>
         <div class="row-buttons">
           <button class="btn" data-act="reroll" ${this.rerollsLeft(offer) <= 0 || offer.picksLeft <= 0 ? "disabled" : ""}
-            title="Replaces every card you haven't picked.">${this.rerollsLeft(offer) <= 0 ? "No rerolls left" : `🎲 Free reroll (${this.rerollsLeft(offer)})`}</button>
+            title="Replaces every card you haven't confirmed. Cards you picked stay.">${this.rerollsLeft(offer) <= 0 ? "No rerolls left" : `🎲 Free reroll (${this.rerollsLeft(offer)})`}</button>
           ${starter ? "" : `<button class="btn" data-act="skip">${offer.picksLeft < offer.picks ? "Done" : "Skip"}</button>`}
         </div>
       </div>
@@ -537,34 +544,46 @@ export class RunUI {
         ? `Select ${offer.picksLeft - sel.length} more` : `Confirm${sel.length > 1 ? ` (${sel.length})` : ""}`),
     });
 
+    // Take the selected cards (asks who to release when the team is full)
+    const confirmPicks = async () => {
+      for (const index of selection.get()) {
+        if (run.offer !== offer) break;
+        let replace = null;
+        if (run.team.length >= 6) {
+          replace = await this.modal({
+            title: "Your team is full",
+            body: `<p>Who makes room for ${nameOf(index)}? They'll be released (their held item goes to your bag).</p>`,
+            options: run.team.map((m) => ({ value: m.uid, html: `<img src="${this.sprite(m)}" alt=""> ${this.monName(m)} <small>Lv ${m.level}</small>` })),
+            cancel: `Don't take ${nameOf(index)}`,
+          });
+          if (replace === null) continue;
+        }
+        Run.pickRecruit(run, this.ctx, index, replace);
+      }
+    };
+
     this.hub.onclick = async (e) => {
       const act = e.target.closest("[data-act]")?.dataset.act;
       if (act === "skip") { Run.skipOffer(run, this.ctx); this.render(); return; }
       if (act === "reroll") {
-        const ok = await this.modal({
+        const chosen = selection.get();
+        const options = [];
+        if (chosen.length) options.push({ value: "keep", html: `<b>Confirm ${chosen.map(nameOf).join(", ")}</b>, then reroll the rest <small>Your picks stay, only the other cards change</small>` });
+        options.push({ value: "drop", html: chosen.length ? `Reroll without picking <small>Your current selection is cleared</small>` : `🎲 Reroll` });
+        const how = await this.modal({
           title: "Use your free reroll?",
-          body: `<p>All cards you haven't picked are replaced by new ones.</p>`,
-          options: [{ value: true, label: "🎲 Reroll" }],
+          body: `<p>Cards you have confirmed stay. Every other card is replaced by a new one.${offer.picksLeft > 1 && !chosen.length ? " Tip: select the ones you like and confirm first, then reroll for the rest." : ""}</p>`,
+          options,
           cancel: "Keep these cards",
         });
-        if (ok) { Run.rerollOffer(run, this.ctx); this.render(); }
+        if (!how) return;
+        if (how === "keep") await confirmPicks();
+        if (run.offer === offer && offer.picksLeft > 0) Run.rerollOffer(run, this.ctx);
+        this.render();
         return;
       }
       if (act === "confirm") {
-        for (const index of selection.get()) {
-          if (run.offer !== offer) break;
-          let replace = null;
-          if (run.team.length >= 6) {
-            replace = await this.modal({
-              title: "Your team is full",
-              body: `<p>Who makes room for ${nameOf(index)}? They'll be released (their held item goes to your bag).</p>`,
-              options: run.team.map((m) => ({ value: m.uid, html: `<img src="${this.sprite(m)}" alt=""> ${this.monName(m)} <small>Lv ${m.level}</small>` })),
-              cancel: `Don't take ${nameOf(index)}`,
-            });
-            if (replace === null) continue;
-          }
-          Run.pickRecruit(run, this.ctx, index, replace);
-        }
+        await confirmPicks();
         this.render();
         return;
       }
@@ -589,6 +608,8 @@ export class RunUI {
       confirm.textContent = confirmLabel(selected);
       confirm.disabled = selected.length === 0 || (exact && selected.length < limit);
       bar.classList.toggle("active", selected.length > 0);
+      // Several picks allowed and all used: the other cards dim until one is unselected
+      for (const grid of this.hub.querySelectorAll(".offer-grid")) grid.classList.toggle("maxed", limit > 1 && selected.length >= limit);
     };
     update();
     return {
@@ -600,7 +621,15 @@ export class RunUI {
         const at = selected.indexOf(index);
         if (at !== -1) selected.splice(at, 1);
         else {
-          if (selected.length >= limit) selected.shift(); // radio behaviour / replace the oldest pick
+          if (selected.length >= limit && limit > 1) {
+            // Don't silently swap a pick out: tell the player to unselect one first
+            text.innerHTML = `You already picked ${limit}. <b>Unselect one</b> to choose this one instead.`;
+            card.classList.remove("shake");
+            void card.offsetWidth;
+            card.classList.add("shake");
+            return;
+          }
+          if (selected.length >= limit) selected.shift(); // a single pick works like a radio button
           selected.push(index);
         }
         update();
@@ -744,6 +773,7 @@ export class RunUI {
             </div>
           </div>
           ${this.abilityList(m)}
+          ${this.statStrip(m)}
           <div class="mon-item">${m.item ? `<span class="held-chip" draggable="true" data-drag="held" data-uid="${m.uid}" title="Drag to another Pokémon or back to the Bag">${this.itemImg(m.item)} ${itemInfo(m.item).name}</span>` : `<span class="mon-sub">No held item</span>`}</div>
           ${this.moveGrid(m.moves, { toggle: true, keyPrefix: m.uid })}
           ${run.team.length > 1 ? this.slotStrip(m) : ""}
@@ -944,6 +974,15 @@ export class RunUI {
         <span>${this.typeBadges(m.species)}</span>
         <span class="tile-item">${m.item ? `${this.itemImg(m.item)} ${itemInfo(m.item).name}` : "No item"}</span>
       </button>`;
+  }
+
+  // The six stats at this level in one row (the detailed team cards; the full table is in the details window)
+  statStrip(m) {
+    const p = this.ctx.data.pokemonByKey[m.species];
+    const stats = calcStats(p.baseStats, m.level, m.nature, { ...DEFAULT_IVS, ...m.ivs }, { ...DEFAULT_EVS, ...m.evs }, m.species);
+    const [up, down] = NATURES[m.nature] ?? [];
+    return `<div class="stat-strip" aria-label="Stats">${["hp", "atk", "def", "spa", "spd", "spe"].map((k) =>
+      `<span class="${k === up ? "up" : k === down ? "down" : ""}" title="${STAT_NAMES[k]}"><i>${{ hp: "HP", atk: "Atk", def: "Def", spa: "SpA", spd: "SpD", spe: "Spe" }[k]}</i><b>${stats[k]}</b></span>`).join("")}</div>`;
   }
 
   statsTable(m) {
@@ -1501,13 +1540,18 @@ export class RunUI {
     const tp = trainerPointsFor(run, this.ctx.rules);
     if (!run.tpAwarded && !this.preview) {
       const meta = loadMeta();
+      const before = unlockedIds(meta, this.ctx.rules.characterUnlocks ?? {}, CHARACTERS);
       meta.tp += tp;
       meta.earned += tp;
-      meta.runs += 1;
+      recordRun(meta, run);
       saveMeta(meta);
       run.tpAwarded = true;
+      run.newUnlocks = unlockedIds(meta, this.ctx.rules.characterUnlocks ?? {}, CHARACTERS).filter((id) => !before.includes(id));
     }
-    return `<p class="tp-earned">+${tp} Trainer Points <small>(spend them in Trainer Upgrades)</small></p>`;
+    const fresh = (run.newUnlocks ?? []).map((id) => characterById(id));
+    return `<p class="tp-earned">+${tp} Trainer Points <small>(spend them in Trainer Upgrades)</small></p>
+      ${fresh.length ? `<section class="card-panel"><h3>New trainers unlocked!</h3>
+        <div class="characters">${fresh.map((c) => `<div class="character selected"><img src="${c.front}" alt=""><span>${c.name}</span></div>`).join("")}</div></section>` : ""}`;
   }
 
   renderOver() {

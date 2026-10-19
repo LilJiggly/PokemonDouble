@@ -277,6 +277,21 @@ export class BattleScreen {
     }
   }
 
+  // A number that pops up over the target for each hit of a multi-hit move
+  showHitBadge(side, slot, n, crit) {
+    const img = this.sprite(side, slot);
+    if (!img) return;
+    const scene = this.scene.getBoundingClientRect();
+    const r = img.getBoundingClientRect();
+    const badge = document.createElement("div");
+    badge.className = `hit-badge${crit ? " crit" : ""}`;
+    badge.textContent = `${n}`;
+    badge.style.left = `${((r.left + r.width / 2 - scene.left) / scene.width) * 100}%`;
+    badge.style.top = `${((r.top + r.height * 0.25 - scene.top) / scene.height) * 100}%`;
+    this.scene.appendChild(badge);
+    setTimeout(() => badge.remove(), 900);
+  }
+
   async animateSprite(side, slot, cls, ms) {
     const img = this.sprite(side, slot);
     img.classList.remove(cls);
@@ -366,9 +381,14 @@ export class BattleScreen {
         return;
       case "damage":
         if (e.indirect) await this.say(e.text);
-        else this.animateSprite(e.side, e.slot, "hit", 450);
+        else if (e.hit) {
+          // Moves that hit several times: every hit gets its own jolt, counter and pause
+          this.showHitBadge(e.side, e.slot, e.hit, e.crit);
+          this.animateSprite(e.side, e.slot, "hit-multi", 320);
+        } else this.animateSprite(e.side, e.slot, "hit", 450);
         await this.animateHp(e.side, e.slot, e.hp, e.maxHp);
         if (!e.indirect) await this.say(e.text);
+        if (e.hit) await sleep(this.speed === "fast" ? 120 : 280);
         return;
       case "heal":
         await this.animateHp(e.side, e.slot, e.hp, e.maxHp);

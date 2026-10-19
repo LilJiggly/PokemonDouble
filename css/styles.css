@@ -19,8 +19,8 @@
    1. TOKENS
    =============================== */
 :root {
-  /* Fonts: Pixelify Sans for the look, VT323 (clear numbers) for details */
-  --font-pixel: "Pixelify Sans", ui-monospace, monospace;
+  /* Fonts: Nunito for text, names, buttons and the text box; VT323 (clear numbers) for details */
+  --font-main: "Nunito", system-ui, sans-serif;
   --font-info: "VT323", ui-monospace, monospace;
 
   /* Page and panels (dark UI) */
@@ -136,7 +136,7 @@ body {
   min-height: 100dvh;
   background: var(--page);
   color: var(--ink);
-  font-family: var(--font-pixel);
+  font-family: var(--font-main);
   display: flex;
   justify-content: center;
   padding: var(--gap-lg);
@@ -161,7 +161,7 @@ button { touch-action: manipulation;
 }
 
 /* Details and numbers: VT323 (its 5/8, 6/9 are easy to tell apart).
-   VT323 runs small, so font-size-adjust scales it to match Pixelify Sans. */
+   VT323 runs small, so font-size-adjust scales it to match the main font. */
 .info,
 .hpbox .level, .hpbox .hp-numbers,
 .move-btn .move-meta, .move-btn .move-power, .move-info,
@@ -526,6 +526,62 @@ the 24 px of
 }
 
 .sprite.hit { animation: blink 0.45s steps(1);
+}
+
+/* Multi-hit moves: a quick jolt per hit, then a pause (see battle-screen.js) */
+.sprite.hit-multi { animation: jolt 0.32s ease-out;
+}
+
+@keyframes jolt {
+  0% { transform: translateX(0);
+    filter: brightness(2.2);
+  }
+
+  25% { transform: translateX(-7%);
+    filter: brightness(2.2);
+  }
+
+  55% { transform: translateX(5%);
+    filter: brightness(1.4);
+  }
+
+  100% { transform: translateX(0);
+    filter: none;
+  }
+}
+
+.hit-badge {
+  position: absolute;
+  z-index: 20;
+  transform: translate(-50%, 0);
+  font-family: var(--font-main);
+  font-size: 7cqw;
+  line-height: 1;
+  color: #f8d030;
+  text-shadow: 0.5cqw 0 #302020, -0.5cqw 0 #302020, 0 0.5cqw #302020, 0 -0.5cqw #302020, 0.5cqw 0.5cqw #302020;
+  pointer-events: none;
+  animation: hit-badge 0.85s ease-out forwards;
+}
+
+.hit-badge.crit { color: #f85838;
+}
+
+@keyframes hit-badge {
+  0% { opacity: 0;
+    transform: translate(-50%, 30%) scale(0.5);
+  }
+
+  20% { opacity: 1;
+    transform: translate(-50%, 0) scale(1.25);
+  }
+
+  70% { opacity: 1;
+    transform: translate(-50%, -25%) scale(1);
+  }
+
+  100% { opacity: 0;
+    transform: translate(-50%, -45%) scale(1);
+  }
 }
 
 .sprite.faint { animation: faint 0.5s ease-in forwards;
@@ -1069,7 +1125,7 @@ the 24 px of
   line-height: 1.35;
 }
 
-.move-info b { font-family: var(--font-pixel);
+.move-info b { font-family: var(--font-main);
   font-size: 3.2cqw;
 }
 
@@ -1591,7 +1647,7 @@ the 24 px of
 }
 
 .banner-frame .textbox p { color: var(--ink);
-  font-family: var(--font-pixel);
+  font-family: var(--font-main);
   font-size-adjust: none;
   line-height: 1.35;
   letter-spacing: 0;
@@ -1608,8 +1664,8 @@ the 24 px of
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
-  padding: 4px 2px 6px;
+  gap: 4px;
+  padding: 8px 4px;
   background: var(--surface);
   border: 3px solid var(--border);
   border-radius: var(--r-md);
@@ -1618,6 +1674,8 @@ the 24 px of
   color: var(--text-soft);
   cursor: pointer;
   transition: transform 0.1s, border-color 0.1s;
+  min-width: 100px;
+  justify-content: center;
 }
 
 .character img { width: 64px;
@@ -1638,6 +1696,17 @@ the 24 px of
 }
 
 .character:hover { transform: translateY(-2px);
+}
+
+/* Locked characters: a dark silhouette and what unlocks them */
+.character.locked { cursor: default;
+  opacity: 0.75;
+}
+
+.character.locked img { filter: brightness(0) opacity(0.55);
+}
+
+.character.locked:hover { transform: none;
 }
 
 .character.selected { border-color: var(--accent);
@@ -1926,6 +1995,36 @@ the 24 px of
   color: var(--ink-soft);
 }
 
+.stat-strip { display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+}
+
+.stat-strip span { display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 3px 0;
+  background: rgba(40, 50, 70, 0.1);
+  color: var(--ink);
+  border-radius: 6px;
+  line-height: 1.15;
+}
+
+.stat-strip i { font-style: normal;
+  font-size: 10px;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.stat-strip b { font-size: 14px;
+}
+
+.stat-strip .up b { color: #d4553a;
+}
+
+.stat-strip .down b { color: #3f6fd0;
+}
+
 .mon-item { display: flex;
   align-items: center;
   gap: var(--gap-xs);
@@ -2141,7 +2240,7 @@ the 24 px of
 }
 
 .mc-name {
-  font-family: var(--font-pixel);
+  font-family: var(--font-main);
   font-weight: 700;
   font-size: 17px;
   line-height: 1.25;
@@ -2522,6 +2621,23 @@ button.bag-entry:hover { box-shadow: 0 0 0 2px var(--accent);
   box-shadow: 0 6px 18px -4px var(--tier);
 }
 
+.offer-grid.maxed .offer-card:not(.selected):not(:disabled) { opacity: 0.55;
+}
+
+.offer-card.shake { animation: shake 0.35s;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0);
+  }
+
+  25% { transform: translateX(-6px);
+  }
+
+  75% { transform: translateX(6px);
+  }
+}
+
 .offer-card:disabled { opacity: 0.35;
   cursor: default;
 }
@@ -2710,8 +2826,12 @@ img[src*="/sprites/"] { object-fit: contain;
   font-size: 15px;
 }
 
-.modal .options .btn img { width: 32px;
-  height: 32px;
+.modal .options .btn img { width: 64px;
+  height: 64px;
+  flex: none;
+}
+
+.modal .options .btn:has(img) { min-height: 76px;
 }
 
 .modal .options .btn small { color: var(--ink-soft);

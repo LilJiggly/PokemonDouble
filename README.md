@@ -24,4 +24,4 @@ Works on desktop and phones.
 
 ## Credits
 
-Pokémon & item sprites and data: [PokeAPI](https://pokeapi.co). Trainer sprites: Pokémon Showdown and its sprite artists. Player back sprites: Bulbagarden Archives. Fonts: Pixelify Sans and VT323 (Google Fonts).
+Pokémon & item sprites and data: [PokeAPI](https://pokeapi.co). Trainer sprites: Pokémon Showdown and its sprite artists. Player back sprites: Bulbagarden Archives. Fonts: Nunito and VT323 (Google Fonts).

@@ -9,7 +9,7 @@
 export const META_KEY = "pd.meta";
 
 export function emptyMeta() {
-  return { tp: 0, earned: 0, runs: 0, upgrades: {}, character: "lucas", sprites: "gen5" };
+  return { tp: 0, earned: 0, runs: 0, upgrades: {}, character: "lucas", sprites: "gen5", wins: 0, winGens: {}, best: 0 };
 }
 
 export function loadMeta(storage = globalThis.localStorage) {
@@ -53,9 +53,24 @@ export function perksFromMeta(meta) {
   };
 }
 
+// How many battles of the run were beaten (a win = all 14)
+export function beatenCount(run) {
+  return run.screen === "won" ? 14 : Math.max(0, (run.lastBattle?.order ?? 1) - 1);
+}
+
+// Progress for character unlocks (see unlocks.js)
+export function recordRun(meta, run) {
+  meta.runs += 1;
+  meta.best = Math.max(meta.best ?? 0, beatenCount(run));
+  if (run.screen === "won") {
+    meta.wins = (meta.wins ?? 0) + 1;
+    meta.winGens = { ...meta.winGens, [run.settings.gen]: (meta.winGens?.[run.settings.gen] ?? 0) + 1 };
+  }
+}
+
 // TP for a finished run: per opponent beaten, plus the Hall of Fame bonus
 export function trainerPointsFor(run, rules) {
-  const beaten = run.screen === "won" ? 14 : Math.max(0, (run.lastBattle?.order ?? 1) - 1);
+  const beaten = beatenCount(run);
   let tp = 0;
   for (let order = 1; order <= beaten; order++) {
     if (order <= 8) tp += rules.tp.gym;

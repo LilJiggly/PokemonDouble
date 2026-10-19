@@ -6,6 +6,7 @@
 // Front sprites (picker, hub card): Pokémon Showdown (https://play.pokemonshowdown.com/sprites/trainers/).
 //   Characters without a front sprite there are left out (Old Man, Dude, Pokémon Dude, Roxie's Father).
 // Nate and Rosa: only the Black 2 / White 2 version (the Pokéstar costumes are left out).
+// Versions whose front sprite is identical to another character's are left out too (the picker would show the same sprite twice).
 // Saves images/trainers/back/<id>.png and images/trainers/<id>.png; existing files are skipped.
 // =====================================================
 
@@ -25,12 +26,10 @@ const CHARACTERS = [
   C("oak", "Prof. Oak", "Yellow", 1, "Y_Oak_Back.png", "oak-gen1"),
   C("ethan-gsc", "Ethan", "Gold / Silver / Crystal", 2, "GSC_Ethan_Back.png", "ethan-gen2"),
   C("kris", "Kris", "Crystal", 2, "C_Kris_Back.png", "kris-gen2"),
-  C("ethan-sw97", "Ethan", "Spaceworld '97", 2, "SW97_Ethan_Back.png", "ethan-gen2"),
   C("ethan", "Ethan", "HeartGold / SoulSilver", 2, "HGSS_Ethan_Back.png", "ethan"),
   C("lyra", "Lyra", "HeartGold / SoulSilver", 2, "HGSS_Lyra_Back.png", "lyra"),
   C("lance", "Lance", "HeartGold / SoulSilver", 2, "HGSS_Lance_Back.png", "lance"),
   C("silver", "Silver", "HeartGold / SoulSilver", 2, "HGSS_Silver_Back.png", "silver"),
-  C("gold-beta", "Gold", "HeartGold beta", 2, "GoldHGSS_beta_back.png", "ethan"),
   C("red", "Red", "FireRed / LeafGreen", 3, "FRLG_Red_Back.png", "red-gen3"),
   C("leaf", "Leaf", "FireRed / LeafGreen", 3, "FRLG_Leaf_Back.png", "leaf-gen3"),
   C("brendan-rs", "Brendan", "Ruby / Sapphire", 3, "RS_Brendan_Back.png", "brendan-gen3rs"),
@@ -38,15 +37,11 @@ const CHARACTERS = [
   C("brendan", "Brendan", "Emerald", 3, "E_Brendan_Back.png", "brendan-e"),
   C("may", "May", "Emerald", 3, "E_May_Back.png", "may-e"),
   C("red-e", "Red", "Emerald (Battle Frontier)", 3, "E_Red_Back.png", "red-gen3"),
-  C("leaf-e", "Leaf", "Emerald (Battle Frontier)", 3, "E_Leaf_Back.png", "leaf-gen3"),
   C("steven", "Steven", "Emerald", 3, "E_Steven_Back.png", "steven-gen3"),
   C("wally", "Wally", "Ruby / Sapphire", 3, "RS_Wally_Back.png", "wally-gen3"),
   C("lucas", "Lucas", "Platinum", 4, "Pt_Lucas_Back.png", "lucas"),
   C("dawn", "Dawn", "Platinum", 4, "Pt_Dawn_Back.png", "dawn"),
   C("barry", "Barry", "Platinum", 4, "Pt_Barry_Back.png", "barry"),
-  C("lucas-dp", "Lucas", "Diamond / Pearl", 4, "DP_Lucas_Back.png", "lucas"),
-  C("dawn-dp", "Dawn", "Diamond / Pearl", 4, "DP_Dawn_Back.png", "dawn"),
-  C("barry-dp", "Barry", "Diamond / Pearl", 4, "DP_Barry_Back.png", "barry"),
   C("buck", "Buck", "Diamond / Pearl", 4, "DP_Buck_Back.png", "buck"),
   C("cheryl", "Cheryl", "Diamond / Pearl", 4, "DP_Cheryl_Back.png", "cheryl"),
   C("marley", "Marley", "Diamond / Pearl", 4, "DP_Marley_Back.png", "marley"),
@@ -54,7 +49,6 @@ const CHARACTERS = [
   C("riley", "Riley", "Diamond / Pearl", 4, "DP_Riley_Back.png", "riley"),
   C("hilbert", "Hilbert", "Black / White", 5, "BW_Hilbert_Back.png", "hilbert"),
   C("hilda", "Hilda", "Black / White", 5, "BW_Hilda_Back.png", "hilda"),
-  C("cheren-bw", "Cheren", "Black / White", 5, "BW_Cheren_Back.png", "cheren"),
   C("juniper", "Prof. Juniper", "Black / White", 5, "BW_Juniper_Back.png", "juniper"),
   C("nate", "Nate", "Black 2 / White 2", 5, "B2W2_Nate_Back.png", "nate"),
   C("rosa", "Rosa", "Black 2 / White 2", 5, "B2W2_Rosa_Back.png", "rosa"),

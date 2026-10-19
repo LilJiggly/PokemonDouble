@@ -22,7 +22,8 @@ function fit(img) {
   img.style.width = `${w}px`;
   img.style.height = `${h}px`;
   img.style.aspectRatio = "auto";
-  img.style.margin = `${Math.max(0, (box - h) / 2)}px auto`;
+  // Pad with margins so the image still takes up exactly its box (and sits in the middle of it)
+  img.style.margin = `${Math.max(0, (box - h) / 2)}px ${Math.max(0, (box - w) / 2)}px`;
   img.style.objectFit = "fill";
 }
 

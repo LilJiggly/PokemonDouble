@@ -354,6 +354,22 @@ test("Sketch permanently replaces itself with the foe's last move", () => {
   eq(at(b, 0, 0).moves[0].id, "ember", "slot became Ember");
   eq(JSON.stringify(at(b, 0, 0).sketched), JSON.stringify([{ index: 0, move: "ember" }]), "recorded for the run");
 });
+test("Multi-hit moves number each hit in the events", () => {
+  const b = duel("alakazam", ["double-kick", "splash"], "snorlax", ["splash", "splash"]);
+  const hits = round(b, p1(0), p2(0)).filter((e) => e.t === "damage" && e.move === "double-kick").map((e) => e.hit);
+  assert(hits.length === 2 && hits[0] === 1 && hits[1] === 2, `hits ${JSON.stringify(hits)}`);
+});
+test("Pursuit hits a Pokémon that is switching out, first, with double power", () => {
+  const b = duel("alakazam", ["pursuit", "splash"], "snorlax", ["splash", "splash"]);
+  const plain = dmg(b, at(b, 0, 0), at(b, 1, 0), "pursuit");
+  const ev = round(b, p1(0), { slot: 0, type: "switch", teamIndex: 1 });
+  const hit = ev.findIndex((e) => e.t === "damage" && e.move === "pursuit");
+  const sw = ev.findIndex((e) => e.t === "switch" || /sent out|come back|Go!/i.test(e.text ?? ""));
+  assert(hit !== -1, "Pursuit didn't hit the switching Pokémon");
+  assert(sw === -1 || hit < sw, "Pursuit came after the switch");
+  const dealt = ev.find((e) => e.t === "damage" && e.move === "pursuit").amount;
+  assert(dealt > plain * 1.5, `damage ${dealt} is not about double ${plain}`);
+});
 test("Spite takes 4 PP off the foe's last move", () => {
   const b = duel("alakazam", ["spite", "splash"], "snorlax", ["tackle", "splash"]);
   round(b, p1(1), p2(0));

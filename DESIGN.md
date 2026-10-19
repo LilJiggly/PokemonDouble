@@ -101,7 +101,7 @@ _Last updated: October 09, 2026_
 - **Held items** (1 per Pokémon) and a **bag**. Full item pool and odds in **§3d–3e**.
 - Only items that exist **up to Gen 4** (no Eviolite, Assault Vest, Rocky Helmet, etc.). **Exceptions:** Ice Stone (for Glaceon), **Ability Patch** (switch between a Pokémon's normal abilities) and **Hidden Ability Patch** (switch to its Hidden Ability). Both patches are single-use (used up when applied).
 - **No Revives** of any kind. Permadeath is the core of the game.
-- **Consumable held items** (berries, Focus Sash, herbs) are **used up for good** once triggered.
+- **Consumable held items** (berries, herbs) are **single use**: lost for good once they trigger. Item cards say "Single use: lost once it triggers". The **Focus Sash** is the exception: it works once per battle and you keep it afterwards.
 - **Bag items** are **used up for good** once used. They **can be used in battle**, which takes up that Pokémon's turn.
 - **Evolution items** (stones, Link Cable, trade items like Metal Coat) are **multi-use**. Link Cable is only for plain trade evolutions (Machoke, Kadabra, Graveler, Haunter).
 - When a Pokémon dies, its **held item goes back to the bag**.
@@ -293,6 +293,58 @@ The **shop** in the hub is split into **sections** (tabs, like the Bag): Items (
 | gift | Gift Box | 1 | 6 | +1 pick (and +1 card) in the starting items |
 | hidden | Hidden Potential | 1 | 8 | Hidden Ability chance 10% → 20% |
 | shiny | Shiny Charm | 1 | 5 | Shiny chance 1/512 → 1/128 (cosmetic) |
+
+### 3j. Character unlocks ✏️ _(editable table)_
+
+Playable characters are unlocked by progress. Progress is saved with the Trainer Points (meta save), so it survives losing. The unlock column accepts these forms:
+
+- `Start`: available from the beginning.
+- `Runs: N`: finish N runs, won or lost.
+- `Wins: N`: reach the Hall of Fame N times.
+- `Win Gen G`: reach the Hall of Fame in Challenge Gen G (a regional trophy).
+- `Beat battle N`: beat battle #N (§3a numbering) in any run.
+- `TP earned: N`: earn N Trainer Points in total.
+
+Characters that are missing from the table are free. The **Perk** column is for later: a perk each unlocked trainer gives (Wally's idea: a Ralts is guaranteed at the first recruitment). It is not used by the game yet.
+
+| ID | Character | Unlock | Perk |
+|---|---|---|---|
+| red-gb | Red (Red / Blue) | Runs: 3 | — |
+| oak | Prof. Oak (Yellow) | Win Gen 1 | — |
+| ethan-gsc | Ethan (Gold / Silver / Crystal) | Runs: 5 | — |
+| kris | Kris (Crystal) | Runs: 8 | — |
+| ethan | Ethan (HeartGold / SoulSilver) | Start | — |
+| lyra | Lyra (HeartGold / SoulSilver) | Start | — |
+| lance | Lance (HeartGold / SoulSilver) | Win Gen 2 | — |
+| silver | Silver (HeartGold / SoulSilver) | Beat battle 10 | — |
+| red | Red (FireRed / LeafGreen) | Start | — |
+| leaf | Leaf (FireRed / LeafGreen) | Start | — |
+| brendan-rs | Brendan (Ruby / Sapphire) | Runs: 4 | — |
+| may-rs | May (Ruby / Sapphire) | Runs: 4 | — |
+| brendan | Brendan (Emerald) | Start | — |
+| may | May (Emerald) | Start | — |
+| red-e | Red (Emerald (Battle Frontier)) | Wins: 2 | — |
+| steven | Steven (Emerald) | Win Gen 3 | — |
+| wally | Wally (Ruby / Sapphire) | Beat battle 6 | _Planned:_ the first recruitment always offers a Ralts |
+| lucas | Lucas (Platinum) | Start | — |
+| dawn | Dawn (Platinum) | Start | — |
+| barry | Barry (Platinum) | Win Gen 4 | — |
+| buck | Buck (Diamond / Pearl) | Beat battle 7 | — |
+| cheryl | Cheryl (Diamond / Pearl) | TP earned: 20 | — |
+| marley | Marley (Diamond / Pearl) | Beat battle 9 | — |
+| mira | Mira (Diamond / Pearl) | Beat battle 11 | — |
+| riley | Riley (Diamond / Pearl) | TP earned: 40 | — |
+| hilbert | Hilbert (Black / White) | Wins: 1 | — |
+| hilda | Hilda (Black / White) | Wins: 1 | — |
+| juniper | Prof. Juniper (Black / White) | Runs: 10 | — |
+| nate | Nate (Black 2 / White 2) | Win Gen 5 | — |
+| rosa | Rosa (Black 2 / White 2) | Win Gen 5 | — |
+| bianca | Bianca (Black 2 / White 2) | Beat battle 6 | — |
+| cheren | Cheren (Black 2 / White 2) | Beat battle 10 | — |
+| hugh | Hugh (Black 2 / White 2) | Beat battle 12 | — |
+| chili | Chili (Black 2 / White 2) | TP earned: 25 | — |
+| cilan | Cilan (Black 2 / White 2) | TP earned: 25 | — |
+| cress | Cress (Black 2 / White 2) | TP earned: 25 | — |
 
 ## 4. Settings
 
@@ -1492,6 +1544,17 @@ Hidden until you press **L** (not while typing in a field). Code: `js/ui/dev-too
   - **minor** (0.1.0 → 0.2.0): new features or content (e.g. Gen 2 team pools)
   - **major** (→ 1.0.0): first complete release
 
+### Fonts
+
+Two fonts, both from Google Fonts (linked in `index.html`), set as variables at the top of `css/styles.css`:
+
+| Variable | Font | Used for |
+|---|---|---|
+| `--font-main` | Nunito | `body` (so everything by default: headings, buttons, Pokémon and trainer names, the text box and menus), plus `.hit-badge`, `.move-info b`, `.banner-frame .textbox p`, `.mc-name` |
+| `--font-info` | VT323 | Details and numbers (its 5/8 and 6/9 are easy to tell apart): the group rule in the "Details and numbers" block (`.info`, `.hpbox .level`, `.hpbox .hp-numbers`, `.move-btn .move-meta`, `.move-btn .move-power`, `.move-info`, `.target-btn .who`, `.party-card .pinfo`, `.turn-badge`, `.facts`, `.mon-sub`, `.mc-stats`, `.mc-desc`, `.mc-toggle`, `.mc-type`, `.move-card .cat-pill`, `.modal-label`, `.mon-item`, `.bag-entry`, `.offer-card .detail`, `.offer-card .tier`, `.track .stop`, `.modal small`, `.modal p`, `.confirm-mon`, `.confirm-text`, `.fallen-list small`, `.hof-team small`, `.hub p`, `.empty-note`, `.choice small`, `.messages p`, `.money`, `.tp-pill`, `.reward`, `.tile-sub`, `.tile-item`, `.tab-count`, `.stats-table`, `.shop-item small`, `.shop-item .btn.small`, `.upgrade-card .btn.small`, `.evo-mon small`, `.ability-list`, `.species-name`, `.next-facts`, `.me-card small`, `.version-tag`) and `.menu-title small`, `.sum-info .pinfo`, `.sum-stats span`, `.sum-move span`, `.slot-label`, `.modal-count`, `.ability-full .ab-now`, `.ability-full p`, `.dialog-moves` |
+
+`tools/sprite-check.html` uses the browser's system font.
+
 ### Styles
 - `css/styles.css` is one sheet with design tokens at the top (colours, radius, spacing, type sizes). Use the tokens instead of new hard-coded values.
 - Battle screens are sized in `cqw` so they scale like a DS; everything else uses px tokens.
@@ -1501,7 +1564,7 @@ Hidden until you press **L** (not while typing in a field). Code: `js/ui/dev-too
 - **Pokémon data, Pokémon sprites and item sprites:** [PokeAPI](https://pokeapi.co) and the PokeAPI/sprites repository.
 - **Black 2 / White 2 trainer sprites:** [Bulbagarden Archives](https://archives.bulbagarden.net) (category "Generation V Trainer sprites"), 52 of our trainers, saved as `images/trainers/variants/<id>-b2w2.png` by `node tools/fetch-b2w2-trainer-sprites.mjs` (file list from `sprites.html`; the category page blocks scripts). Not used in battle yet: they are for the trainer sprite picker.
 - **Trainer sprites:** [Pokémon Showdown](https://play.pokemonshowdown.com/sprites/trainers/) and its sprite artists (downloaded with `node tools/fetch-trainer-sprites.mjs` into `images/trainers/`). Gold uses Showdown's HeartGold/SoulSilver Ethan sprite; Tate & Liza are shown as two sprites.
-- **Player character sprites:** back sprites from [Bulbagarden Archives](https://archives.bulbagarden.net) (category "Trainer back sprites"), front sprites for the picker from Pokémon Showdown. 43 characters in `data/characters.json`, made by `node tools/fetch-back-sprites.mjs` (the category page blocks scripts, so the file list comes from `sprites.html`). Back sprites are in `images/trainers/back/`, fronts in `images/trainers/`. Only trainers with a front sprite are playable (no Old Man, Dude, Pokémon Dude or Roxie's Father) and only one Nate and one Rosa (Black 2 / White 2).
+- **Player character sprites:** back sprites from [Bulbagarden Archives](https://archives.bulbagarden.net) (category "Trainer back sprites"), front sprites for the picker from Pokémon Showdown. 36 characters in `data/characters.json`, made by `node tools/fetch-back-sprites.mjs` (the category page blocks scripts, so the file list comes from `sprites.html`). Back sprites are in `images/trainers/back/`, fronts in `images/trainers/`. Only trainers with a front sprite are playable (no Old Man, Dude, Pokémon Dude or Roxie's Father) and only one Nate and one Rosa (Black 2 / White 2).
 - **Pokémon** © Nintendo / Creatures / Game Freak / The Pokémon Company. This is a non-commercial fan project.
 - A credits line is shown on the title screen.
 
@@ -1527,7 +1590,7 @@ Hidden until you press **L** (not while typing in a field). Code: `js/ui/dev-too
 - Recruit offers never include a Pokémon from an **evolution line** already on your team (not just the same species).
 - Recruits are offered at the **highest legal stage**. Babies (Pichu, Munchlax…) are never offered; species that came out before their baby (Pikachu, Snorlax…) count as base forms.
 - Learning new moves: if a Pokémon has a free move slot it learns automatically, otherwise you get a "forget which move?" prompt in the hub.
-- After a battle, held items that were knocked off or swapped come back. Used-up items (berries, Focus Sash) are gone.
+- After a battle, held items that were knocked off or swapped come back. Single-use items (berries, herbs) are gone; the Focus Sash comes back.
 - A **draw** (both sides out at once) counts as a loss.
 - Saving: `localStorage` key `pd.run` after every action and every battle turn. The Hall of Fame is `pd.hallOfFame`.
 
@@ -1656,3 +1719,8 @@ All Rock-type lines up to Gen 4. Slugma (Fire) and Steelix (Steel/Ground) are in
 - **v0.6.1 · October 16, 2026:** Target menu ("Use … on…"): bigger Pokémon sprites, and the sprite and the name now sit in two balanced columns.
 - **v0.6.2 · October 16, 2026:** Playable characters cut to 43: removed the ones without a front sprite (Old Man, Dude, Pokémon Dude, Roxie's Father…) and the Pokéstar costumes of Nate and Rosa (one version each now). The picker no longer shows the game under each name.
 - **v0.6.3 · October 16, 2026:** Player characters are scaled to one visible height (74 px, `CHARACTER_HEIGHT` in `js/ui/sprite-align.js`): the big Gen 5 sprites were too large at the start of a battle, so they are shrunk to about two thirds.
+- **v0.7.0 · October 16, 2026:** Characters are locked behind progress (§3j, editable): runs finished, Hall of Fame wins, regional trophies (win a Challenge Gen), battles beaten and Trainer Points earned. The 8 starting protagonists are free. Locked characters show as silhouettes with their requirement in the picker, and the run-over screens announce new unlocks. Multi-hit moves: each hit now has its own jolt, a counter above the target and a short pause.
+- **v0.7.1 · October 19, 2026:** Feedback fixes. Pursuit now hits a Pokémon that switches out, before it leaves, with double power. Early Bird can no longer wake the holder on the same turn it fell asleep (it always loses at least one turn). The detailed team cards show all six stats. Recruit screen: with several picks allowed, a full selection no longer swaps your first pick out (unselect one first, other cards dim); the reroll now offers "Confirm picks, then reroll the rest" and the screen explains that picked cards stay. "Used up" is now "Single use: lost once it triggers". The Focus Sash is once per battle and comes back afterwards. Move descriptions state priority (Aqua Jet: Priority +1: goes before normal moves).
+- **v0.7.2 · October 19, 2026:** Characters whose picker sprite was identical to another one are gone (Ethan Spaceworld '97 and Gold beta, Leaf (Emerald), the Diamond/Pearl Lucas, Dawn and Barry, Cheren (Black/White)): 36 playable characters.
+- **v0.7.3 · October 19, 2026:** Pixelify Sans is replaced by Nunito (clearer text). VT323 stays for details and numbers. Added a Fonts overview to §7.
+- **v0.7.4 · October 19, 2026:** Dialog option buttons with a Pokémon (evolve, swap, relearn…) show a 64 px sprite instead of 32 px and keep it next to the name. Animated sprites no longer drift to the middle of flex rows.

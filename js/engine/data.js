@@ -8,6 +8,12 @@
 export function prepareData({ pokemon, moves, abilities }) {
   const movesWithKeys = {};
   for (const [key, move] of Object.entries(moves)) movesWithKeys[key] = { ...move, key };
+  // Say it in the description when a move goes before or after the normal order (Aqua Jet, Quick Attack…)
+  for (const move of Object.values(movesWithKeys)) {
+    if (!move.priority) continue;
+    const n = move.priority > 0 ? `+${move.priority}` : `${move.priority}`;
+    move.shortEffect = `${move.shortEffect ?? ""} Priority ${n}: ${move.priority > 0 ? "goes before" : "goes after"} normal moves.`.trim();
+  }
   // PokeAPI lists Conversion 2 as aimed at a Pokémon, but it only changes the user's type
   if (movesWithKeys["conversion-2"]) movesWithKeys["conversion-2"].target = "user";
   return {

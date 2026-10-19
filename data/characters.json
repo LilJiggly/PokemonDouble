@@ -32,14 +32,6 @@
   "back": "images/trainers/back/kris.png"
  },
  {
-  "id": "ethan-sw97",
-  "name": "Ethan",
-  "game": "Spaceworld '97",
-  "gen": 2,
-  "front": "images/trainers/ethan-sw97.png",
-  "back": "images/trainers/back/ethan-sw97.png"
- },
- {
   "id": "ethan",
   "name": "Ethan",
   "game": "HeartGold / SoulSilver",
@@ -70,14 +62,6 @@
   "gen": 2,
   "front": "images/trainers/silver.png",
   "back": "images/trainers/back/silver.png"
- },
- {
-  "id": "gold-beta",
-  "name": "Gold",
-  "game": "HeartGold beta",
-  "gen": 2,
-  "front": "images/trainers/gold-beta.png",
-  "back": "images/trainers/back/gold-beta.png"
  },
  {
   "id": "red",
@@ -136,14 +120,6 @@
   "back": "images/trainers/back/red-e.png"
  },
  {
-  "id": "leaf-e",
-  "name": "Leaf",
-  "game": "Emerald (Battle Frontier)",
-  "gen": 3,
-  "front": "images/trainers/leaf-e.png",
-  "back": "images/trainers/back/leaf-e.png"
- },
- {
   "id": "steven",
   "name": "Steven",
   "game": "Emerald",
@@ -182,30 +158,6 @@
   "gen": 4,
   "front": "images/trainers/barry.png",
   "back": "images/trainers/back/barry.png"
- },
- {
-  "id": "lucas-dp",
-  "name": "Lucas",
-  "game": "Diamond / Pearl",
-  "gen": 4,
-  "front": "images/trainers/lucas-dp.png",
-  "back": "images/trainers/back/lucas-dp.png"
- },
- {
-  "id": "dawn-dp",
-  "name": "Dawn",
-  "game": "Diamond / Pearl",
-  "gen": 4,
-  "front": "images/trainers/dawn-dp.png",
-  "back": "images/trainers/back/dawn-dp.png"
- },
- {
-  "id": "barry-dp",
-  "name": "Barry",
-  "game": "Diamond / Pearl",
-  "gen": 4,
-  "front": "images/trainers/barry-dp.png",
-  "back": "images/trainers/back/barry-dp.png"
  },
  {
   "id": "buck",
@@ -262,14 +214,6 @@
   "gen": 5,
   "front": "images/trainers/hilda.png",
   "back": "images/trainers/back/hilda.png"
- },
- {
-  "id": "cheren-bw",
-  "name": "Cheren",
-  "game": "Black / White",
-  "gen": 5,
-  "front": "images/trainers/cheren-bw.png",
-  "back": "images/trainers/back/cheren-bw.png"
  },
  {
   "id": "juniper",
