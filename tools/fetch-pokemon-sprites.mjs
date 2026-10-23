@@ -4,6 +4,7 @@
 // Source: PokeAPI sprites repo, Black/White art (https://github.com/PokeAPI/sprites)
 // Static   → images/sprites/gen5/<front|back|front-shiny|back-shiny>/<id>.png        (#1–649)
 // Animated → images/sprites/gen5-ani/<front|back|front-shiny|back-shiny>/<id>.gif    (#1–649)
+// Also Castform's Sunny / Rainy / Snowy forms (gen4, gen5, gen5-ani) as 351-<form>.
 // Files that already exist are skipped, so it can be re-run.
 // (Gen 4 sprites and the Gen 5 Pokémon's static sprites come from tools/build-data.mjs.)
 // =====================================================
@@ -22,6 +23,17 @@ for (let id = 1; id <= LAST; id++) {
   for (const [kind, sub] of Object.entries(KINDS)) {
     jobs.push({ url: `${BASE}/${sub}${id}.png`, file: path.join(ROOT, "images/sprites/gen5", kind, `${id}.png`) });
     jobs.push({ url: `${BASE}/animated/${sub}${id}.gif`, file: path.join(ROOT, "images/sprites/gen5-ani", kind, `${id}.gif`) });
+  }
+}
+
+// Castform's weather forms (Forecast): PokeAPI form ids 10013–10015, saved as <dex number>-<form>
+const FORMS = [{ id: 10013, dex: 351, name: "sunny" }, { id: 10014, dex: 351, name: "rainy" }, { id: 10015, dex: 351, name: "snowy" }];
+const GEN4 = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-iv/platinum";
+for (const f of FORMS) {
+  for (const [kind, sub] of Object.entries(KINDS)) {
+    jobs.push({ url: `${BASE}/${sub}${f.id}.png`, file: path.join(ROOT, "images/sprites/gen5", kind, `${f.dex}-${f.name}.png`) });
+    jobs.push({ url: `${BASE}/animated/${sub}${f.id}.gif`, file: path.join(ROOT, "images/sprites/gen5-ani", kind, `${f.dex}-${f.name}.gif`) });
+    jobs.push({ url: `${GEN4}/${sub}${f.id}.png`, file: path.join(ROOT, "images/sprites/gen4", kind, `${f.dex}-${f.name}.png`) });
   }
 }
 

@@ -370,6 +370,62 @@ test("Pursuit hits a Pokémon that is switching out, first, with double power", 
   const dealt = ev.find((e) => e.t === "damage" && e.move === "pursuit").amount;
   assert(dealt > plain * 1.5, `damage ${dealt} is not about double ${plain}`);
 });
+test("Castform's Forecast changes its form and type with the weather", () => {
+  const b = duel("castform", ["splash", "splash"], "ninetales", ["splash", "splash"], { userExtra: { ability: "forecast" }, foeExtra: { ability: "drought" } });
+  round(b, p1(0), p2(0));
+  eq(at(b, 0, 0).volatile.form, "sunny", "form");
+  eq(at(b, 0, 0).types.join(), "fire", "type");
+});
+const badgeBattle = (effectList, stats = {}, extra = {}) => Battle.create(data, { seed: extra.seed ?? 1, sides: [
+  { name: "P", isPlayer: true, team: [mon(extra.me ?? "geodude", extra.moves ?? ["rock-throw", "splash"]), mon("magikarp", ["splash"])], badge: { stats, effects: effectList } },
+  { name: "F", team: [mon(extra.foe ?? "squirtle", extra.foeMoves ?? ["water-gun", "splash"]), mon("magikarp", ["splash"])] }] });
+test("Gym badges: damage badges change hits (Opening Salvo, Last Stand, Weakness Hunter, Sturdy Stone, Bedrock)", () => {
+  const plain = badgeBattle({});
+  const hit = (b, key = "rock-throw") => dmg(b, at(b, 0, 0), at(b, 1, 0), key);
+  const taken = (b, key = "water-gun") => dmg(b, at(b, 1, 0), at(b, 0, 0), key);
+  assert(hit(badgeBattle({ opener: 0.3 })) > hit(plain), "opener (turn 1)");
+  const low = badgeBattle({ "last-stand": 0.3 }); at(low, 0, 0).hp = 1;
+  const lowPlain = badgeBattle({}); at(lowPlain, 0, 0).hp = 1;
+  assert(hit(low) > hit(lowPlain), "last stand");
+  const se = badgeBattle({ "super-effective": 0.2 }, {}, { foe: "charmander" }), sePlain = badgeBattle({}, {}, { foe: "charmander" });
+  assert(hit(se) > hit(sePlain), "super effective (rock vs fire)");
+  assert(taken(badgeBattle({ "sturdy-stone": 0.2 })) < taken(plain), "sturdy stone (full HP)");
+  assert(taken(badgeBattle({ "weakness-guard": 0.2 })) < taken(plain), "bedrock (water is super effective on rock)");
+  const closer = badgeBattle({ closer: 0.25 }); at(closer, 1, 0).hp = 1;
+  const closerPlain = badgeBattle({}); at(closerPlain, 1, 0).hp = 1;
+  assert(hit(closer) > hit(closerPlain), "closer");
+});
+test("Gym badges: stats, set bonus and weather", () => {
+  const plain = badgeBattle({});
+  const stat = badgeBattle({}, { atk: 0.1, spe: 0.1 });
+  assert(at(stat, 0, 0).stats.atk > at(plain, 0, 0).stats.atk, "attack");
+  assert(at(stat, 0, 0).stats.spe > at(plain, 0, 0).stats.spe, "speed");
+  eq(at(stat, 0, 0).stats.def, at(plain, 0, 0).stats.def, "defense untouched");
+  eq(at(stat, 0, 0).stats.hp, at(plain, 0, 0).stats.hp, "HP is not boosted");
+  eq(badgeBattle({ "rain-start": 4 }).weather(), "rain", "rain");
+  eq(badgeBattle({ "rain-start": 4 }).state.field.weatherTurns, 4, "lasts as long as the badge says");
+  eq(badgeBattle({ "sand-start": 4 }).weather(), "sand", "sand");
+});
+test("Gym badges: status wards, Regrowth, Vampire, Second Wind, Spikes", () => {
+  const b = badgeBattle({ "sleep-ward": 1 });
+  assert(!b.trySetStatus(at(b, 0, 0), "slp", at(b, 1, 0), { fromMove: true }), "sleep blocked");
+  const r = badgeBattle({ regen: 0.0625 }, {}, { foeMoves: ["splash", "splash"] });
+  at(r, 0, 0).hp -= 30; const before = at(r, 0, 0).hp;
+  round(r, p1(1), p2(0));
+  assert(at(r, 0, 0).hp > before, "regrowth healed");
+  const v = badgeBattle({ vampire: 0.1 }, {}, { me: "machamp", moves: ["tackle", "splash"], foe: "snorlax", foeMoves: ["splash", "splash"] });
+  at(v, 0, 0).hp -= 40; const vb = at(v, 0, 0).hp;
+  round(v, p1(0), p2(0));
+  assert(at(v, 0, 0).hp > vb, "vampire healed");
+  const w = badgeBattle({ "second-wind": 1 }, {}, { me: "magikarp", moves: ["splash", "splash"], foe: "machamp", foeMoves: ["close-combat", "splash"] });
+  at(w, 0, 0).hp = 3;
+  round(w, p1(1), p2(0));
+  eq(at(w, 0, 0).hp, 1, "second wind left 1 HP");
+  const sp = badgeBattle({ thorns: 0.125 }, {}, { me: "snorlax", moves: ["splash", "splash"], foe: "machamp", foeMoves: ["tackle", "splash"] });
+  const foeHp = at(sp, 1, 0).hp;
+  round(sp, p1(1), p2(0));
+  assert(at(sp, 1, 0).hp < foeHp, "spikes hurt the attacker");
+});
 test("Spite takes 4 PP off the foe's last move", () => {
   const b = duel("alakazam", ["spite", "splash"], "snorlax", ["tackle", "splash"]);
   round(b, p1(1), p2(0));

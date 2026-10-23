@@ -8,6 +8,7 @@
 
 import { readTable, parseProgression } from "./design-tables.js";
 import { parseUnlocks } from "./unlocks.js";
+import { parseBadges } from "./badges.js";
 
 export const TIERS = ["common", "uncommon", "rare", "epic", "legendary"];
 
@@ -174,6 +175,7 @@ export function parseRules(markdown, data) {
   return {
     shopStock,
     characterUnlocks: parseUnlocks(markdown),
+    badges: parseBadges(markdown),
     teamPools,
     poolGroups,
     minChoice,

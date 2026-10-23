@@ -9,7 +9,7 @@
 export const META_KEY = "pd.meta";
 
 export function emptyMeta() {
-  return { tp: 0, earned: 0, runs: 0, upgrades: {}, character: "lucas", sprites: "gen5", wins: 0, winGens: {}, best: 0 };
+  return { tp: 0, earned: 0, runs: 0, upgrades: {}, character: "lucas", sprites: "gen5", wins: 0, winGens: {}, best: 0, reach: {}, badges: [], badgeCase: [], badgeLinks: [] };
 }
 
 export function loadMeta(storage = globalThis.localStorage) {

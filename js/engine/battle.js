@@ -89,11 +89,18 @@ export class Battle {
         active: [null, null],
         conditions: {},
         wish: null,
+        // Gym badges (badges.js battleBonus): { stats: { atk: 0.08, … }, effects: { opener: 0.12, … } (id → number, see EFFECTS in badges.js)
+        badge: s.badge ?? null,
         // Bag items usable in battle: { id: { name, count, effect } }. usedItems counts what was used.
         bag: s.bag ?? {},
         usedItems: {},
       })),
     };
+    // Gym badges: stat bonuses (set bonus and the stat badges) change every stat except HP
+    for (const side of state.sides) {
+      if (!side.badge?.stats) continue;
+      for (const mon of side.team) for (const [k, pct] of Object.entries(side.badge.stats)) if (pct) mon.stats[k] = Math.floor(mon.stats[k] * (1 + pct));
+    }
     const battle = new Battle(data, state);
     battle.start();
     return battle;
@@ -111,6 +118,11 @@ export class Battle {
       });
     }
     for (const m of this.bySpeed(this.activeMons())) this.runSwitchInAbility(m);
+    // Weather badges (a sandstorm, rain…): they start every battle
+    for (const side of st.sides) for (const [id, weather] of [["rain-start", "rain"], ["sun-start", "sun"], ["sand-start", "sand"], ["hail-start", "hail"]]) {
+      const turns = this.bfx(side.index, id);
+      if (turns && this.setWeather(weather, null)) st.field.weatherTurns = turns;
+    }
     st.turn = 1;
     st.phase = "choose";
     this.log({ t: "turn", turn: 1 });
@@ -226,7 +238,25 @@ export class Battle {
     // Weather from abilities lasts until replaced (Gen 4); moves last 5 turns, 8 with the matching rock
     field.weatherTurns = source?.fromAbility ? 0 : (source && this.item(source.mon) === WEATHER_ROCKS[type] ? 8 : 5);
     this.log({ t: "weather", weather: type, text: WEATHER_START[type] });
+    this.updateForecasts();
     return true;
+  }
+
+  // Castform's Forecast: its form (and type) follows the weather. Normal when there is none (or it is blocked).
+  updateForecast(mon) {
+    if (mon.species !== "castform" || mon.fainted) return;
+    const on = mon.ability === "forecast" && !mon.volatile.abilitySuppressed && !mon.volatile.transformed;
+    const form = on ? { sun: "sunny", rain: "rainy", hail: "snowy" }[this.weather()] ?? null : null;
+    if ((mon.volatile.form ?? null) === form) return;
+    mon.volatile.form = form;
+    mon.volatile.originalTypes ??= [...mon.types];
+    mon.types = form ? [{ sunny: "fire", rainy: "water", snowy: "ice" }[form]] : [...mon.volatile.originalTypes];
+    this.log({ t: "form", ...this.ref(mon), species: mon.species, form, shiny: mon.shiny,
+      text: form ? `${this.name(mon, true)} transformed!` : `${this.name(mon, true)} returned to its normal form!` });
+  }
+
+  updateForecasts() {
+    for (const m of this.activeMons()) this.updateForecast(m);
   }
 
   // ===============================
@@ -752,6 +782,7 @@ export class Battle {
 
   runSwitchInAbility(mon) {
     const ab = mon.volatile.abilitySuppressed ? null : mon.ability;
+    if (ab === "forecast" || ab === "cloud-nine" || ab === "air-lock") this.updateForecasts();
     if (WEATHER_ABILITIES[ab]) {
       this.setWeather(WEATHER_ABILITIES[ab], { fromAbility: true, mon });
     } else if (ab === "intimidate") {
@@ -793,6 +824,9 @@ export class Battle {
     target.hp -= amount;
     return amount;
   }
+
+  // The number of a gym badge effect on that side (0 when it isn't equipped; the player's side only)
+  bfx(sideIndex, id) { return this.state.sides[sideIndex]?.badge?.effects?.[id] ?? 0; }
 
   // Damage that isn't from a direct hit (weather, poison, recoil…)
   indirectDamage(mon, amount, text, { recoil = false } = {}) {
@@ -849,6 +883,8 @@ export class Battle {
       return fail(target.status === status || (status === "psn" && target.status === "tox")
         ? `${this.name(target, true)} is already ${STATUS_NAMES[target.status]}!` : "But it failed!");
     }
+    const wardId = { par: "para-ward", psn: "poison-ward", tox: "poison-ward", brn: "burn-ward", slp: "sleep-ward" }[status];
+    if (wardId && this.bfx(target.side, wardId) && chance(this.state, this.bfx(target.side, wardId) * 100)) return fail(`${this.name(target, true)}'s badge protects it!`);
     const t = target.types;
     if (status === "brn" && t.includes("fire")) return fail(`It doesn't affect ${this.name(target)}...`);
     if ((status === "psn" || status === "tox") && (t.includes("poison") || t.includes("steel"))) return fail(`It doesn't affect ${this.name(target)}...`);
@@ -1202,6 +1238,22 @@ export class Battle {
     }
 
     // Mod3
+    // Gym badges (joker-style effects, only on the player's side; the numbers grow with the badge's strength)
+    const me = this.state.sides[user.side].badge?.effects;
+    if (me) {
+      const fainted = Math.min(3, this.state.sides[user.side].team.filter((m) => m.fainted).length);
+      if (me.opener && this.state.turn === 1) d = Math.floor(d * (1 + me.opener));
+      if (me["last-stand"] && user.hp * 3 < user.maxHp) d = Math.floor(d * (1 + me["last-stand"]));
+      if (me.revenge && fainted) d = Math.floor(d * (1 + me.revenge * fainted));
+      if (me.closer && target.hp * 2 < target.maxHp) d = Math.floor(d * (1 + me.closer));
+      if (me["super-effective"] && eff > 1) d = Math.floor(d * (1 + me["super-effective"]));
+      if (me["stab-plus"] && user.types.includes(type)) d = Math.floor(d * (1 + me["stab-plus"]));
+    }
+    const their = this.state.sides[target.side].badge?.effects;
+    if (their) {
+      if (their["sturdy-stone"] && target.hp === target.maxHp) d = Math.floor(d * (1 - their["sturdy-stone"]));
+      if (their["weakness-guard"] && eff > 1) d = Math.floor(d * (1 - their["weakness-guard"]));
+    }
     const tab = this.ability(target);
     if ((tab === "solid-rock" || tab === "filter") && eff > 1) d = Math.floor((d * 3) / 4);
     if (this.item(user) === "expert-belt" && eff > 1) d = Math.floor((d * 6) / 5);
@@ -1762,6 +1814,7 @@ export class Battle {
     if (user.ability === "hustle" && move.category === "physical") a *= 0.8;
     const item = this.item(user);
     if (item === "wide-lens") a *= 1.1;
+    a *= 1 + this.bfx(user.side, "accuracy") - this.bfx(target.side, "dodge");
     if (item === "zoom-lens" && target.volatile.moved) a *= 1.2;
     if (tab === "sand-veil" && w === "sand") a *= 0.8;
     if (tab === "snow-cloak" && w === "hail") a *= 0.8;
@@ -1866,7 +1919,7 @@ export class Battle {
         user.volatile.hitNumber = h;
         const crit = fixed === null && !["battle-armor", "shell-armor"].includes(this.ability(target))
           && !this.state.sides[target.side].conditions.luckyChant
-          && (ALWAYS_CRIT.has(key) || nextRandom(st) < CRIT_CHANCE[this.critStage(user, move)]);
+          && (ALWAYS_CRIT.has(key) || nextRandom(st) < CRIT_CHANCE[this.critStage(user, move)] + this.bfx(user.side, "crit-eye"));
         let dmg = fixed ?? this.calcDamage(user, target, move, { type, crit, spread, roll: randomInt(st, 85, 100) });
 
         // Resist berries
@@ -1906,10 +1959,15 @@ export class Battle {
           } else if (this.item(target) === "focus-band" && chance(st, 10)) {
             dmg = target.hp - 1;
             this.msg(`${this.name(target, true)} hung on using its Focus Band!`);
+          } else if (this.bfx(target.side, "second-wind") && !this.state.sides[target.side].windUsed && chance(st, this.bfx(target.side, "second-wind") * 100)) {
+            this.state.sides[target.side].windUsed = true;
+            dmg = target.hp - 1;
+            this.msg(`${this.name(target, true)} caught a second wind!`);
           }
         }
 
         const dealt = this.applyMoveDamage(target, dmg);
+        if (dealt > 0 && !user.fainted && this.bfx(user.side, "vampire")) this.heal(user, Math.max(1, Math.floor(dealt * this.bfx(user.side, "vampire"))), `${this.name(user, true)} drained some HP!`);
         dealtToTarget += dealt;
         hitsLanded++;
         target.volatile.hurtThisTurn = true;
@@ -1938,6 +1996,7 @@ export class Battle {
             this.indirectDamage(user, Math.floor(user.maxHp / 4), `${this.name(user, true)} was caught in the aftermath!`);
           }
           this.faint(target);
+          if (!user.fainted && this.bfx(user.side, "ko-heal")) this.heal(user, user.maxHp * this.bfx(user.side, "ko-heal"), `${this.name(user, true)} recovered from the spoils of war!`);
           if (user.ability === "moxie" && !user.fainted && !user.volatile.abilitySuppressed) this.boost(user, { atk: 1 }, user);
         } else {
           if (makesContact(move)) this.contactEffects(user, target);
@@ -2086,6 +2145,7 @@ export class Battle {
     if (!meta?.minHits) return 1;
     if (meta.minHits === meta.maxHits) return meta.minHits;
     if (user.ability === "skill-link") return meta.maxHits;
+    if (this.bfx(user.side, "multi-hit") && meta.maxHits >= 3) { const r0 = randomInt(this.state, 1, 8); return Math.max(this.bfx(user.side, "multi-hit"), r0 <= 3 ? 2 : r0 <= 6 ? 3 : r0 === 7 ? 4 : 5); }
     const r = randomInt(this.state, 1, 8); // 2: 3/8, 3: 3/8, 4: 1/8, 5: 1/8
     return r <= 3 ? 2 : r <= 6 ? 3 : r === 7 ? 4 : 5;
   }
@@ -2093,6 +2153,8 @@ export class Battle {
   contactEffects(user, target) {
     const st = this.state;
     const tab = this.ability(target);
+    if (user.fainted) return;
+    if (this.bfx(target.side, "thorns")) this.indirectDamage(user, Math.max(1, Math.floor(user.maxHp * this.bfx(target.side, "thorns"))), `${this.name(user, true)} was hurt by the spikes!`);
     if (user.fainted) return;
     if (tab === "static" && chance(st, 30)) this.trySetStatus(user, "par", target);
     else if (tab === "flame-body" && chance(st, 30)) this.trySetStatus(user, "brn", target);
@@ -2254,6 +2316,7 @@ export class Battle {
         if (field.weatherTurns === 0) {
           this.log({ t: "weather", weather: null, text: WEATHER_END[field.weather] });
           field.weather = null;
+          this.updateForecasts();
         }
       }
       const w = this.weather();
@@ -2321,6 +2384,7 @@ export class Battle {
       if (ab === "speed-boost" && v.activeTurns > 0) this.boost(m, { spe: 1 }, m);
       if (ab === "shed-skin" && m.status && chance(st, 30)) this.cureStatus(m);
       if (item === "leftovers") this.heal(m, m.maxHp / 16, `${this.name(m, true)} restored a little HP using its Leftovers!`);
+      if (this.bfx(m.side, "regen")) this.heal(m, m.maxHp * this.bfx(m.side, "regen"), `${this.name(m, true)} regrew a little HP!`);
       if (item === "black-sludge") {
         if (m.types.includes("poison")) this.heal(m, m.maxHp / 16, `${this.name(m, true)} restored a little HP using its Black Sludge!`);
         else this.indirectDamage(m, Math.floor(m.maxHp / 8), `${this.name(m, true)} is hurt by its Black Sludge!`);

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs><radialGradient id="g" cx=".35" cy=".3" r=".9"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".28"/></radialGradient></defs>
+  <g stroke="#3e1f88" stroke-width="3" stroke-linejoin="round"><polygon points="57.9,21.3 57.9,42.7 42.7,57.9 21.3,57.9 6.1,42.7 6.1,21.3 21.3,6.1 42.7,6.1" fill="#7038f8"/></g>
+  <g stroke="none"><polygon points="57.9,21.3 57.9,42.7 42.7,57.9 21.3,57.9 6.1,42.7 6.1,21.3 21.3,6.1 42.7,6.1" fill="url(#g)"/></g>
+  <polygon points="32.0,17.0 36.9,27.1 47.0,32.0 36.9,36.9 32.0,47.0 27.1,36.9 17.0,32.0 27.1,27.1" fill="#fff" fill-opacity=".6"/>
+  <text x="58" y="61" text-anchor="end" font-family="Georgia, serif" font-weight="bold" font-size="12" fill="#fff" stroke="#000" stroke-opacity=".6" stroke-width="2.5" paint-order="stroke">II</text>
+</svg>

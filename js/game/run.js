@@ -16,6 +16,7 @@ import { Battle } from "../engine/battle.js";
 import { createRecruit, levelUpMovesAt } from "./recruit.js";
 import { itemOddsFor, tmMaxPowerFor, TIERS } from "./rules.js";
 import { ITEMS, pocketOf } from "./item-catalog.js";
+import { hasPerk as badgeHasPerk, perkParam, battleBonus } from "./badges.js";
 
 // Held items that trigger once per battle and are back afterwards
 const RESTORED_AFTER_BATTLE = new Set(["focus-sash"]);
@@ -24,6 +25,11 @@ export const REPLACEMENT_PICK_CAP = 2;
 const NATURES = ["hardy", "adamant", "modest", "jolly", "timid", "bold", "impish", "calm", "careful", "brave", "quiet", "naive", "hasty"];
 
 // ctx = { data, dex, rules, tms, leaders: { 1: gen1Json, … } }
+
+// Is this gym-badge perk equipped? (§3k)
+export const hasPerk = (run, ctx, id) => badgeHasPerk(run, ctx.rules, id);
+// The number of a run badge effect (0 when the badge isn't worn; it grows with the badge's strength)
+const perkN = (run, ctx, id, none = 0) => perkParam(run, ctx.rules, id, none);
 
 // TMs that do nothing in this game are never given (§3g)
 const TM_EXCLUDED = new Set(["flash", "natural-gift", "fling", "snatch", "recycle"]);
@@ -49,7 +55,7 @@ function rollTier(run, odds, available) {
 // ===============================
 
 // perks: Trainer upgrades from meta progression (see meta.js perksFromMeta)
-export function newRun(ctx, { gen, pools, seed = Math.floor(Math.random() * 2 ** 32), perks = {}, character = "lucas" }) {
+export function newRun(ctx, { gen, pools, seed = Math.floor(Math.random() * 2 ** 32), perks = {}, character = "lucas", badges = [], badgeLinks = [] }) {
   const run = {
     version: 1,
     character,
@@ -67,6 +73,7 @@ export function newRun(ctx, { gen, pools, seed = Math.floor(Math.random() * 2 **
     nextUid: 1,
     fallen: [],
     pendingMoves: [],
+    badges: { slots: Array.from({ length: 8 }, (_, i) => badges[i] ?? null), links: badgeLinks, equipped: badges.filter(Boolean), gen }, // the badge case, frozen for this run (§3k)
     offer: null,
     opponent: null,
     battle: null,
@@ -155,17 +162,17 @@ export function makeRecruitOffer(run, ctx, { count, picks, odds, level, starter 
     const pick = pickOne(run, choices);
     usedRoots.add(pick.root);
     const species = pickOne(run, pick.species);
-    const spec = createRecruit(ctx.data, species, level, rand(run), recruitChances(run));
+    const spec = createRecruit(ctx.data, species, level, rand(run), recruitChances(run, ctx));
     spec.abilitySlot = abilitySlotOf(ctx, spec);
     options.push({ spec, tier, taken: false });
   }
   return { kind: "recruit", starter, options, picks, picksLeft: Math.min(picks, options.length), level, odds,
-    rerollsLeft: 1 + (run.perks?.dice ?? 0) };
+    rerollsLeft: 1 + (run.perks?.dice ?? 0) + perkN(run, ctx, "reroll") };
 }
 
-function recruitChances(run) {
+function recruitChances(run, ctx) {
   return {
-    hidden: run.perks?.hidden ? 0.2 : 0.1,
+    hidden: Math.min(0.6, (run.perks?.hidden ? 0.2 : 0.1) + perkN(run, ctx, "hidden")),
     shiny: run.perks?.shiny ? 1 / 128 : 1 / 512,
   };
 }
@@ -212,6 +219,23 @@ export function pickRecruit(run, ctx, optionIndex, replaceUid = null) {
   return { ok: true };
 }
 
+// Swap badge (§3k): once (twice when boosted) per recruit screen, trade one of your Pokémon for a recruit card without using a pick.
+// The recruit takes the released Pokémon's place in the team order.
+export function swapForRecruit(run, ctx, optionIndex, uid) {
+  const offer = run.offer;
+  const option = offer?.options[optionIndex];
+  if (offer?.kind !== "recruit" || offer.starter || !option || option.taken || (offer.swapsUsed ?? 0) >= perkN(run, ctx, "swap")) return { ok: false };
+  const idx = run.team.findIndex((m) => m.uid === uid);
+  if (idx === -1) return { ok: false };
+  const [released] = run.team.splice(idx, 1);
+  if (released.item) addToBag(run, released.item);
+  run.messages.push(`${released.nickname ?? displayName(ctx, released)} was swapped out for a new recruit.`);
+  option.taken = true;
+  offer.swapsUsed = (offer.swapsUsed ?? 0) + 1;
+  run.team.splice(idx, 0, { ...structuredClone(option.spec), uid: run.nextUid++ });
+  return { ok: true };
+}
+
 export function skipOffer(run, ctx) {
   if (run.offer?.starter && run.offer.picksLeft > 0) return { ok: false, reason: "Pick your starters first." };
   finishOffer(run, ctx);
@@ -240,6 +264,10 @@ function startItemOffer(run, ctx) {
   }
   const odds = itemOddsFor(ctx.rules, run.order);
   const gift = run.order === 0 ? (run.perks?.gift ?? 0) : 0;
+  const box = run.order === 0 ? { picks: 0, cards: 0 } : perkN(run, ctx, "gift", { picks: 0, cards: 0 }); // Gift Box badge
+  const giftBadge = box.picks;
+  const giftCards = gift + box.cards;
+  const scout = run.order === 0 ? 0 : perkN(run, ctx, "scout");
   const teamSpecies = new Set(run.team.map((m) => m.species));
   const byTier = {};
   for (const [id, item] of Object.entries(ITEMS)) {
@@ -248,14 +276,14 @@ function startItemOffer(run, ctx) {
   }
   const options = [];
   const used = new Set();
-  for (let i = 0; i < row.itemOptions + gift; i++) {
+  for (let i = 0; i < row.itemOptions + giftCards + scout; i++) {
     const available = new Set(Object.keys(byTier).filter((t) => byTier[t].some((id) => !used.has(id))));
     const tier = rollTier(run, odds, available);
     const id = pickOne(run, byTier[tier].filter((x) => !used.has(x)));
     used.add(id);
     options.push({ id, tier, taken: false });
   }
-  run.offer = { kind: "item", options, picks: row.itemPicks + gift, picksLeft: row.itemPicks + gift };
+  run.offer = { kind: "item", options, picks: row.itemPicks + gift + giftBadge, picksLeft: row.itemPicks + gift + giftBadge };
   run.screen = "items";
 }
 
@@ -342,6 +370,13 @@ export function relearnMove(run, ctx, uid, move, replaceIndex) {
   else mon.moves[replaceIndex] = move;
 }
 
+// Swap two of a Pokémon's moves (drag & drop in the Moves bar)
+export function swapMoves(run, uid, i, j) {
+  const mon = run.team.find((m) => m.uid === uid);
+  if (!mon || i === j || !mon.moves[i] || !mon.moves[j]) return;
+  [mon.moves[i], mon.moves[j]] = [mon.moves[j], mon.moves[i]];
+}
+
 export function moveTeamMember(run, uid, delta) {
   const i = run.team.findIndex((m) => m.uid === uid);
   const j = i + delta;
@@ -402,7 +437,7 @@ export function evolve(run, ctx, uid, to) {
 
   // Shedinja: a free bonus when Nincada becomes Ninjask (if there's room)
   if (fromSpecies === "nincada" && to === "ninjask" && run.team.length < 6) {
-    const shed = createRecruit(ctx.data, "shedinja", mon.level, rand(run), recruitChances(run));
+    const shed = createRecruit(ctx.data, "shedinja", mon.level, rand(run), recruitChances(run, ctx));
     shed.moves = [...mon.moves];
     shed.nature = mon.nature;
     shed.abilitySlot = "0";
@@ -445,6 +480,9 @@ export function priceOf(ctx, id) {
   return ctx.rules.shopPrices?.[ITEMS[id]?.tier] ?? 500;
 }
 
+// Haggler badge: cheaper shop prices
+const haggle = (run, ctx, price) => Math.max(1, Math.round(price * (1 - perkN(run, ctx, "haggler"))));
+
 function makeShop(run, ctx) {
   const odds = itemOddsFor(ctx.rules, Math.max(1, run.order));
   const teamSpecies = new Set(run.team.map((m) => m.species));
@@ -466,7 +504,7 @@ function makeShop(run, ctx) {
       const tier = rollTier(run, odds, available);
       const id = pickOne(run, byTier[tier].filter((x) => !used.has(x)));
       used.add(id);
-      stock.push({ id, tier, price: priceOf(ctx, id), sold: false });
+      stock.push({ id, tier, price: haggle(run, ctx, priceOf(ctx, id)), sold: false });
     }
   }
   // TMs you don't own, within the power limit for this battle (§3g)
@@ -477,7 +515,7 @@ function makeShop(run, ctx) {
   const tms = [];
   for (let i = 0; i < (counts.tms ?? 3) && tmPool.length; i++) {
     const [t] = tmPool.splice(Math.floor(nextRandom(run) * tmPool.length), 1);
-    tms.push({ move: t.move, price: tmPrice(ctx, t.move), sold: false });
+    tms.push({ move: t.move, price: haggle(run, ctx, tmPrice(ctx, t.move)), sold: false });
   }
   return { stock, tms, rerolls: run.shop?.order === run.order ? run.shop.rerolls : 0, order: run.order };
 }
@@ -722,7 +760,7 @@ export function startBattle(run, ctx) {
     seed: Math.floor(nextRandom(run) * 2 ** 32),
     terrain: run.opponent.theme ?? "normal", // Camouflage turns into the arena's type
     sides: [
-      { name: "You", isPlayer: true, team: run.team.map((m) => ({ ...m })), bag },
+      { name: "You", isPlayer: true, team: run.team.map((m) => ({ ...m })), bag, badge: battleBonus(run, ctx.rules) },
       { name: `${title} ${run.opponent.name}`, team: foe.team, script: foe.script },
     ],
   });
@@ -767,10 +805,21 @@ export function finishBattle(run, ctx) {
     let prize = m.perBattle * run.order;
     const flawless = run.lastBattle.fallen.length === 0;
     if (flawless) prize = Math.round(prize * (1 + m.flawlessBonus / 100));
-    run.money += prize;
+    // Gym badge (§3k): the leader's badge is unlocked for good (saved by the screen code); the equipped badges' perks count now
+    const badge = run.order >= 1 && run.order <= 8 ? { gen: run.settings.gen, order: run.order } : null;
+    prize = Math.round(prize * (1 + perkN(run, ctx, "wallet"))); // Lucky Wallet badge
+    // Interest badge: a share of the money you held before this prize (up to a cap)
+    const bank = perkN(run, ctx, "interest", null);
+    const interest = bank ? Math.min(bank.cap, Math.floor(run.money * bank.rate)) : 0;
+    run.money += prize + interest;
     const tm = rollTM(run, ctx);
     if (tm) run.tms.push(tm);
-    run.lastBattle.rewards = { money: prize, flawless, tm };
+    const extraTms = [];
+    if (nextRandom(run) < perkN(run, ctx, "tm")) { // TM Master badge: a chance of one more TM
+      const t = rollTM(run, ctx);
+      if (t && !run.tms.includes(t)) { run.tms.push(t); extraTms.push(t); }
+    }
+    run.lastBattle.rewards = { money: prize, interest, flawless, tm, extraTms, badge };
     // Reveal who's next, so recruit choices can be based on it
     if (run.order < FINAL_ORDER && run.team.length) run.nextOpponent = chooseOpponent(run, ctx, run.order + 1);
   }
@@ -789,7 +838,10 @@ export function finishBattle(run, ctx) {
     // Replacement picks: +1 pick and +1 card per Pokémon lost this battle (DESIGN.md §3a)
     const lost = run.lastBattle.fallen.length;
     const bonus = Math.min(REPLACEMENT_PICK_CAP, lost, Math.max(0, 6 - run.team.length));
-    run.offer = makeRecruitOffer(run, ctx, { count: row.recruitOptions + bonus, picks: row.recruitPicks + bonus, odds: row.odds, level });
+    const extra = perkN(run, ctx, "recruit", { picks: 0, cards: 0 }); // Extra Recruit badge
+    const extraPicks = extra.picks;
+    const extraCards = extra.cards + perkN(run, ctx, "scout"); // Extra Recruit and Scout badges
+    run.offer = makeRecruitOffer(run, ctx, { count: row.recruitOptions + bonus + extraCards, picks: row.recruitPicks + bonus + extraPicks, odds: row.odds, level });
     run.offer.replacementPicks = bonus;
     run.screen = "recruit";
   } else {

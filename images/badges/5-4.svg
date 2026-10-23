@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs><radialGradient id="g" cx=".35" cy=".3" r=".9"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".28"/></radialGradient></defs>
+  <g stroke="#88721a" stroke-width="3" stroke-linejoin="round"><polygon points="32,4 58,32 32,60 6,32" fill="#f8d030"/></g>
+  <g stroke="none"><polygon points="32,4 58,32 32,60 6,32" fill="url(#g)"/></g>
+  <polygon points="32,18 46,32 32,46 18,32" fill="#fff" fill-opacity=".55"/>
+  <text x="58" y="61" text-anchor="end" font-family="Georgia, serif" font-weight="bold" font-size="12" fill="#fff" stroke="#000" stroke-opacity=".6" stroke-width="2.5" paint-order="stroke">V</text>
+</svg>

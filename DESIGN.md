@@ -346,6 +346,118 @@ Characters that are missing from the table are free. The **Perk** column is for 
 | cilan | Cilan (Black 2 / White 2) | TP earned: 25 | — |
 | cress | Cress (Black 2 / White 2) | TP earned: 25 | — |
 
+### 3k. Gym badges ✏️ _(editable tables)_
+
+Badges work like the jokers in Balatro: every badge has **its own effect**, no two are the same, and the badges you carry are your build. Every gym leader has a **personal badge** (Brock always gives the Boulder Badge). Beating a Gym Leader in any run **unlocks their badge for good**: 40 badges in total (5 Challenge Gens × 8 gyms), shared by every run and every generation. Before a **new run** you fill your **badge case** with any badges you own, mixing generations as you like. The case **can't be changed during the run** (the Badges button in the hub only shows it). Each badge can only be worn once.
+
+**Strength.** An effect's size depends on the badge's **strength**: its **gym number** (1–8), so the first gyms give small effects and the last ones strong ones. Strength 1 is a few percent, strength 8 or more is big. The numbers per strength are in the scaling table below (they live in `js/game/badges.js`).
+
+**Linked slots.** The 8 slots of the case (a 4 × 2 grid) have **1, 2 or 3 random pairs of linked slots** (new ones for every run, shown with 🔗 and a letter on the New run screen). **Two badges in a linked pair boost each other: +2 strength each** (at most 10), as long as both slots hold a badge. So where you put your badges matters.
+
+The **Perk** column is the effect id (the game reads it, so you can move effects between badges, but give every badge a different one). The **Effect** column is only text for you (at the badge's own gym strength).
+
+| ID | Badge | Leader | Perk | Effect |
+|---|---|---|---|---|
+| 1-1 | Boulder Badge | Brock | sturdy-stone | Sturdy Stone: Your Pokémon at full HP take 3% less damage |
+| 1-2 | Cascade Badge | Misty | rain-start | Rainmaker: Rain falls at the start of every battle (4 turns) |
+| 1-3 | Thunder Badge | Lt. Surge | para-ward | Static Guard: 35% chance to block paralysis |
+| 1-4 | Rainbow Badge | Erika | regen | Regrowth: Your Pokémon heal 2.5% of their max HP at the end of every turn |
+| 1-5 | Soul Badge | Koga | poison-ward | Antidote Charm: 55% chance to block poison |
+| 1-6 | Marsh Badge | Sabrina | stat-spa | Mind Over Matter: +7% Sp. Atk |
+| 1-7 | Volcano Badge | Blaine | sun-start | Sunbringer: Harsh sunlight at the start of every battle (8 turns) |
+| 1-8 | Earth Badge | Giovanni | sand-start | Sand Caller: A sandstorm at the start of every battle (8 turns) |
+| 2-1 | Zephyr Badge | Falkner | stat-spe | Tailwind: +2% Speed |
+| 2-2 | Hive Badge | Bugsy | multi-hit | Swarm: Your multi-hit moves always hit at least 2 times |
+| 2-3 | Plain Badge | Whitney | wallet | Lucky Wallet: +16% prize money |
+| 2-4 | Fog Badge | Morty | dodge | Thick Fog: Foes' moves are 5% less accurate |
+| 2-5 | Storm Badge | Chuck | stat-atk | Brawler: +6% Attack |
+| 2-6 | Mineral Badge | Jasmine | stat-def | Iron Skin: +7% Defense |
+| 2-7 | Glacier Badge | Pryce | hail-start | Cold Snap: Hail at the start of every battle (8 turns) |
+| 2-8 | Rising Badge | Clair | super-effective | Weakness Hunter: Your super effective moves deal 17% more damage |
+| 3-1 | Stone Badge | Roxanne | weakness-guard | Bedrock: Super effective moves against you deal 4% less damage |
+| 3-2 | Knuckle Badge | Brawly | opener | Opening Salvo: On the first turn of a battle your moves deal 12% more damage |
+| 3-3 | Dynamo Badge | Wattson | crit-eye | Sharp Eyes: Your moves have a +5% chance to be critical hits |
+| 3-4 | Heat Badge | Flannery | last-stand | Last Stand: Your Pokémon below 1/3 HP deal 16.5% more damage |
+| 3-5 | Balance Badge | Norman | interest | Interest: After every win you earn 7% of the money you hold (at most ₽260) |
+| 3-6 | Feather Badge | Winona | accuracy | Eagle Eye: Your moves are 7% more accurate |
+| 3-7 | Mind Badge | Tate & Liza | swap | Swap: Twice per recruit screen, swap one of your Pokémon for any card (no pick needed) |
+| 3-8 | Rain Badge | Juan | vampire | Vampire: Your damaging moves heal you for 13.5% of the damage dealt |
+| 4-1 | Coal Badge | Roark | revenge | Vengeance: +2% damage for each of your Pokémon that has fainted this battle (up to 3) |
+| 4-2 | Forest Badge | Gardenia | reroll | Reroller: +1 free reroll on every recruit screen |
+| 4-3 | Relic Badge | Fantina | second-wind | Second Wind: 26% chance that a Pokémon that would faint survives with 1 HP (once per battle) |
+| 4-4 | Cobble Badge | Maylene | closer | Closer: Your moves deal 11.5% more damage to targets below half HP |
+| 4-5 | Fen Badge | Crasher Wake | ko-heal | Spoils of War: A Pokémon that knocks out a foe recovers 17% of its max HP |
+| 4-6 | Mine Badge | Byron | thorns | Spikes: Foes that make contact with your Pokémon lose 7% of their max HP |
+| 4-7 | Icicle Badge | Candice | burn-ward | Frost Veil: 75% chance to block burns |
+| 4-8 | Beacon Badge | Volkner | recruit | Extra Recruit: +1 card and +1 pick on every recruit screen |
+| 5-1 | Basic Badge | Cheren | scout | Scout: +1 card on every recruit and item screen |
+| 5-2 | Toxic Badge | Roxie | stab-plus | Signature Style: Same-type attack bonus +3.5% |
+| 5-3 | Insect Badge | Burgh | hidden | Hidden Potential: +6% Hidden Ability chance for recruits |
+| 5-4 | Bolt Badge | Elesa | sleep-ward | Wide Awake: 45% chance to block sleep |
+| 5-5 | Quake Badge | Clay | haggler | Haggler: Shop prices are 9% lower |
+| 5-6 | Jet Badge | Skyla | tm | TM Master: 65% chance of an extra TM after every battle |
+| 5-7 | Legend Badge | Drayden | stat-spd | Dragon Scales: +8% Sp. Def |
+| 5-8 | Wave Badge | Marlon | gift | Gift Box: +1 card and +1 pick on every item screen |
+
+#### Effect scaling
+
+What each effect does at strength 1, 4 and 8 (information only; edit `EFFECTS` in `js/game/badges.js` to change the numbers).
+
+| Perk | Name | Strength 1 | Strength 4 | Strength 8 |
+|---|---|---|---|---|
+| sturdy-stone | Sturdy Stone | Your Pokémon at full HP take 3% less damage | Your Pokémon at full HP take 9% less damage | Your Pokémon at full HP take 17% less damage |
+| weakness-guard | Bedrock | Super effective moves against you deal 4% less damage | Super effective moves against you deal 10% less damage | Super effective moves against you deal 18% less damage |
+| opener | Opening Salvo | On the first turn of a battle your moves deal 8% more damage | On the first turn of a battle your moves deal 20% more damage | On the first turn of a battle your moves deal 36% more damage |
+| last-stand | Last Stand | Your Pokémon below 1/3 HP deal 6% more damage | Your Pokémon below 1/3 HP deal 16.5% more damage | Your Pokémon below 1/3 HP deal 30.5% more damage |
+| revenge | Vengeance | +2% damage for each of your Pokémon that has fainted this battle (up to 3) | +5% damage for each of your Pokémon that has fainted this battle (up to 3) | +9% damage for each of your Pokémon that has fainted this battle (up to 3) |
+| closer | Closer | Your moves deal 4% more damage to targets below half HP | Your moves deal 11.5% more damage to targets below half HP | Your moves deal 21.5% more damage to targets below half HP |
+| super-effective | Weakness Hunter | Your super effective moves deal 3% more damage | Your super effective moves deal 9% more damage | Your super effective moves deal 17% more damage |
+| stab-plus | Signature Style | Same-type attack bonus +2% | Same-type attack bonus +6.5% | Same-type attack bonus +12.5% |
+| crit-eye | Sharp Eyes | Your moves have a +2% chance to be critical hits | Your moves have a +6.5% chance to be critical hits | Your moves have a +12.5% chance to be critical hits |
+| accuracy | Eagle Eye | Your moves are 2% more accurate | Your moves are 5% more accurate | Your moves are 9% more accurate |
+| dodge | Thick Fog | Foes' moves are 2% less accurate | Foes' moves are 5% less accurate | Foes' moves are 9% less accurate |
+| multi-hit | Swarm | Your multi-hit moves always hit at least 2 times | Your multi-hit moves always hit at least 2 times | Your multi-hit moves always hit at least 3 times |
+| vampire | Vampire | Your damaging moves heal you for 3% of the damage dealt | Your damaging moves heal you for 7.5% of the damage dealt | Your damaging moves heal you for 13.5% of the damage dealt |
+| thorns | Spikes | Foes that make contact with your Pokémon lose 2% of their max HP | Foes that make contact with your Pokémon lose 5% of their max HP | Foes that make contact with your Pokémon lose 9% of their max HP |
+| regen | Regrowth | Your Pokémon heal 1% of their max HP at the end of every turn | Your Pokémon heal 2.5% of their max HP at the end of every turn | Your Pokémon heal 4.5% of their max HP at the end of every turn |
+| ko-heal | Spoils of War | A Pokémon that knocks out a foe recovers 5% of its max HP | A Pokémon that knocks out a foe recovers 14% of its max HP | A Pokémon that knocks out a foe recovers 26% of its max HP |
+| second-wind | Second Wind | 10% chance that a Pokémon that would faint survives with 1 HP (once per battle) | 34% chance that a Pokémon that would faint survives with 1 HP (once per battle) | 66% chance that a Pokémon that would faint survives with 1 HP (once per battle) |
+| stat-atk | Brawler | +2% Attack | +5% Attack | +9% Attack |
+| stat-spa | Mind Over Matter | +2% Sp. Atk | +5% Sp. Atk | +9% Sp. Atk |
+| stat-def | Iron Skin | +2% Defense | +5% Defense | +9% Defense |
+| stat-spd | Dragon Scales | +2% Sp. Def | +5% Sp. Def | +9% Sp. Def |
+| stat-spe | Tailwind | +2% Speed | +5% Speed | +9% Speed |
+| para-ward | Static Guard | 15% chance to block paralysis | 45% chance to block paralysis | 85% chance to block paralysis |
+| poison-ward | Antidote Charm | 15% chance to block poison | 45% chance to block poison | 85% chance to block poison |
+| burn-ward | Frost Veil | 15% chance to block burns | 45% chance to block burns | 85% chance to block burns |
+| sleep-ward | Wide Awake | 15% chance to block sleep | 45% chance to block sleep | 85% chance to block sleep |
+| rain-start | Rainmaker | Rain falls at the start of every battle (3 turns) | Rain falls at the start of every battle (6 turns) | Rain falls at the start of every battle (8 turns) |
+| sun-start | Sunbringer | Harsh sunlight at the start of every battle (3 turns) | Harsh sunlight at the start of every battle (6 turns) | Harsh sunlight at the start of every battle (8 turns) |
+| sand-start | Sand Caller | A sandstorm at the start of every battle (3 turns) | A sandstorm at the start of every battle (6 turns) | A sandstorm at the start of every battle (8 turns) |
+| hail-start | Cold Snap | Hail at the start of every battle (3 turns) | Hail at the start of every battle (6 turns) | Hail at the start of every battle (8 turns) |
+| recruit | Extra Recruit | +1 card on every recruit screen | +1 card on every recruit screen | +1 card and +1 pick on every recruit screen |
+| swap | Swap | Once per recruit screen, swap one of your Pokémon for any card (no pick needed) | Once per recruit screen, swap one of your Pokémon for any card (no pick needed) | Twice per recruit screen, swap one of your Pokémon for any card (no pick needed) |
+| reroll | Reroller | +1 free reroll on every recruit screen | +1 free reroll on every recruit screen | +2 free rerolls on every recruit screen |
+| scout | Scout | +1 card on every recruit and item screen | +1 card on every recruit and item screen | +2 cards on every recruit and item screen |
+| wallet | Lucky Wallet | +10% prize money | +19% prize money | +31% prize money |
+| hidden | Hidden Potential | +3% Hidden Ability chance for recruits | +7.5% Hidden Ability chance for recruits | +13.5% Hidden Ability chance for recruits |
+| gift | Gift Box | +1 card on every item screen | +1 card on every item screen | +1 card and +1 pick on every item screen |
+| tm | TM Master | 15% chance of an extra TM after every battle | 45% chance of an extra TM after every battle | 85% chance of an extra TM after every battle |
+| interest | Interest | After every win you earn 3% of the money you hold (at most ₽100) | After every win you earn 6% of the money you hold (at most ₽220) | After every win you earn 10% of the money you hold (at most ₽380) |
+| haggler | Haggler | Shop prices are 3% lower | Shop prices are 7.5% lower | Shop prices are 13.5% lower |
+
+#### Set bonus
+
+Badges from the **same generation** anywhere in your case give all your Pokémon a small **stat bonus** (Attack, Defense, Sp. Atk, Sp. Def and Speed) in battle. Every generation counts on its own and the bonuses add up, so 3 + 3 badges from two generations give 2 × the first tier, while a full set of 8 gives the most.
+
+| Badges of one generation | Stat bonus |
+|---|---|
+| 3 | 2% |
+| 5 | 4% |
+| 8 | 6% |
+
+Badge images are placeholders drawn by `node tools/make-badges.mjs` (`images/badges/<gen>-<gym>.svg`); put real art with the same file names there to replace them.
+
 ## 4. Settings
 
 | Setting | Options | Notes |
@@ -1421,6 +1533,7 @@ Showdown's Gen 4 rules differ from Gen 5 in 56 abilities, 59 items, 132 moves an
 - [ ] **Music, sound and move animations.**
 - [ ] **Singles mode.**
 - [ ] **Multi battles:** e.g. 2 trainers with 6 Pokémon each (12 vs 12).
+- [ ] **Multiplayer mode:** team up with 1 friend through the double battles and become Pokémon Champions together (idea only, nothing decided yet: how teams are split, online or same device, shared or separate recruits).
 
 ## 7. Technical Notes
 
@@ -1724,3 +1837,10 @@ All Rock-type lines up to Gen 4. Slugma (Fire) and Steelix (Steel/Ground) are in
 - **v0.7.2 · October 19, 2026:** Characters whose picker sprite was identical to another one are gone (Ethan Spaceworld '97 and Gold beta, Leaf (Emerald), the Diamond/Pearl Lucas, Dawn and Barry, Cheren (Black/White)): 36 playable characters.
 - **v0.7.3 · October 19, 2026:** Pixelify Sans is replaced by Nunito (clearer text). VT323 stays for details and numbers. Added a Fonts overview to §7.
 - **v0.7.4 · October 19, 2026:** Dialog option buttons with a Pokémon (evolve, swap, relearn…) show a 64 px sprite instead of 32 px and keep it next to the name. Animated sprites no longer drift to the middle of flex rows.
+- **v0.8.0 · October 23, 2026:** Gym badges (§3k): each gym gives a badge with a perk (Extra Recruit, Swap, Reroller, Scout, Lucky Wallet, Hidden Potential, Gift Box, TM Master); wear 2 badges at first, 3 after Gym 4, 4 after Gym 8 (Badges button in the hub). Moves bar on the right of the team: the chosen Pokémon's four moves plus every TM and relearnable move as draggable cards; drag a move onto a slot to learn it, drag a slot onto another to reorder. Castform's Forecast now changes its form and type with the weather (Sunny, Rainy, Snowy sprites downloaded). Natures show what they do on recruit cards. The progress circles show the opponent's face with their type colour once you have reached them (remembered per Challenge Gen across runs). New `tools/test-run.mjs` for run-level tests.
+- **v0.8.1 · October 23, 2026:** Badges reworked (§3k). Beating a gym leader unlocks their badge for good (40 badges, shared by every generation and run, saved in the meta save). Before a new run you fill an 8-slot badge case (4 × 2 grid, tap or drag, on the New run screen) with badges from any generation; the case is locked during the run. A badge from the run's Challenge Gen is boosted (★), a perk counts at most twice. Badge images are placeholder SVGs (`node tools/make-badges.mjs`, `images/badges/`).
+- **v0.9.0 · October 23, 2026:** Badges are personal (§3k): every gym leader has their own badge and perk (Brock always gives the Boulder Badge), 40 different perks, so a badge can only be worn once. Type badges give your moves +10% damage (`boost:<type>`) or your Pokémon −10% damage from that type (`ward:<type>`); 8 badges give run perks (extra recruit, swap, reroll, scout, wallet, hidden, gift, TM). The same-gen boost is replaced by a set bonus: 3 / 5 / 8 badges from one generation give your Pokémon +4% / +8% / +12% to Attack, Defense, Sp. Atk, Sp. Def and Speed (generations add up). Moves and Shop now share the right column with tabs.
+- **v0.9.1 · October 23, 2026:** Badges are now like Balatro jokers: 40 badges, 40 different effects (§3k). 30 battle effects (Sturdy Stone, Opening Salvo, Last Stand, Vengeance, Second Wind, Vampire, Spikes, weather starters, status wards, stat boosts…) and 10 run effects (Extra Recruit, Swap, Reroller, Scout, Lucky Wallet, Hidden Potential, Gift Box, TM Master, Interest, Haggler). The type Power/Ward badges are gone. The set bonus stays.
+- **v0.9.2 · October 23, 2026:** Badges got weaker and now scale and care about position (§3k). An effect's size depends on the badge's strength: its gym number (1–8) plus 1 for every neighbouring badge of the same generation (left, right, above, below in the 4 × 2 case), at most 10. Early gyms give small effects (Sturdy Stone: 3% less damage at strength 1, 17% at 8), late gyms strong ones; weather badges last at most 8 turns. The set bonus is smaller (2% / 4% / 6%). The case shows each badge's strength, effects are listed with their numbers, and §3k has an effect scaling table.
+- **v0.9.3 · October 23, 2026:** Shop items are a compact list: one slim row per item, the whole row is the buy button, the price is plain text. The Bag no longer moves when you switch between the Moves and Shop tabs (the opponent card and Bag are one left column). Badge position is simpler: the badge case has 1, 2 or 3 random pairs of linked slots (new links every run, shown with 🔗 and a letter), and two badges in a linked pair boost each other by +2 strength.
+- **v0.9.4 · October 23, 2026:** Shop sections fold up and open again when you click their heading.

@@ -24,5 +24,13 @@ export function applySpriteMode(data, mode = DEFAULT_SPRITE_MODE) {
     const ext = mode === "gen5-ani" ? "gif" : "png";
     for (const [key, folder] of Object.entries(KINDS)) p.sprites[key] = `images/sprites/${dir}/${folder}/${p.id}.${ext}`;
   }
+  // Castform's Sunny / Rainy / Snowy forms (swapped in by the Forecast ability)
+  const castform = data.pokemon.find((p) => p.key === "castform");
+  if (castform) {
+    const dir = mode === "gen5-ani" ? "gen5-ani" : mode === "gen4" ? "gen4" : "gen5";
+    const ext = mode === "gen5-ani" ? "gif" : "png";
+    castform.forms = Object.fromEntries(["sunny", "rainy", "snowy"].map((form) => [form,
+      Object.fromEntries(Object.entries(KINDS).map(([key, folder]) => [key, `images/sprites/${dir}/${folder}/${castform.id}-${form}.${ext}`]))]));
+  }
   data.spriteMode = mode;
 }

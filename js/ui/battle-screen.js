@@ -359,6 +359,17 @@ export class BattleScreen {
         e.occupants.forEach((o, slot) => this.placeMon(e.side, slot, o.teamIndex, o.hp, o.maxHp));
         return this.say(e.text);
       }
+      case "form": {
+        // Castform's Forecast: a weather form (or back to normal)
+        const species = this.data.pokemonByKey[e.species];
+        const set = e.form ? species.forms?.[e.form] ?? species.sprites : species.sprites;
+        const img = this.sprite(e.side, e.slot);
+        if (!img) return this.say(e.text);
+        img.src = e.side === PLAYER ? (e.shiny ? set.backShiny : set.back) : (e.shiny ? set.frontShiny : set.front);
+        alignSprite(img, { hover: hovers(species) });
+        this.animateSprite(e.side, e.slot, "enter", 450);
+        return this.say(e.text);
+      }
       case "transform": {
         // The Pokémon looks like its target until it leaves the field
         const img = this.sprite(e.side, e.slot);
