@@ -31,7 +31,7 @@ export const BADGE_NAMES = {
 export const badgeId = (gen, order) => `${gen}-${order}`;
 export const parseBadgeId = (id) => { const [gen, order] = String(id).split("-").map(Number); return { gen, order }; };
 export const badgeName = (gen, order) => `${BADGE_NAMES[gen]?.[order - 1] ?? `Gym ${order}`} Badge`;
-export const badgeImage = (id) => `images/badges/${id}.svg`;
+export const badgeImage = (id) => `images/badges/${id}.png`;
 export const ALL_BADGES = [1, 2, 3, 4, 5].flatMap((gen) => Array.from({ length: 8 }, (_, i) => badgeId(gen, i + 1)));
 
 // --- The effects ---------------------------------------------------------------------------------
@@ -39,49 +39,51 @@ export const ALL_BADGES = [1, 2, 3, 4, 5].flatMap((gen) => Array.from({ length: 
 // text(param): what it says. Strength 1 is weak (a few percent), strength 8–10 is strong.
 const pct = (v) => `${Math.round(v * 1000) / 10}%`;
 const lin = (base, step) => (L) => base + step * (L - 1);
+// Damage, stat and heal effects are toned down: x0.7
+const soft = (f) => (L) => Math.round(f(L) * 0.7 * 1000) / 1000;
 export const EFFECTS = {
   // Battle
-  "sturdy-stone": { name: "Sturdy Stone", param: lin(0.03, 0.02), text: (v) => `Your Pokémon at full HP take ${pct(v)} less damage` },
-  "weakness-guard": { name: "Bedrock", param: lin(0.04, 0.02), text: (v) => `Super effective moves against you deal ${pct(v)} less damage` },
-  opener: { name: "Opening Salvo", param: lin(0.08, 0.04), text: (v) => `On the first turn of a battle your moves deal ${pct(v)} more damage` },
-  "last-stand": { name: "Last Stand", param: lin(0.06, 0.035), text: (v) => `Your Pokémon below 1/3 HP deal ${pct(v)} more damage` },
-  revenge: { name: "Vengeance", param: lin(0.02, 0.01), text: (v) => `+${pct(v)} damage for each of your Pokémon that has fainted this battle (up to 3)` },
-  closer: { name: "Closer", param: lin(0.04, 0.025), text: (v) => `Your moves deal ${pct(v)} more damage to targets below half HP` },
-  "super-effective": { name: "Weakness Hunter", param: lin(0.03, 0.02), text: (v) => `Your super effective moves deal ${pct(v)} more damage` },
-  "stab-plus": { name: "Signature Style", param: lin(0.02, 0.015), text: (v) => `Same-type attack bonus +${pct(v)}` },
-  "crit-eye": { name: "Sharp Eyes", param: lin(0.02, 0.015), text: (v) => `Your moves have a +${pct(v)} chance to be critical hits` },
-  accuracy: { name: "Eagle Eye", param: lin(0.02, 0.01), text: (v) => `Your moves are ${pct(v)} more accurate` },
-  dodge: { name: "Thick Fog", param: lin(0.02, 0.01), text: (v) => `Foes' moves are ${pct(v)} less accurate` },
+  "sturdy-stone": { name: "Sturdy Stone", param: soft(lin(0.03, 0.02)), text: (v) => `Your Pokémon at full HP take ${pct(v)} less damage` },
+  "weakness-guard": { name: "Bedrock", param: soft(lin(0.04, 0.02)), text: (v) => `Super effective moves against you deal ${pct(v)} less damage` },
+  opener: { name: "Opening Salvo", param: soft(lin(0.08, 0.04)), text: (v) => `On the first turn of a battle your moves deal ${pct(v)} more damage` },
+  "last-stand": { name: "Last Stand", param: soft(lin(0.06, 0.035)), text: (v) => `Your Pokémon below 1/3 HP deal ${pct(v)} more damage` },
+  revenge: { name: "Vengeance", param: soft(lin(0.02, 0.01)), text: (v) => `+${pct(v)} damage for each of your Pokémon that has fainted this battle (up to 3)` },
+  closer: { name: "Closer", param: soft(lin(0.04, 0.025)), text: (v) => `Your moves deal ${pct(v)} more damage to targets below half HP` },
+  "super-effective": { name: "Weakness Hunter", param: soft(lin(0.03, 0.02)), text: (v) => `Your super effective moves deal ${pct(v)} more damage` },
+  "stab-plus": { name: "Signature Style", param: soft(lin(0.02, 0.015)), text: (v) => `Same-type attack bonus +${pct(v)}` },
+  "crit-eye": { name: "Sharp Eyes", param: soft(lin(0.02, 0.015)), text: (v) => `Your moves have a +${pct(v)} chance to be critical hits` },
+  accuracy: { name: "Eagle Eye", param: soft(lin(0.02, 0.01)), text: (v) => `Your moves are ${pct(v)} more accurate` },
+  dodge: { name: "Thick Fog", param: soft(lin(0.02, 0.01)), text: (v) => `Foes' moves are ${pct(v)} less accurate` },
   "multi-hit": { name: "Swarm", param: (L) => (L >= 5 ? 3 : 2), text: (v) => `Your multi-hit moves always hit at least ${v} times` },
-  vampire: { name: "Vampire", param: lin(0.03, 0.015), text: (v) => `Your damaging moves heal you for ${pct(v)} of the damage dealt` },
-  thorns: { name: "Spikes", param: lin(0.02, 0.01), text: (v) => `Foes that make contact with your Pokémon lose ${pct(v)} of their max HP` },
-  regen: { name: "Regrowth", param: lin(0.01, 0.005), text: (v) => `Your Pokémon heal ${pct(v)} of their max HP at the end of every turn` },
-  "ko-heal": { name: "Spoils of War", param: lin(0.05, 0.03), text: (v) => `A Pokémon that knocks out a foe recovers ${pct(v)} of its max HP` },
-  "second-wind": { name: "Second Wind", param: lin(0.1, 0.08), text: (v) => `${pct(v)} chance that a Pokémon that would faint survives with 1 HP (once per battle)` },
-  "stat-atk": { name: "Brawler", param: lin(0.02, 0.01), text: (v) => `+${pct(v)} Attack` },
-  "stat-spa": { name: "Mind Over Matter", param: lin(0.02, 0.01), text: (v) => `+${pct(v)} Sp. Atk` },
-  "stat-def": { name: "Iron Skin", param: lin(0.02, 0.01), text: (v) => `+${pct(v)} Defense` },
-  "stat-spd": { name: "Dragon Scales", param: lin(0.02, 0.01), text: (v) => `+${pct(v)} Sp. Def` },
-  "stat-spe": { name: "Tailwind", param: lin(0.02, 0.01), text: (v) => `+${pct(v)} Speed` },
-  "para-ward": { name: "Static Guard", param: (L) => Math.min(0.95, 0.15 + 0.1 * (L - 1)), text: (v) => `${pct(v)} chance to block paralysis` },
-  "poison-ward": { name: "Antidote Charm", param: (L) => Math.min(0.95, 0.15 + 0.1 * (L - 1)), text: (v) => `${pct(v)} chance to block poison` },
-  "burn-ward": { name: "Frost Veil", param: (L) => Math.min(0.95, 0.15 + 0.1 * (L - 1)), text: (v) => `${pct(v)} chance to block burns` },
-  "sleep-ward": { name: "Wide Awake", param: (L) => Math.min(0.95, 0.15 + 0.1 * (L - 1)), text: (v) => `${pct(v)} chance to block sleep` },
-  "rain-start": { name: "Rainmaker", param: (L) => Math.min(8, 2 + L), text: (v) => `Rain falls at the start of every battle (${v} turns)` },
-  "sun-start": { name: "Sunbringer", param: (L) => Math.min(8, 2 + L), text: (v) => `Harsh sunlight at the start of every battle (${v} turns)` },
-  "sand-start": { name: "Sand Caller", param: (L) => Math.min(8, 2 + L), text: (v) => `A sandstorm at the start of every battle (${v} turns)` },
-  "hail-start": { name: "Cold Snap", param: (L) => Math.min(8, 2 + L), text: (v) => `Hail at the start of every battle (${v} turns)` },
+  vampire: { name: "Vampire", param: soft(lin(0.03, 0.015)), text: (v) => `Your damaging moves heal you for ${pct(v)} of the damage dealt` },
+  thorns: { name: "Spikes", param: soft(lin(0.02, 0.01)), text: (v) => `Foes that make contact with your Pokémon lose ${pct(v)} of their max HP` },
+  regen: { name: "Regrowth", param: soft(lin(0.01, 0.005)), text: (v) => `Your Pokémon heal ${pct(v)} of their max HP at the end of every turn` },
+  "ko-heal": { name: "Spoils of War", param: soft(lin(0.05, 0.03)), text: (v) => `A Pokémon that knocks out a foe recovers ${pct(v)} of its max HP` },
+  "second-wind": { name: "Second Wind", param: lin(0.08, 0.05), text: (v) => `${pct(v)} chance that a Pokémon that would faint survives with 1 HP (once per battle)` },
+  "stat-atk": { name: "Brawler", param: soft(lin(0.02, 0.01)), text: (v) => `+${pct(v)} Attack` },
+  "stat-spa": { name: "Mind Over Matter", param: soft(lin(0.02, 0.01)), text: (v) => `+${pct(v)} Sp. Atk` },
+  "stat-def": { name: "Iron Skin", param: soft(lin(0.02, 0.01)), text: (v) => `+${pct(v)} Defense` },
+  "stat-spd": { name: "Dragon Scales", param: soft(lin(0.02, 0.01)), text: (v) => `+${pct(v)} Sp. Def` },
+  "stat-spe": { name: "Tailwind", param: soft(lin(0.02, 0.01)), text: (v) => `+${pct(v)} Speed` },
+  "para-ward": { name: "Static Guard", param: (L) => Math.min(0.9, 0.1 + 0.08 * (L - 1)), text: (v) => `${pct(v)} chance to block paralysis` },
+  "poison-ward": { name: "Antidote Charm", param: (L) => Math.min(0.9, 0.1 + 0.08 * (L - 1)), text: (v) => `${pct(v)} chance to block poison` },
+  "burn-ward": { name: "Frost Veil", param: (L) => Math.min(0.9, 0.1 + 0.08 * (L - 1)), text: (v) => `${pct(v)} chance to block burns` },
+  "sleep-ward": { name: "Wide Awake", param: (L) => Math.min(0.9, 0.1 + 0.08 * (L - 1)), text: (v) => `${pct(v)} chance to block sleep` },
+  "rain-start": { name: "Rainmaker", param: (L) => Math.min(5, 2 + Math.ceil(L / 2)), text: (v) => `Rain falls at the start of every battle (${v} turns)` },
+  "sun-start": { name: "Sunbringer", param: (L) => Math.min(5, 2 + Math.ceil(L / 2)), text: (v) => `Harsh sunlight at the start of every battle (${v} turns)` },
+  "sand-start": { name: "Sand Caller", param: (L) => Math.min(5, 2 + Math.ceil(L / 2)), text: (v) => `A sandstorm at the start of every battle (${v} turns)` },
+  "hail-start": { name: "Cold Snap", param: (L) => Math.min(5, 2 + Math.ceil(L / 2)), text: (v) => `Hail at the start of every battle (${v} turns)` },
   // Run
   recruit: { name: "Extra Recruit", param: (L) => ({ cards: 1, picks: L >= 5 ? 1 : 0 }), text: (v) => `+${v.cards} card${v.picks ? ` and +${v.picks} pick` : ""} on every recruit screen` },
   swap: { name: "Swap", param: (L) => (L >= 5 ? 2 : 1), text: (v) => `${v === 1 ? "Once" : "Twice"} per recruit screen, swap one of your Pokémon for any card (no pick needed)` },
   reroll: { name: "Reroller", param: (L) => (L >= 6 ? 2 : 1), text: (v) => `+${v} free reroll${v > 1 ? "s" : ""} on every recruit screen` },
   scout: { name: "Scout", param: (L) => (L >= 6 ? 2 : 1), text: (v) => `+${v} card${v > 1 ? "s" : ""} on every recruit and item screen` },
-  wallet: { name: "Lucky Wallet", param: lin(0.1, 0.03), text: (v) => `+${pct(v)} prize money` },
-  hidden: { name: "Hidden Potential", param: lin(0.03, 0.015), text: (v) => `+${pct(v)} Hidden Ability chance for recruits` },
+  wallet: { name: "Lucky Wallet", param: soft(lin(0.1, 0.03)), text: (v) => `+${pct(v)} prize money` },
+  hidden: { name: "Hidden Potential", param: soft(lin(0.03, 0.015)), text: (v) => `+${pct(v)} Hidden Ability chance for recruits` },
   gift: { name: "Gift Box", param: (L) => ({ cards: 1, picks: L >= 5 ? 1 : 0 }), text: (v) => `+${v.cards} card${v.picks ? ` and +${v.picks} pick` : ""} on every item screen` },
-  tm: { name: "TM Master", param: lin(0.15, 0.1), text: (v) => `${pct(v)} chance of an extra TM after every battle` },
+  tm: { name: "TM Master", param: soft(lin(0.15, 0.1)), text: (v) => `${pct(v)} chance of an extra TM after every battle` },
   interest: { name: "Interest", param: (L) => ({ rate: 0.03 + 0.01 * (L - 1), cap: 100 + 40 * (L - 1) }), text: (v) => `After every win you earn ${pct(v.rate)} of the money you hold (at most ₽${v.cap})` },
-  haggler: { name: "Haggler", param: lin(0.03, 0.015), text: (v) => `Shop prices are ${pct(v)} lower` },
+  haggler: { name: "Haggler", param: soft(lin(0.03, 0.015)), text: (v) => `Shop prices are ${pct(v)} lower` },
 };
 
 // Name, text and number of an effect at a strength
@@ -154,12 +156,14 @@ export function setBonus(ids, rules) {
   return { pct: parts.reduce((n, p) => n + p.pct, 0), parts };
 }
 
-// --- In a run: the case is frozen into run.badges = { slots: [8 ids or null], links: [[a, b], …], equipped: [ids], gen } ---
+// --- In a run: the case is frozen into run.badges = { slots: [8 ids or null], links: [[a, b], …], off: [ids whose effect is switched off], equipped: [ids], gen } ---
 
 // Effect id → { strength, param } for the equipped badges
 export function activeEffects(run, rules) {
   const out = {};
+  const off = new Set(run.badges?.off ?? []); // effects you switched off in the badge case
   for (const b of caseStrengths(run.badges?.slots ?? run.badges?.equipped ?? [], run.badges?.links ?? [])) {
+    if (off.has(b.id)) continue;
     const perk = perkOfBadge(rules, b.id);
     if (perk && EFFECTS[perk]) out[perk] = { strength: b.strength, param: EFFECTS[perk].param(b.strength), id: b.id };
   }

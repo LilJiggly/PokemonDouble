@@ -146,5 +146,14 @@ test("Badge effects and stats reach the battle, scaled by strength", () => {
   eq(battleBonus({ badges: { slots: Array(8).fill(null) } }, ctx.rules), null, "nothing equipped");
 });
 
+test("A badge's effect can be switched off (the badge still counts for the set bonus)", () => {
+  const slots = ["1-1", "1-2", "1-3", null, null, null, null, null];
+  const on = battleBonus({ badges: { slots, links: [] } }, ctx.rules);
+  const off = battleBonus({ badges: { slots, links: [], off: ["1-2"] } }, ctx.rules);
+  assert("rain-start" in on.effects && !("rain-start" in off.effects), "rain effect switched off");
+  assert("sturdy-stone" in off.effects, "other badges keep working");
+  eq(off.stats.atk, on.stats.atk, "set bonus unchanged");
+});
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

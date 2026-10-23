@@ -61,6 +61,11 @@ export class BattleScreen {
     this.textbox = document.getElementById("textbox");
     this.textEl = document.getElementById("text");
     this.turnBadge = document.getElementById("turnBadge");
+    // Reflect, Light Screen, Tailwind and Safeguard stay visible at the top while they are up
+    this.condTags = document.createElement("div");
+    this.condTags.className = "cond-tags";
+    this.scene.appendChild(this.condTags);
+    this.conds = { [PLAYER]: new Set(), [FOE]: new Set() };
     this.speed = localStorage.getItem("pd.textSpeed") === "fast" ? "fast" : "normal";
     this.view = {}; // what's shown at each position: { teamIndex, hp, maxHp, status }
     this.skip = null;
@@ -137,6 +142,8 @@ export class BattleScreen {
     this.scene.dataset.weather = "";
     this.scene.dataset.terrain = this.terrain;
     this.turnBadge.textContent = "";
+    this.conds = { [PLAYER]: new Set(), [FOE]: new Set() };
+    this.renderConds();
   }
 
   // ===============================
@@ -192,12 +199,16 @@ export class BattleScreen {
   // Draw everything straight from the battle state (used when resuming a save)
   renderFromState() {
     const st = this.battle.state;
+    for (const side of st.sides) this.conds[side.index] = new Set(Object.keys(side.conditions ?? {}).filter((k) => side.conditions[k] > 0));
+    this.renderConds();
     for (const side of st.sides) {
       for (const slot of [0, 1]) {
         const mon = this.battle.monAt(side.index, slot);
         if (mon && !mon.fainted) {
           this.placeMon(side.index, slot, mon.teamIndex, mon.hp, mon.maxHp);
           this.view[posKey(side.index, slot)].status = mon.status;
+          const away = { air: "away-air", underground: "away-ground", underwater: "away-water", vanished: "away-ghost" }[mon.volatile?.charging?.invulnerable];
+          if (away) this.sprite(side.index, slot).classList.add(away); // resumed in the middle of a Fly / Dig
           this.drawHpbox(side.index, slot);
         }
       }
@@ -292,6 +303,23 @@ export class BattleScreen {
     setTimeout(() => badge.remove(), 900);
   }
 
+  // The screens and other field effects that are up, as small tags at the top of the scene
+  renderConds() {
+    const LABEL = { reflect: "Reflect", lightScreen: "Light Screen", tailwind: "Tailwind", safeguard: "Safeguard", mist: "Mist", luckyChant: "Lucky Chant" };
+    const tag = (side, key) => `<span class="cond-tag ${side === PLAYER ? "mine" : "foe"}" title="${side === PLAYER ? "Your side" : "The foe's side"}: ${LABEL[key]}">${LABEL[key]}</span>`;
+    this.condTags.innerHTML = [FOE, PLAYER].flatMap((side) => [...this.conds[side]].filter((k) => LABEL[k]).map((k) => tag(side, k))).join("");
+  }
+
+  // Back from a Fly / Dig / Dive: the Pokémon drops back onto the field
+  restoreAway(side, slot) {
+    const img = this.sprite(side, slot);
+    if (!img || !/away-/.test(img.className)) return;
+    img.classList.remove("away-air", "away-ground", "away-water", "away-ghost");
+    this.hpbox(side, slot).classList.remove("semi");
+    img.classList.add("return");
+    setTimeout(() => img.classList.remove("return"), 450);
+  }
+
   async animateSprite(side, slot, cls, ms) {
     const img = this.sprite(side, slot);
     img.classList.remove(cls);
@@ -350,6 +378,10 @@ export class BattleScreen {
       case "turn":
         this.turnBadge.textContent = `Turn ${e.turn}`;
         return;
+      case "sidecond":
+        this.conds[e.side][e.on ? "add" : "delete"](e.key);
+        this.renderConds();
+        return e.text ? this.say(e.text) : undefined;
       case "switch":
         this.placeMon(e.side, e.slot, e.teamIndex, e.hp, e.maxHp);
         await this.animateSprite(e.side, e.slot, "enter", 450);
@@ -384,12 +416,26 @@ export class BattleScreen {
         this.hpbox(e.side, e.slot).classList.remove("visible");
         delete this.view[posKey(e.side, e.slot)];
         return;
-      case "move":
+      case "cant":
+        this.restoreAway(e.side, e.slot); // a flinch or paralysis ends a Fly / Dig: the Pokémon is back on the field
+        return this.say(e.text);
+      case "charge": {
+        // Fly / Bounce / Sky Drop: up and out of the screen. Dig: into the ground. Dive: under water. Shadow Force: gone.
+        const img = this.sprite(e.side, e.slot);
+        const cls = { air: "away-air", underground: "away-ground", underwater: "away-water", vanished: "away-ghost" }[e.state];
+        if (img && cls) { img.classList.add(cls); this.hpbox(e.side, e.slot).classList.add("semi"); }
+        await sleep(this.speed === "fast" ? 250 : 520);
+        return this.say(e.text);
+      }
+      case "move": {
+        // Coming back from a Fly / Dig / Dive: the Pokémon drops back onto the field before it attacks
+        this.restoreAway(e.side, e.slot);
         this.hpbox(e.side, e.slot).classList.add("active-turn");
         await this.say(e.text);
         await this.animateSprite(e.side, e.slot, "attack", 300);
         this.hpbox(e.side, e.slot).classList.remove("active-turn");
         return;
+      }
       case "damage":
         if (e.indirect) await this.say(e.text);
         else if (e.hit) {

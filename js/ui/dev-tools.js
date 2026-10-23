@@ -243,7 +243,7 @@ export class DevTools {
     const { ui } = this;
     if (stage === "real") {
       ui.preview = false;
-      ui.teamView = read(localStorage, "pd.teamView") === "grid" ? "grid" : "detailed";
+      ui.teamView = read(localStorage, "pd.teamView") === "detailed" ? "detailed" : "grid"; // the grid is the default
       write(sessionStorage, VIEW_KEY, "run");
       if (!ui.resumeSaved()) ui.start();
       this.markCurrent();

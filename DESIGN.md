@@ -70,7 +70,7 @@ _Last updated: October 09, 2026_
 ### Leveling and moves
 - Before each battle, the whole team **auto-levels to the next opponent's level + the Level bonus** in §3a (early gyms only, to soften the start).
 - When a level-up offers a new move, you **choose which move to replace** (or skip it).
-- **Free Move Relearner** between battles. TMs may be added later as an item.
+- **Free move relearning** between battles: the **Moves bar** next to the team lists every move the chosen Pokémon can learn (level-up moves up to its level, and the TMs you own). Tap a move for a popup with its details and the slot to learn it in, or drag it onto one of the four slots. Drag a slot onto another to change the order.
 
 ### Evolution
 - **Player-triggered:** an **Evolve** button appears once a Pokémon qualifies. You choose when (or whether).
@@ -245,7 +245,7 @@ Every opponent (gyms, Elite Four, Champion, Rival) gives a **reusable TM** when 
 
 ### 3h. Shop & prize money
 
-The **shop** in the hub is split into **sections** (tabs, like the Bag): Items (held items), Berries, Medicine, Battle, Key Items and TMs. Each section sells the number of random items below, from the item pool (§3e) rolled with the item odds (§3d). TMs are ones you don't own yet, within the TM power limit for the next battle (§3g). The stock refreshes after every battle. **Reroll:** the first reroll after each battle is free, after that each reroll costs the amount below. You can sell items for half their price.
+The **shop** in the hub is split into **sections** (tabs, like the Bag): Items (held items), Berries, Medicine, Battle, Key Items and TMs. Each section sells the number of random items below, from the item pool (§3e) rolled with the item odds (§3d). TMs are ones you don't own yet, within the TM power limit for the next battle (§3g). The stock refreshes after every battle. **Reroll:** the first reroll after each battle is free, after that each reroll costs the amount below. You can sell items for half their price. **Deals:** every restock puts 2 random items and 1 TM on sale for 20–50% off (shown at the top as "Today's deals", with the old price struck through). The reroll button is called Restock and rerolls the deals too.
 
 | Tier | Price |
 |---|---|
@@ -266,12 +266,12 @@ The **shop** in the hub is split into **sections** (tabs, like the Bag): Items (
 | Money rule | Amount |
 |---|---|
 | Starting money | 500 |
-| Prize per win | 150 × battle number |
+| Prize per win | 190 × battle number |
 | Flawless bonus (nobody fainted) | 50% |
-| TM price (status or power ≤ 60) | 1500 |
-| TM price (power 61–85) | 3000 |
-| TM price (power 86+) | 5000 |
-| Shop reroll (after the free one) | 200 |
+| TM price (status or power ≤ 60) | 1200 |
+| TM price (power 61–85) | 2400 |
+| TM price (power 86+) | 4000 |
+| Shop reroll (after the free one) | 150 |
 
 ### 3i. Trainer upgrades (roguelite progression)
 
@@ -456,7 +456,7 @@ Badges from the **same generation** anywhere in your case give all your Pokémon
 | 5 | 4% |
 | 8 | 6% |
 
-Badge images are placeholders drawn by `node tools/make-badges.mjs` (`images/badges/<gen>-<gym>.svg`); put real art with the same file names there to replace them.
+Badge images: the official gym badge art from the [PokeAPI sprites](https://github.com/PokeAPI/sprites) repository, scaled down to 40 px pixel icons by `python3 tools/make-badge-images.py` (`images/badges/<gen>-<gym>.png`).
 
 ## 4. Settings
 
@@ -1675,6 +1675,7 @@ Two fonts, both from Google Fonts (linked in `index.html`), set as variables at 
 
 ### Credits
 - **Pokémon data, Pokémon sprites and item sprites:** [PokeAPI](https://pokeapi.co) and the PokeAPI/sprites repository.
+- **Badge art:** the gym badge images of the [PokeAPI sprites](https://github.com/PokeAPI/sprites) repository (`sprites/badges`), scaled down to pixel icons for `images/badges/`.
 - **Black 2 / White 2 trainer sprites:** [Bulbagarden Archives](https://archives.bulbagarden.net) (category "Generation V Trainer sprites"), 52 of our trainers, saved as `images/trainers/variants/<id>-b2w2.png` by `node tools/fetch-b2w2-trainer-sprites.mjs` (file list from `sprites.html`; the category page blocks scripts). Not used in battle yet: they are for the trainer sprite picker.
 - **Trainer sprites:** [Pokémon Showdown](https://play.pokemonshowdown.com/sprites/trainers/) and its sprite artists (downloaded with `node tools/fetch-trainer-sprites.mjs` into `images/trainers/`). Gold uses Showdown's HeartGold/SoulSilver Ethan sprite; Tate & Liza are shown as two sprites.
 - **Player character sprites:** back sprites from [Bulbagarden Archives](https://archives.bulbagarden.net) (category "Trainer back sprites"), front sprites for the picker from Pokémon Showdown. 36 characters in `data/characters.json`, made by `node tools/fetch-back-sprites.mjs` (the category page blocks scripts, so the file list comes from `sprites.html`). Back sprites are in `images/trainers/back/`, fronts in `images/trainers/`. Only trainers with a front sprite are playable (no Old Man, Dude, Pokémon Dude or Roxie's Father) and only one Nate and one Rosa (Black 2 / White 2).
@@ -1844,3 +1845,9 @@ All Rock-type lines up to Gen 4. Slugma (Fire) and Steelix (Steel/Ground) are in
 - **v0.9.2 · October 23, 2026:** Badges got weaker and now scale and care about position (§3k). An effect's size depends on the badge's strength: its gym number (1–8) plus 1 for every neighbouring badge of the same generation (left, right, above, below in the 4 × 2 case), at most 10. Early gyms give small effects (Sturdy Stone: 3% less damage at strength 1, 17% at 8), late gyms strong ones; weather badges last at most 8 turns. The set bonus is smaller (2% / 4% / 6%). The case shows each badge's strength, effects are listed with their numbers, and §3k has an effect scaling table.
 - **v0.9.3 · October 23, 2026:** Shop items are a compact list: one slim row per item, the whole row is the buy button, the price is plain text. The Bag no longer moves when you switch between the Moves and Shop tabs (the opponent card and Bag are one left column). Badge position is simpler: the badge case has 1, 2 or 3 random pairs of linked slots (new links every run, shown with 🔗 and a letter), and two badges in a linked pair boost each other by +2 strength.
 - **v0.9.4 · October 23, 2026:** Shop sections fold up and open again when you click their heading.
+- **v0.9.5 · October 23, 2026:** Fly, Bounce and Sky Drop now show the Pokémon flying up and out of the screen on the charge turn; Dig sinks it into the ground, Dive under water and Shadow Force makes it vanish. It drops back in when it attacks (and also if a flinch or paralysis ends the move). Dig and Fly are covered by an engine test. Moves bar: tapping a move opens its details under it, with buttons to learn it in place of one of the four moves (or an empty slot), plus a Show effects toggle; the Moves tab is gone from the Pokémon details window. Shop: "Today's deals" (2 items and 1 TM at 20–50% off with the old price struck through), and a gold Restock button that glows when free. The recruit reroll no longer shows a count "(1)".
+- **v0.9.6 · October 24, 2026:** The badge case looks like the League Badge screen of the Trainer Card (grey panel, light blue frame, 4 × 2 badges). Real badge art: the official gym badge images from the PokeAPI sprites repository, scaled down to 40 px pixel icons (`python3 tools/make-badge-images.py`); the placeholder drawings are gone. Shop economy: prize money 150 → 190 × battle number, TMs about 20% cheaper (1200 / 2400 / 4000), shop reroll 200 → 150. The Moves bar has one list of every move the chosen Pokémon can learn now: the TMs you own (received or bought) first, then the level-up moves it has missed.
+- **v0.9.7 · October 24, 2026:** Hall of Fame entries (and the Hall of Fame win screen) now also list every Pokémon that fell during the run, in grey under the team (older entries keep just the number).
+- **v0.9.8 · October 24, 2026:** The team starts in the grid view. The Moves bar is the only way to learn moves now: the old Move Relearner and TM dialogs, the Moves / TM buttons on the team cards and TM dragging from the Bag are gone. Tapping a move in the bar (known or learnable) opens a popup with its details and, for new moves, which slot it takes. "Show effects" shows the effect of every move in the bar, including your four current moves.
+- **v0.9.9 · October 24, 2026:** Removed the red −% sale tag in the shop (sale items keep the struck-through old price and the "Today's deals" section). The buy popup of shop items shows the old price of a sale item.
+- **v0.10.0 · October 24, 2026:** Counter and Mirror Coat (and Metal Burst) now hit whoever hit you, they used to hit the user. Reflect, Light Screen, Tailwind and Safeguard show as tags at the top of the battle scene while they are up. Badges: you can switch each badge's effect off in the badge case (it still counts for the set bonus), all damage, stat and heal effects are about 30% weaker and the weather starters last 3–5 turns, the unlock message no longer says what the badge does, and the Next battle panel shows the leader's badge greyed out until you own it. Bag TMs are clickable (details and who can learn it). The item pick screen shows your team like the recruit screen. Items can be dragged between Pokémon in the grid view too. The Moves tab is back in the details window (no relearn button). Show effects is a small switch and the effect text appears inside the move cards. The "Done" button on the recruit screen is now "Skip", and rerolling with all your picks selected rerolls instead of locking them in.

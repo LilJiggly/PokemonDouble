@@ -426,6 +426,39 @@ test("Gym badges: status wards, Regrowth, Vampire, Second Wind, Spikes", () => {
   round(sp, p1(1), p2(0));
   assert(at(sp, 1, 0).hp < foeHp, "spikes hurt the attacker");
 });
+test("Dig and Fly: out of reach on the first turn (with a charge event for the screen), hits on the second", () => {
+  for (const [move, state] of [["dig", "underground"], ["fly", "air"]]) {
+    const b = duel("pidgeot", [move, "splash"], "snorlax", ["tackle", "splash"]);
+    const ev1 = round(b, p1(0), p2(0));
+    const charge = ev1.find((e) => e.t === "charge");
+    assert(charge && charge.state === state, `${move}: no charge event`);
+    eq(at(b, 0, 0).hp, at(b, 0, 0).maxHp, `${move}: Tackle should have missed the digging/flying Pokémon`);
+    const foeHp = at(b, 1, 0).hp;
+    const ev2 = round(b, p1(0), p2(0));
+    assert(ev2.some((e) => e.t === "damage" && e.move === move), `${move}: no hit on turn 2`);
+    assert(at(b, 1, 0).hp < foeHp, `${move}: foe took no damage`);
+  }
+});
+test("Counter and Mirror Coat hit the attacker, not the user", () => {
+  for (const [move, foeMove, foeSpecies] of [["counter", "karate-chop", "machamp"], ["mirror-coat", "psychic", "blissey"]]) {
+    const b = duel("snorlax", [move, "splash"], foeSpecies, [foeMove, "splash"]);
+    const ev = round(b, p1(0), p2(0));
+    const mine = ev.filter((e) => e.t === "damage" && e.side === 0);
+    const foes = ev.filter((e) => e.t === "damage" && e.side === 1);
+    assert(mine.length === 1, `${move}: the user should only take the original hit (took ${mine.length} hits)`);
+    assert(foes.length === 1 && foes[0].move === move && foes[0].amount > 0, `${move} should damage the foe`);
+  }
+});
+test("Reflect and Light Screen send events so the screen can keep showing them", () => {
+  const b = duel("alakazam", ["reflect", "light-screen"], "snorlax", ["splash", "splash"]);
+  const on = round(b, p1(0), p2(0)).filter((e) => e.t === "sidecond" && e.on).map((e) => e.key);
+  assert(on.includes("reflect"), "reflect event");
+  const b2 = duel("alakazam", ["light-screen", "splash"], "snorlax", ["splash", "splash"]);
+  assert(round(b2, p1(0), p2(0)).some((e) => e.t === "sidecond" && e.key === "lightScreen" && e.on), "light screen event");
+  let off = false;
+  for (let i = 0; i < 6; i++) off = round(b2, p1(1), p2(0)).some((e) => e.t === "sidecond" && e.key === "lightScreen" && !e.on) || off;
+  assert(off, "light screen should wear off after 5 turns with an event");
+});
 test("Spite takes 4 PP off the foe's last move", () => {
   const b = duel("alakazam", ["spite", "splash"], "snorlax", ["tackle", "splash"]);
   round(b, p1(1), p2(0));

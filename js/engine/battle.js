@@ -1391,7 +1391,16 @@ export class Battle {
     const ally = this.allyOf(user);
     switch (move.target) {
       case "user": case "users-field": case "opponents-field": case "entire-field": case "user-and-allies":
-      case "specific-move": case "all-pokemon": case "user-or-ally":
+      case "specific-move":
+        // Counter, Mirror Coat and Metal Burst hit whoever last hit the user (not the user itself)
+        if (["counter", "mirror-coat", "metal-burst"].includes(move.key)) {
+          const last = user.volatile.lastDamage;
+          const attacker = last && this.monAt(last.side, last.slot);
+          if (attacker && !attacker.fainted && attacker.side !== user.side) return [attacker];
+          return last ? foes.slice(0, 1) : [user]; // (fixedDamage says "But it failed!" when nothing hit the user)
+        }
+        return [user];
+      case "all-pokemon": case "user-or-ally":
         return [user];
       case "ally": return ally ? [ally] : [];
       case "all-opponents": return foes;
@@ -1467,7 +1476,9 @@ export class Battle {
           this.consumeItem(user, `${this.name(user, true)} became fully charged due to its Power Herb!`);
         } else {
           v.charging = { move: moveId, target: chosenTarget, invulnerable: two.invulnerable ?? null };
-          this.msg(`${this.name(user, true)} ${two.text}`);
+          // The screen shows the Pokémon flying up / digging down / diving until its next turn
+          if (two.invulnerable) this.log({ t: "charge", ...this.ref(user), state: two.invulnerable, text: `${this.name(user, true)} ${two.text}` });
+          else this.msg(`${this.name(user, true)} ${two.text}`);
           return;
         }
       }
@@ -1856,7 +1867,7 @@ export class Battle {
     if (key === "brick-break" && t0 && t0.side !== user.side) {
       const c = this.state.sides[t0.side].conditions;
       if (c.reflect || c.lightScreen) {
-        delete c.reflect; delete c.lightScreen;
+        for (const k of ["reflect", "lightScreen"]) if (c[k]) { delete c[k]; this.log({ t: "sidecond", side: t0.side, key: k, on: false, text: "" }); }
         this.msg("It shattered the barrier!");
       }
     }
@@ -2477,7 +2488,7 @@ export class Battle {
           c[k] -= 1;
           if (c[k] <= 0) {
             delete c[k];
-            this.msg(`${side.isPlayer ? "Your team's" : "The foe's"} ${label} wore off!`);
+            this.log({ t: "sidecond", side: side.index, key: k, on: false, text: `${side.isPlayer ? "Your team's" : "The foe's"} ${label} wore off!` });
           }
         }
       }
@@ -2525,7 +2536,7 @@ function sideCondition(key, turns, text) {
     const c = this.state.sides[user.side].conditions;
     if (c[key]) { this.msg("But it failed!"); return; }
     c[key] = typeof turns === "function" ? turns.call(this, user) : turns;
-    this.msg(text.replace("{side}", this.state.sides[user.side].isPlayer ? "your team" : "the foe's team"));
+    this.log({ t: "sidecond", side: user.side, key, on: true, text: text.replace("{side}", this.state.sides[user.side].isPlayer ? "your team" : "the foe's team") });
   };
 }
 
@@ -2585,7 +2596,7 @@ const STATUS_MOVES = {
       delete c.spikes; delete c.toxicSpikes; delete c.stealthRock;
     }
     const c = this.state.sides[1 - user.side].conditions;
-    delete c.reflect; delete c.lightScreen; delete c.safeguard; delete c.mist;
+    for (const k of ["reflect", "lightScreen", "safeguard", "mist"]) if (c[k]) { delete c[k]; this.log({ t: "sidecond", side: 1 - user.side, key: k, on: false, text: "" }); }
     for (const t of targets) if (t !== user) this.boost(t, { evasion: -1 }, user);
     this.msg("The field was cleared!");
   },

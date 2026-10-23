@@ -55,7 +55,7 @@ function rollTier(run, odds, available) {
 // ===============================
 
 // perks: Trainer upgrades from meta progression (see meta.js perksFromMeta)
-export function newRun(ctx, { gen, pools, seed = Math.floor(Math.random() * 2 ** 32), perks = {}, character = "lucas", badges = [], badgeLinks = [] }) {
+export function newRun(ctx, { gen, pools, seed = Math.floor(Math.random() * 2 ** 32), perks = {}, character = "lucas", badges = [], badgeLinks = [], badgeOff = [] }) {
   const run = {
     version: 1,
     character,
@@ -73,7 +73,7 @@ export function newRun(ctx, { gen, pools, seed = Math.floor(Math.random() * 2 **
     nextUid: 1,
     fallen: [],
     pendingMoves: [],
-    badges: { slots: Array.from({ length: 8 }, (_, i) => badges[i] ?? null), links: badgeLinks, equipped: badges.filter(Boolean), gen }, // the badge case, frozen for this run (§3k)
+    badges: { slots: Array.from({ length: 8 }, (_, i) => badges[i] ?? null), links: badgeLinks, off: badgeOff.filter((id) => badges.includes(id)), equipped: badges.filter(Boolean), gen }, // the badge case, frozen for this run (§3k)
     offer: null,
     opponent: null,
     battle: null,
@@ -483,6 +483,20 @@ export function priceOf(ctx, id) {
 // Haggler badge: cheaper shop prices
 const haggle = (run, ctx, price) => Math.max(1, Math.round(price * (1 - perkN(run, ctx, "haggler"))));
 
+// Deals (§3h): every time the shop restocks, a few items and one TM are on sale
+export const SALE = { items: 2, tms: 1, discounts: [20, 25, 30, 40, 50] };
+
+function putOnSale(run, entries, count) {
+  const open = entries.filter((e) => !e.sale && e.price > 1);
+  for (let i = 0; i < count && open.length; i++) {
+    const [e] = open.splice(Math.floor(nextRandom(run) * open.length), 1);
+    const pct = SALE.discounts[Math.floor(nextRandom(run) * SALE.discounts.length)];
+    e.was = e.price;
+    e.sale = pct;
+    e.price = Math.max(1, Math.round(e.price * (1 - pct / 100)));
+  }
+}
+
 function makeShop(run, ctx) {
   const odds = itemOddsFor(ctx.rules, Math.max(1, run.order));
   const teamSpecies = new Set(run.team.map((m) => m.species));
@@ -517,6 +531,8 @@ function makeShop(run, ctx) {
     const [t] = tmPool.splice(Math.floor(nextRandom(run) * tmPool.length), 1);
     tms.push({ move: t.move, price: haggle(run, ctx, tmPrice(ctx, t.move)), sold: false });
   }
+  putOnSale(run, stock, SALE.items);
+  putOnSale(run, tms, SALE.tms);
   return { stock, tms, rerolls: run.shop?.order === run.order ? run.shop.rerolls : 0, order: run.order };
 }
 

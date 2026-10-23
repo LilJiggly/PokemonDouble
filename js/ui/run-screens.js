@@ -47,7 +47,7 @@ export class RunUI {
     this.preview = false; // debug panel preview: nothing is saved (see dev-tools.js)
     this.battleScreen = null;
     try { this.showEffects = localStorage.getItem("pd.showEffects") === "1"; } catch { this.showEffects = false; }
-    try { this.teamView = localStorage.getItem("pd.teamView") === "grid" ? "grid" : "detailed"; } catch { this.teamView = "detailed"; }
+    try { this.teamView = localStorage.getItem("pd.teamView") === "detailed" ? "detailed" : "grid"; } catch { this.teamView = "grid"; }
   }
 
   save() { if (this.run && !this.preview) store.set(RUN_KEY, this.run); }
@@ -260,6 +260,16 @@ export class RunUI {
     this.hub.onclick = (e) => {
       const act = e.target.closest("[data-act]")?.dataset.act;
       if (act === "back") this.start();
+      if (act === "badge-fx") {
+        const m = loadMeta();
+        const id = e.target.closest("[data-badge]").dataset.badge;
+        const off = new Set(m.badgeOff ?? []);
+        if (!off.delete(id)) off.add(id);
+        m.badgeOff = [...off];
+        saveMeta(m);
+        redrawCase();
+        return;
+      }
       if (act === "case-add" || act === "case-slot") {
         const m = loadMeta();
         const id = e.target.closest("[data-badge]").dataset.badge;
@@ -285,7 +295,7 @@ export class RunUI {
         const pools = [...this.hub.querySelectorAll("input[name=pool]:checked")].map((i) => Number(i.value));
         if (!pools.length) { alert("Pick at least one generation for the Pokémon Pool."); return; }
         const meta = loadMeta();
-        this.run = Run.newRun(this.ctx, { gen, pools, perks: perksFromMeta(meta), character: meta.character, badges: caseOf(meta), badgeLinks: meta.badgeLinks });
+        this.run = Run.newRun(this.ctx, { gen, pools, perks: perksFromMeta(meta), character: meta.character, badges: caseOf(meta), badgeLinks: meta.badgeLinks, badgeOff: meta.badgeOff ?? [] });
         meta.badgeLinks = randomLinks(); // the next run gets new links
         saveMeta(meta);
         this.render();
@@ -585,10 +595,10 @@ export class RunUI {
       <div class="offer-head">
         <div><h1>${headline}</h1><p>${sub}</p></div>
         <div class="row-buttons">
-          <button class="btn" data-act="reroll" ${this.rerollsLeft(offer) <= 0 || offer.picksLeft <= 0 ? "disabled" : ""}
-            title="Replaces every card you haven't confirmed. Cards you picked stay.">${this.rerollsLeft(offer) <= 0 ? "No rerolls left" : `🎲 Free reroll (${this.rerollsLeft(offer)})`}</button>
+          <button class="btn reroll-btn ${this.rerollsLeft(offer) <= 0 ? "" : "free"}" data-act="reroll" ${this.rerollsLeft(offer) <= 0 || offer.picksLeft <= 0 ? "disabled" : ""}
+            title="Replaces every card you haven't confirmed. Cards you picked stay.">${this.rerollsLeft(offer) <= 0 ? "No rerolls left" : `<span class="dice">🎲</span> Free reroll${this.rerollsLeft(offer) > 1 ? ` ×${this.rerollsLeft(offer)}` : ""}`}</button>
           ${!starter && (offer.swapsUsed ?? 0) < perkParam(run, this.ctx.rules, "swap") ? `<button class="btn" data-act="swap" title="Swap badge: trade one of your Pokémon for any card, without using a pick.">🔁 Swap</button>` : ""}
-          ${starter ? "" : `<button class="btn" data-act="skip">${offer.picksLeft < offer.picks ? "Done" : "Skip"}</button>`}
+          ${starter ? "" : `<button class="btn" data-act="skip" title="${offer.picksLeft < offer.picks ? "Skip the rest of your picks" : "Take nobody"}">Skip</button>`}
         </div>
       </div>
       <div class="offer-grid" role="${multi ? "group" : "radiogroup"}" aria-label="Recruits">${cards}</div>
@@ -633,9 +643,11 @@ export class RunUI {
       }
       if (act === "reroll") {
         const chosen = selection.get();
+        // "Confirm first, then reroll" only works while you still have picks left after confirming
+        const canKeep = chosen.length > 0 && chosen.length < offer.picksLeft;
         const options = [];
-        if (chosen.length) options.push({ value: "keep", html: `<b>Confirm ${chosen.map(nameOf).join(", ")}</b>, then reroll the rest <small>Your picks stay, only the other cards change</small>` });
-        options.push({ value: "drop", html: chosen.length ? `Reroll without picking <small>Your current selection is cleared</small>` : `🎲 Reroll` });
+        if (canKeep) options.push({ value: "keep", html: `<b>Confirm ${chosen.map(nameOf).join(", ")}</b>, then reroll the rest <small>Your picks stay, only the other cards change</small>` });
+        options.push({ value: "drop", html: chosen.length ? `🎲 Reroll now <small>Your current selection is cleared and you choose again from the new cards</small>` : `🎲 Reroll` });
         const how = await this.modal({
           title: "Use your free reroll?",
           body: `<p>Cards you have confirmed stay. Every other card is replaced by a new one.${offer.picksLeft > 1 && !chosen.length ? " Tip: select the ones you like and confirm first, then reroll for the rest." : ""}</p>`,
@@ -785,7 +797,8 @@ export class RunUI {
         <button class="btn" data-act="skip">Skip</button>
       </div>
       <div class="offer-grid" role="${multi ? "group" : "radiogroup"}" aria-label="Items">${cards}</div>
-      <div class="confirm-bar"><span class="confirm-text"></span><button class="btn primary" data-act="confirm" disabled>Confirm</button></div>`;
+      <div class="confirm-bar"><span class="confirm-text"></span><button class="btn primary" data-act="confirm" disabled>Confirm</button></div>
+      ${this.run.team.length ? `<section class="card-panel"><h3>Your team (${this.run.team.length}/6)</h3><div class="team-grid">${this.run.team.map((m) => this.miniCard(m)).join("")}</div></section>` : ""}`;
 
     const nameOf = (i) => itemInfo(offer.options[i].id).name;
     const selection = this.setupSelection({
@@ -827,8 +840,6 @@ export class RunUI {
     const team = run.team.map((m, i) => {
       const evo = ctx.dex.evolutionOptions(m, run.bag);
       const evoReady = evo.some((o) => o.ready);
-      const relearn = Run.relearnableMoves(ctx, m).length;
-      const tms = Run.teachableTMs(run, ctx, m).length;
       const nature = m.nature.charAt(0).toUpperCase() + m.nature.slice(1);
       return `
         <div class="mon-card ${i < 2 ? "lead" : ""}" draggable="true" data-drag="mon" data-uid="${m.uid}">
@@ -849,10 +860,8 @@ export class RunUI {
           ${run.team.length > 1 ? this.slotStrip(m) : ""}
           <div class="mon-actions">
             <button class="btn small" data-act="item" data-uid="${m.uid}">Item</button>
-            <button class="btn small" data-act="moves" data-uid="${m.uid}" ${relearn ? "" : "disabled"}>Moves</button>
             ${evo.length ? `<button class="btn small ${evoReady ? "ready" : ""}" data-act="evolve" data-uid="${m.uid}">Evolve${evoReady ? "!" : ""}</button>` : ""}
             ${patches.length ? `<button class="btn small" data-act="patch" data-uid="${m.uid}">Ability</button>` : ""}
-            ${tms ? `<button class="btn small" data-act="tm" data-uid="${m.uid}">TM (${tms})</button>` : ""}
           </div>
         </div>`;
     }).join("");
@@ -877,6 +886,7 @@ export class RunUI {
             <div><span class="who">${oppName}</span>${this.partyBalls(opp.teamSize)}</div>
           </div>
           ${opp.theme ? `<span><span class="type-badge" style="background: var(--t-${opp.theme})">${opp.theme}</span></span>` : ""}
+          ${this.badgeTeaser(opp)}
           <dl class="facts">
             <dt>Their level</dt><dd>${opp.level}</dd>
             <dt>Your level</dt><dd>${opp.playerLevel ?? opp.level}${(opp.playerLevel ?? opp.level) > opp.level ? ` <small>(+${opp.playerLevel - opp.level} bonus)</small>` : ""}</dd>
@@ -894,7 +904,7 @@ export class RunUI {
           <div class="team-head">
             <h2>Team (${run.team.length}/6)</h2>
             <div class="row-buttons team-tools">
-              ${this.teamView === "grid" ? "" : `<button class="btn small" data-act="toggle-all-desc">${this.showEffects ? "Hide all effects" : "Show all effects"}</button>`}
+              ${this.teamView === "grid" ? "" : `<label class="switch" title="Show what every move does"><input type="checkbox" data-act="toggle-all-desc" ${this.showEffects ? "checked" : ""}><span class="track-dot"></span> Effects</label>`}
               <button class="btn small" data-act="toggle-view" aria-pressed="${this.teamView === "grid"}">${this.teamView === "grid" ? "▤ Detailed" : "▦ Grid"}</button>
             </div>
           </div>
@@ -975,12 +985,6 @@ export class RunUI {
       } else if (drag.kind === "held") {
         if (target.matches(".bag-panel")) Run.takeItem(run, drag.uid);
         else Run.moveHeldItem(run, drag.uid, toUid);
-      } else if (drag.kind === "tm") {
-        if (!ctx.data.pokemonByKey[mon.species].learnset.machine.includes(drag.move)) {
-          await this.modal({ title: `${Run.displayName(ctx, mon)} can't learn ${ctx.data.moves[drag.move].name}`, cancel: "OK" });
-          return;
-        }
-        await this.tmDialog(mon, drag.move);
       } else if (drag.kind === "bag") {
         const kind = ITEMS[drag.item]?.kind;
         if (kind === "held") Run.giveItem(run, toUid, drag.item);
@@ -1012,20 +1016,29 @@ export class RunUI {
     return `<img class="badge-img ${extra}" src="${badgeImage(id)}" alt="${badgeName(gen, order)}">`;
   }
 
-  // The badge you just won (new ones are saved to your collection for every later run)
+  // The badge a gym leader gives, greyed out until you own it (a teaser in the Next battle panel)
+  badgeTeaser(opp) {
+    if (opp.order < 1 || opp.order > 8) return "";
+    const id = badgeId(this.run.settings.gen, opp.order);
+    const owned = ownedBadges(loadMeta()).has(id);
+    const name = badgeName(this.run.settings.gen, opp.order);
+    return `<div class="badge-teaser ${owned ? "owned" : ""}" title="${owned ? `You already have the ${name}` : `Beat ${opp.name} to win the ${name}`}">
+      ${this.badgeImg(id, owned ? "" : "locked")}<span>${owned ? `${name} ✓` : `${name}`}</span></div>`;
+  }
+
+  // The badge you just won (new ones are saved to your collection for every later run). What it does is shown in the badge case.
   badgeNotice(badge, isNew) {
     const id = badgeId(badge.gen, badge.order);
-    const perk = perkInfo(perkOfBadge(this.ctx.rules, id), badge.order);
     return `<div class="badge-notice">${this.badgeImg(id)}
       <div><b>${badgeName(badge.gen, badge.order)}${isNew ? " unlocked!" : ""}</b>
-      <small>${isNew ? `Added to your badge collection: put it in your badge case before your next run. Perk: ${perk.name} (${perk.effect}).` : "You already have this badge."}</small></div></div>`;
+      <small>${isNew ? "Added to your badge collection. Check it in the badge case before your next run." : "You already have this badge."}</small></div></div>`;
   }
 
   // The case as 8 slots (4 × 2) with each badge's strength: the gym number, +1 per neighbour of the same generation
   caseGrid(slots, links = [], { editable = false } = {}) {
     const strengths = Object.fromEntries(caseStrengths(slots, links).map((b) => [b.slot, b]));
     const linkOf = (i) => links.findIndex((l) => l.includes(i)); // 0, 1, 2 or -1: which linked pair the slot is in
-    return `<div class="case-slots" role="group" aria-label="Badge case">${slots.map((id, i) => {
+    return `<div class="case-board"><div class="case-title"><i></i> LEAGUE BADGE <i></i></div><div class="case-slots" role="group" aria-label="Badge case">${slots.map((id, i) => {
       const st = strengths[i];
       const link = linkOf(i);
       const partner = link === -1 ? null : links[link].find((x) => x !== i);
@@ -1035,19 +1048,22 @@ export class RunUI {
         title="${id ? `${badgeName(st.gen, st.gym)}: ${perk.name}, strength ${st.strength}. ${perk.effect}.${linkText}${editable ? " Tap to take it out." : ""}` : `Slot ${i + 1}.${linkText}`}">
         ${id ? `${this.badgeImg(id)}<span class="strength ${st.boost ? "boosted" : ""}">${st.strength}</span>` : `<span>${i + 1}</span>`}
         ${link === -1 ? "" : `<span class="link-mark">🔗${"ABC"[link]}</span>`}</div>`;
-    }).join("")}</div>`;
+    }).join("")}</div></div>`;
   }
 
   // What a badge case gives: one chip per badge effect (at its strength), and the set bonus per generation
-  perkChips(slots, links = []) {
+  // off: ids of badges whose effect is switched off. editable: show an on / off switch on every effect (New run screen)
+  perkChips(slots, links = [], { off = [], editable = false } = {}) {
     const worn = caseStrengths(slots, links);
     if (!worn.length) return `<p class="empty-note">No effects yet. Put badges in the case.</p>`;
     const set = setBonus(slots, this.ctx.rules);
     return `<div class="perk-chips">${worn.map((b) => {
       const perk = perkInfo(perkOfBadge(this.ctx.rules, b.id), b.strength);
-      return `<span class="perk-chip" title="${badgeName(b.gen, b.gym)}">${this.badgeImg(b.id, "mini")}<span><b>${perk.name} <i class="lvl">${b.strength}${b.boost ? ` (+${b.boost} link)` : ""}</i></b><small>${perk.effect}</small></span></span>`;
+      const isOff = off.includes(b.id);
+      return `<span class="perk-chip ${isOff ? "off" : ""}" title="${badgeName(b.gen, b.gym)}">${this.badgeImg(b.id, "mini")}<span><b>${perk.name} <i class="lvl">${b.strength}${b.boost ? ` (+${b.boost} link)` : ""}</i></b><small>${isOff ? "Switched off" : perk.effect}</small></span>
+        ${editable ? `<label class="switch" title="Turn this badge's effect on or off"><input type="checkbox" data-act="badge-fx" data-badge="${b.id}" ${isOff ? "" : "checked"}><span class="track-dot"></span></label>` : ""}</span>`;
     }).join("")}${set.parts.map((p) => `<span class="perk-chip set"><span class="set-gen">Gen ${p.gen}</span><span><b>Set bonus: ${p.count} badges</b><small>+${p.pct}% Attack, Defense, Sp. Atk, Sp. Def and Speed for your Pokémon</small></span></span>`).join("")}</div>
-      <p class="empty-note">${set.pct ? `Total set bonus: +${set.pct}%. ` : "Set bonus: wear 3 badges from one generation (5 and 8 give more). "}Strength = the badge's gym number, +2 when it sits in a linked pair 🔗 and the other slot has a badge too.</p>`;
+      <p class="empty-note">${set.pct ? `Total set bonus: +${set.pct}%. ` : "Set bonus: wear 3 badges from one generation (5 and 8 give more). "}Strength = the badge's gym number, +2 when it sits in a linked pair 🔗 and the other slot has a badge too. Use the switch to turn a badge's effect off if you don't want it this run.</p>`;
   }
 
   badgeButton() {
@@ -1065,7 +1081,7 @@ export class RunUI {
       wide: true,
       body: `<p>These badges are locked in for this run.</p>
         ${this.caseGrid(slots, run.badges?.links ?? [])}
-        ${this.perkChips(slots, run.badges?.links ?? [])}`,
+        ${this.perkChips(slots, run.badges?.links ?? [], { off: run.badges?.off ?? [] })}`,
       cancel: "Close",
     });
   }
@@ -1079,7 +1095,7 @@ export class RunUI {
     return `<h2>Badge case</h2>
       <p>Badges you won in earlier runs, from any generation. Fill the case with up to ${CASE_SIZE}: they give perks for the whole run and <b>can't be changed once the run starts</b>. Badges get stronger with their gym number. This run, some slots are <b>linked 🔗</b> in pairs (the same letter): two badges in a linked pair boost each other (+2 strength), so where you put them matters. Several badges from one generation give a set bonus. Win gyms to unlock more.</p>
       ${this.caseGrid(slots, links, { editable: true })}
-      <div class="case-perks">${this.perkChips(slots, links)}</div>
+      <div class="case-perks">${this.perkChips(slots, links, { off: meta.badgeOff ?? [], editable: true })}</div>
       <h3>Collection <small>${owned.size}/40</small></h3>
       ${[1, 2, 3, 4, 5].map((g) => `<div class="badge-row"><span class="badge-row-label">Gen ${g} · ${leaders[g].region}</span>
         <div class="badge-tiles">${Array.from({ length: 8 }, (_, i) => {
@@ -1120,6 +1136,55 @@ export class RunUI {
   // or drag one slot onto another to change the order.
   // ===============================
 
+  // What a move does, in words ("Just damage" for plain attacks)
+  effectText(id) {
+    const m = this.ctx.data.moves[id];
+    return !m.shortEffect || /^Inflicts regular damage( with no additional effect)?\.?$/i.test(m.shortEffect) ? "Just damage, no extra effect." : m.shortEffect;
+  }
+
+  // The popup for a move in the Moves bar: its details, and for a new move the choice of which slot it takes
+  async movePopup(mon, id, from) {
+    const { run, ctx } = this;
+    const m = ctx.data.moves[id];
+    const learnable = from !== "known";
+    const options = learnable ? [0, 1, 2, 3].filter((i) => i <= mon.moves.length).map((i) => ({
+      value: i,
+      html: mon.moves[i] ? `Learn it in place of <b>${ctx.data.moves[mon.moves[i]].name}</b>` : `Learn it in an <b>empty slot</b>`,
+    })) : [];
+    const slot = await this.modal({
+      title: `${m.name}${from === "tm" ? " (TM)" : ""}`,
+      body: `<div class="new-move">${this.moveCard(id)}</div>
+        ${learnable ? `<p>${Run.displayName(ctx, mon)} can learn this. ${from === "tm" ? "TMs are reusable: teaching one doesn't use it up." : "Level-up moves are free."}</p>` : `<p>${Run.displayName(ctx, mon)} already knows this move. Drag it onto another slot to change the order.</p>`}`,
+      options,
+      cancel: learnable ? "Not now" : "Close",
+    });
+    if (slot === null || !learnable) return;
+    if (from === "tm") Run.teachTM(run, ctx, mon.uid, id, slot);
+    else Run.relearnMove(run, ctx, mon.uid, id, slot);
+  }
+
+  // A TM tapped in the Bag: its details and who can learn it, then the usual popup to pick the slot
+  async tmBagPopup(move) {
+    const { run, ctx } = this;
+    const uid = await this.modal({
+      title: Run.tmLabel(ctx, move),
+      body: `<div class="new-move">${this.moveCard(move)}</div><p>TMs are reusable. Which Pokémon should learn it?</p>`,
+      options: run.team.map((mon) => {
+        const can = ctx.data.pokemonByKey[mon.species].learnset.machine.includes(move);
+        const knows = mon.moves.includes(move);
+        return {
+          value: mon.uid,
+          disabled: !can || knows,
+          html: `<img src="${this.sprite(mon)}" alt=""> ${this.monName(mon)} <small>${knows ? "already knows it" : can ? "can learn it" : "can't learn it"}</small>`,
+        };
+      }),
+      cancel: "Close",
+    });
+    if (uid === null) return;
+    this.moveFocus = uid;
+    await this.movePopup(run.team.find((m) => m.uid === uid), move, "tm");
+  }
+
   movesPanel() {
     const { run, ctx } = this;
     if (!run.team.length) return "";
@@ -1133,25 +1198,29 @@ export class RunUI {
     const slots = [0, 1, 2, 3].map((i) => {
       const id = mon.moves[i];
       if (!id) return `<div class="move-slot empty" data-slot="${i}" data-uid="${mon.uid}"><span class="mv-name">Empty slot</span></div>`;
-      return `<div class="move-slot" data-slot="${i}" data-uid="${mon.uid}" draggable="true" data-drag="slot" style="--type: var(--t-${moves[id].type})"
-        title="${moves[id].shortEffect} · Drag onto another slot to change the order">
-        <span class="mv-name">${moves[id].name}</span>${stats(id)}</div>`;
+      return `<div class="move-slot" data-slot="${i}" data-uid="${mon.uid}" draggable="true" data-drag="slot" data-act="move-popup" data-move="${id}" data-from="known" style="--type: var(--t-${moves[id].type})"
+        title="Tap for details · Drag onto another slot to change the order">
+        <span class="mv-name">${moves[id].name}</span>${stats(id)}
+        ${this.chipEffects ? `<span class="mv-effect">${this.effectText(id)}</span>` : ""}</div>`;
     }).join("");
-    const chip = (id, from) => `<button class="move-chip" data-act="learn-chip" data-from="${from}" data-uid="${mon.uid}" data-move="${id}" draggable="true" data-drag="learn"
-      style="--type: var(--t-${moves[id].type})" title="${moves[id].shortEffect} · Drag onto a slot to learn it">
-      <span class="mv-name">${from === "tm" ? "TM " : ""}${moves[id].name}</span>${stats(id)}</button>`;
-    const relearn = Run.relearnableMoves(ctx, mon).reverse();
+    // Tap a move: a popup shows what it does and lets you learn it. Drag it onto a slot to learn it right away.
+    const chip = (id, from) => `<button class="move-chip" data-act="move-popup" data-from="${from}" data-uid="${mon.uid}" data-move="${id}" draggable="true" data-drag="learn"
+        style="--type: var(--t-${moves[id].type})" title="Tap for details · Drag onto a slot to learn it">
+        <span class="mv-name">${from === "tm" ? "TM " : ""}${moves[id].name}</span>${stats(id)}
+        ${this.chipEffects ? `<span class="mv-effect">${this.effectText(id)}</span>` : ""}</button>`;
+    // Every move it can learn right now: the TMs you own for it first, then the level-up moves it has missed
     const tms = Run.teachableTMs(run, ctx, mon);
+    const relearn = Run.relearnableMoves(ctx, mon).reverse().filter((id) => !tms.includes(id));
+    const all = [...tms.map((id) => chip(id, "tm")), ...relearn.map((id) => chip(id, "relearn"))];
     return `<div class="moves-panel">
       <div class="mon-strip" role="group" aria-label="Choose a Pokémon">${run.team.map((m) => `
         <button class="mon-pick ${m === mon ? "current" : ""}" data-act="move-focus" data-uid="${m.uid}" title="${Run.displayName(ctx, m)}"><img src="${this.sprite(m)}" alt=""></button>`).join("")}</div>
-      <div class="moves-for"><b>${Run.displayName(ctx, mon)}</b> <small>Lv ${mon.level}</small></div>
+      <div class="moves-for"><span><b>${Run.displayName(ctx, mon)}</b> <small>Lv ${mon.level}</small></span>
+        <label class="switch" title="Show what every move does"><input type="checkbox" data-act="chip-effects" ${this.chipEffects ? "checked" : ""}><span class="track-dot"></span> Effects</label></div>
       <div class="move-slots">${slots}</div>
-      <h3>TMs it can learn <small>${tms.length}</small></h3>
-      <div class="move-chips">${tms.map((id) => chip(id, "tm")).join("") || `<p class="empty-note">None right now.</p>`}</div>
-      <h3>Relearn <small>${relearn.length}</small></h3>
-      <div class="move-chips scroll">${relearn.map((id) => chip(id, "relearn")).join("") || `<p class="empty-note">Nothing to relearn.</p>`}</div>
-      <p class="empty-note">Drag a move onto a slot to learn it. Drag a slot onto another to swap them. Tap a move to learn it with a dialog.</p>
+      <h3>Moves it can learn <small>${all.length} · ${tms.length} TM${tms.length === 1 ? "" : "s"}</small></h3>
+      <div class="move-chips scroll">${all.join("") || `<p class="empty-note">No new moves right now. Win battles for TMs, or level up.</p>`}</div>
+      <p class="empty-note">Drag a move onto a slot to learn it. Drag a slot onto another to swap them. Tap a move to read what it does.</p>
     </div>`;
   }
 
@@ -1177,8 +1246,8 @@ export class RunUI {
         : `<span class="bag-entry" title="${itemInfo(id).desc}">${label}</span>`);
     }
     byPocket.tms = run.tms.map((mv) =>
-      `<button class="bag-entry tm-entry draggable" data-act="tm-bag" data-move="${mv}" draggable="true" data-drag="tm"
-        style="--type: var(--t-${ctx.data.moves[mv].type})" title="${ctx.data.moves[mv].shortEffect} · Tap or drag onto a Pokémon to teach">${this.tmIcon(mv)} ${Run.tmLabel(ctx, mv)}</button>`);
+      `<button class="bag-entry tm-entry" data-act="tm-bag" data-move="${mv}" style="--type: var(--t-${ctx.data.moves[mv].type})"
+        title="${ctx.data.moves[mv].shortEffect} · Tap to see who can learn it">${this.tmIcon(mv)} ${Run.tmLabel(ctx, mv)}</button>`);
     const empty = {
       items: "Held items from item cards and the shop.",
       medicine: "Potions and status heals.",
@@ -1220,7 +1289,7 @@ export class RunUI {
         <span class="tile-name">${this.monName(m)}</span>
         <span class="tile-sub">Lv ${m.level}</span>
         <span>${this.typeBadges(m.species)}</span>
-        <span class="tile-item">${m.item ? `${this.itemImg(m.item)} ${itemInfo(m.item).name}` : "No item"}</span>
+        <span class="tile-item" ${m.item ? `draggable="true" data-drag="held" data-uid="${m.uid}" title="Drag onto another Pokémon to give it this item, or onto the Bag to take it back"` : ""}>${m.item ? `${this.itemImg(m.item)} ${itemInfo(m.item).name}` : "No item"}</span>
       </button>`;
   }
 
@@ -1311,11 +1380,9 @@ export class RunUI {
     const [up, down] = NATURES[mon.nature] ?? [];
     const evo = ctx.dex.evolutionOptions(mon, run.bag);
     const patches = ["ability-patch", "hidden-ability-patch"].some((x) => run.bag[x] > 0);
-    const tms = Run.teachableTMs(run, ctx, mon).length;
-    const relearn = Run.relearnableMoves(ctx, mon).length;
     const act = (value, label, { disabled = false, ready = false } = {}) =>
       `<button class="btn small ${ready ? "ready" : ""}" data-result='{"act":"${value}"}' ${disabled ? "disabled" : ""}>${label}</button>`;
-    const active = this.detailsTab ?? "stats";
+    const active = DETAIL_TABS.some((t) => t.id === this.detailsTab) ? this.detailsTab : "stats";
     const body = `
       <div class="details">
         <div class="details-head">
@@ -1344,8 +1411,6 @@ export class RunUI {
         <section data-tab-panel="moves">${this.moveGrid(mon.moves, { toggle: true })}
           <div class="panel-actions">
             <button class="btn small" data-local="effects" type="button">${this.showEffects ? "Hide all effects" : "Show all effects"}</button>
-            ${act("moves", "Relearn a move…", { disabled: !relearn })}
-            ${tms ? act("tm", `Teach a TM (${tms})…`) : ""}
           </div></section>
         </div>
       </div>`;
@@ -1397,10 +1462,8 @@ export class RunUI {
     if (result.nav) return this.detailsDialog(this.neighbour(mon, result.nav).uid);
     if (result.act === "swap") await this.swapDialog(mon);
     if (result.act === "item") await this.itemDialog(mon);
-    if (result.act === "moves") await this.relearnDialog(mon);
     if (result.act === "evolve") await this.evolveDialog(mon);
     if (result.act === "patch") await this.patchDialog(mon);
-    if (result.act === "tm") await this.tmDialog(mon);
     this.render();
     await this.detailsDialog(uid); // reopen with the updated info
   }
@@ -1422,43 +1485,56 @@ export class RunUI {
   }
 
   // The shop is split into sections (tabs) like the Bag: held items, berries, medicine…
+  // Price of a shop entry: plain text, with the old price struck through and a −% tag when it is on sale
+  priceTag(e) {
+    if (e.sold) return `<span class="price">Sold</span>`;
+    if (!e.sale) return `<span class="price">₽${e.price.toLocaleString()}</span>`;
+    return `<span class="price sale"><s>₽${e.was.toLocaleString()}</s> ₽${e.price.toLocaleString()}</span>`;
+  }
+
   shopPanel() {
     const { run, ctx } = this;
     const stock = (run.shop?.stock ?? []).map((e, i) => ({ e, i }));
     const tms = (run.shop?.tms ?? []).map((t, i) => ({ t, i }));
-    const inSection = (id) => stock.filter(({ e }) => pocketOf(e.id) === id);
-    const left = (id) => (id === "tms" ? tms.filter(({ t }) => !t.sold) : inSection(id).filter(({ e }) => !e.sold)).length;
+    const inSection = (id) => stock.filter(({ e }) => pocketOf(e.id) === id && !e.sale);
+    const left = (id) => (id === "tms" ? tms.filter(({ t }) => !t.sold && !t.sale) : inSection(id).filter(({ e }) => !e.sold)).length;
     const cost = Run.shopRerollCost(run, ctx);
 
     const itemRow = ({ e, i }) => {
       const item = itemInfo(e.id);
       // The whole row is the buy button; the price is plain text
-      return `<button class="shop-item tier-${e.tier} ${e.sold ? "sold" : ""}" title="${item.desc}" data-act="buy" data-i="${i}" ${e.sold || run.money < e.price ? "disabled" : ""}>
+      return `<button class="shop-item tier-${e.tier} ${e.sold ? "sold" : ""} ${e.sale ? "on-sale" : ""}" title="${item.desc}" data-act="buy" data-i="${i}" ${e.sold || run.money < e.price ? "disabled" : ""}>
         ${this.itemImg(e.id)}
         <span class="si-text"><b>${item.name}</b><small>${item.desc}</small></span>
-        <span class="price">${e.sold ? "Sold" : `₽${e.price.toLocaleString()}`}</span>
+        ${this.priceTag(e)}
       </button>`;
     };
     const tmRow = ({ t, i }) => {
       const m = ctx.data.moves[t.move];
-      return `<button class="shop-item tm-shop ${t.sold ? "sold" : ""}" style="--type: var(--t-${m.type})" title="${m.shortEffect}" data-act="buy-tm" data-i="${i}" ${t.sold || run.money < t.price ? "disabled" : ""}>
+      return `<button class="shop-item tm-shop ${t.sold ? "sold" : ""} ${t.sale ? "on-sale" : ""}" style="--type: var(--t-${m.type})" title="${m.shortEffect}" data-act="buy-tm" data-i="${i}" ${t.sold || run.money < t.price ? "disabled" : ""}>
         ${this.tmIcon(t.move)}
         <span class="si-text"><b>${Run.tmLabel(ctx, t.move)}</b><small>${m.type} · ${m.category}${m.power ? ` · ${m.power} power` : ""}. ${m.shortEffect}</small></span>
-        <span class="price">${t.sold ? "Sold" : `₽${t.price.toLocaleString()}`}</span>
+        ${this.priceTag(t)}
       </button>`;
     };
 
     return `<div class="shop-panel">
       <div class="team-head"><span class="empty-note">You have ₽${run.money.toLocaleString()}.</span>
         <div class="row-buttons team-tools">
-          <button class="btn small" data-act="shop-reroll" ${run.money < cost ? "disabled" : ""}
-            title="New stock. The first reroll after each battle is free.">🎲 ${cost ? `₽${cost.toLocaleString()}` : "Free"}</button>
+          <button class="btn small reroll-btn ${cost ? "" : "free"}" data-act="shop-reroll" ${run.money < cost ? "disabled" : ""}
+            title="New stock and new deals. The first restock after each battle is free."><span class="dice">🎲</span> Restock ${cost ? `₽${cost.toLocaleString()}` : "<b>FREE</b>"}</button>
           <button class="btn small" data-act="sell" ${Object.keys(run.bag).length ? "" : "disabled"}>Sell</button>
         </div>
       </div>
       <p class="empty-note">New stock after every battle.</p>
+      ${(() => {
+        const deals = [...stock.filter(({ e }) => e.sale).map(itemRow), ...tms.filter(({ t }) => t.sale).map(tmRow)];
+        return deals.length ? `<div class="pocket shop-section deals">
+          <h3><span class="deal-title">🔥 Today's deals</span> <span class="tab-count">${deals.length}</span></h3>
+          <div class="shop-grid">${deals.join("")}</div></div>` : "";
+      })()}
       ${POCKETS.map((p) => {
-        const rows = p.id === "tms" ? tms.map(tmRow) : inSection(p.id).map(itemRow);
+        const rows = p.id === "tms" ? tms.filter(({ t }) => !t.sale).map(tmRow) : inSection(p.id).map(itemRow);
         if (!rows.length) return "";
         const folded = this.shopFolded?.has(p.id);
         return `<div class="pocket shop-section ${folded ? "folded" : ""}" data-shop-section="${p.id}">
@@ -1504,15 +1580,19 @@ export class RunUI {
       this.render();
       return;
     }
-    if (act === "learn-chip") {
-      const mon = run.team.find((m) => m.uid === Number(btn.dataset.uid));
-      if (btn.dataset.from === "tm") await this.tmDialog(mon, btn.dataset.move);
-      else await this.relearnDialog(mon);
+    if (act === "tm-bag") {
+      await this.tmBagPopup(btn.dataset.move);
       this.render();
       return;
     }
-    if (act === "tm-bag") {
-      await this.teachFromBag(btn.dataset.move);
+    if (act === "move-popup") {
+      const mon = run.team.find((m) => m.uid === Number(btn.dataset.uid));
+      if (mon) await this.movePopup(mon, btn.dataset.move, btn.dataset.from);
+      this.render();
+      return;
+    }
+    if (act === "chip-effects") {
+      this.chipEffects = !this.chipEffects;
       this.render();
       return;
     }
@@ -1545,7 +1625,6 @@ export class RunUI {
       this.showEffects = !this.showEffects;
       try { localStorage.setItem("pd.showEffects", this.showEffects ? "1" : "0"); } catch { /* ignore */ }
       this.hub.classList.toggle("show-effects", this.showEffects);
-      btn.textContent = this.showEffects ? "Hide all effects" : "Show all effects";
       return;
     }
     const uid = Number(btn.dataset.uid);
@@ -1561,10 +1640,8 @@ export class RunUI {
     }
     if (act === "slot") Run.swapTeamMember(run, uid, Number(btn.dataset.slot));
     if (act === "item") await this.itemDialog(mon);
-    if (act === "moves") await this.relearnDialog(mon);
     if (act === "evolve") await this.evolveDialog(mon);
     if (act === "patch") await this.patchDialog(mon);
-    if (act === "tm") await this.tmDialog(mon);
     if (act === "shop-reroll") {
       const cost = Run.shopRerollCost(run, ctx);
       if (cost) {
@@ -1583,7 +1660,7 @@ export class RunUI {
       const ok = await this.modal({
         title: `Buy ${Run.tmLabel(ctx, t.move)}?`,
         body: `<div class="new-move">${this.moveCard(t.move)}</div>
-          <p>Reusable: teach it to as many Pokémon as you like. ₽${t.price.toLocaleString()} · you have ₽${run.money.toLocaleString()}</p>`,
+          <p>Reusable: teach it to as many Pokémon as you like. ${t.sale ? `<s>₽${t.was.toLocaleString()}</s> ` : ""}₽${t.price.toLocaleString()} · you have ₽${run.money.toLocaleString()}</p>`,
         options: [{ value: true, label: `Buy for ₽${t.price.toLocaleString()}` }],
         cancel: "No",
       });
@@ -1594,7 +1671,7 @@ export class RunUI {
       const ok = await this.modal({
         title: `Buy ${itemInfo(entry.id).name}?`,
         body: `<div class="confirm-mon">${this.itemImg(entry.id)}<div>${itemInfo(entry.id).desc}</div></div>
-          <p>₽${entry.price.toLocaleString()} · you have ₽${run.money.toLocaleString()}</p>`,
+          <p>${entry.sale ? `<s>₽${entry.was.toLocaleString()}</s> ` : ""}₽${entry.price.toLocaleString()} · you have ₽${run.money.toLocaleString()}</p>`,
         options: [{ value: true, label: `Buy for ₽${entry.price.toLocaleString()}` }],
         cancel: "No",
       });
@@ -1640,35 +1717,6 @@ export class RunUI {
     else if (choice) Run.giveItem(run, mon.uid, choice);
   }
 
-  async relearnDialog(mon) {
-    const { run, ctx } = this;
-    const moves = Run.relearnableMoves(ctx, mon);
-    const move = await this.modal({
-      title: `Move Relearner`,
-      head: this.monStrip(mon),
-      body: `${this.dialogMon(mon)}
-        <p>${moves.length ? `Any level-up move up to level ${mon.level}. Free. Pick a move to learn.` : "No moves to relearn right now."}</p>`,
-      layout: "cards",
-      nav: run.team.length > 1,
-      options: moves.map((id) => ({ value: id, html: this.moveCard(id) })),
-    });
-    if (move?.goto) return this.relearnDialog(run.team.find((m) => m.uid === move.goto));
-    if (move?.nav) return this.relearnDialog(this.neighbour(mon, move.nav));
-    if (!move) return;
-    let replace = null;
-    if (mon.moves.length >= 4) {
-      replace = await this.modal({
-        title: `Learn ${ctx.data.moves[move].name}`,
-        body: `<p class="modal-label">New move</p><div class="new-move">${this.moveCard(move)}</div>
-          <p class="modal-label">Pick a move to forget</p>`,
-        layout: "cards",
-        options: mon.moves.map((id, i) => ({ value: i, html: this.moveCard(id) })),
-      });
-      if (replace === null) return;
-    }
-    Run.relearnMove(run, ctx, mon.uid, move, replace);
-  }
-
   // Held item, evolution item or Ability Patch tapped in the Bag: pick who gets it
   // (the touch-friendly version of dragging it onto a Pokémon)
   async useFromBag(id) {
@@ -1697,55 +1745,6 @@ export class RunUI {
     if (kind === "held") Run.giveItem(run, uid, id);
     else if (kind === "evo") await this.evolveDialog(mon);
     else if (kind === "patch") await this.patchDialog(mon);
-  }
-
-  // Pick a team member for a TM clicked in the Bag, then the move to forget
-  async teachFromBag(move) {
-    const { run, ctx } = this;
-    const uid = await this.modal({
-      title: `Teach ${Run.tmLabel(ctx, move)}`,
-      body: `<div class="new-move">${this.moveCard(move)}</div><p>Which Pokémon should learn it?</p>`,
-      options: run.team.map((mon) => {
-        const can = ctx.data.pokemonByKey[mon.species].learnset.machine.includes(move);
-        const knows = mon.moves.includes(move);
-        return {
-          value: mon.uid,
-          disabled: !can || knows,
-          html: `<img src="${this.sprite(mon)}" alt=""> ${this.monName(mon)} <small>${knows ? "already knows it" : can ? "can learn it" : "can't learn it"}</small>`,
-        };
-      }),
-    });
-    if (uid === null) return;
-    await this.tmDialog(run.team.find((x) => x.uid === uid), move);
-  }
-
-  async tmDialog(mon, preselected = null) {
-    const { run, ctx } = this;
-    const moves = Run.teachableTMs(run, ctx, mon);
-    const move = preselected ?? await this.modal({
-      title: `Teach a TM`,
-      head: preselected ? "" : this.monStrip(mon),
-      body: `${this.dialogMon(mon)}
-        <p>${moves.length ? "TMs are reusable: teaching one doesn't use it up." : "None of your TMs fit this Pokémon."}</p>`,
-      layout: "cards",
-      nav: !preselected && run.team.length > 1,
-      options: moves.map((id) => ({ value: id, html: this.moveCard(id) })),
-    });
-    if (move?.goto) return this.tmDialog(run.team.find((m) => m.uid === move.goto));
-    if (move?.nav) return this.tmDialog(this.neighbour(mon, move.nav));
-    if (!move) return;
-    let replace = null;
-    if (mon.moves.length >= 4) {
-      replace = await this.modal({
-        title: `Learn ${ctx.data.moves[move].name}`,
-        body: `<p class="modal-label">New move</p><div class="new-move">${this.moveCard(move)}</div>
-          <p class="modal-label">Pick a move to forget</p>`,
-        layout: "cards",
-        options: mon.moves.map((id, i) => ({ value: i, html: this.moveCard(id) })),
-      });
-      if (replace === null) return;
-    }
-    Run.teachTM(run, ctx, mon.uid, move, replace);
   }
 
   async evolveDialog(mon) {
@@ -1880,6 +1879,8 @@ export class RunUI {
       rival: run.rival.name,
       team: run.team.map((m) => ({ species: m.species, shiny: m.shiny, level: m.level, ability: m.ability, item: m.item, moves: m.moves })),
       fallen: run.fallen.length,
+      // Every Pokémon that fell on the way, for the Hall of Fame (older entries only have the number)
+      fallenMons: run.fallen.map((f) => ({ species: f.species, name: f.name, level: f.level, order: f.order, opponent: f.opponent })),
     };
     if (!run.hallOfFameSaved && !this.preview) {
       const hof = store.get(HOF_KEY) ?? [];
@@ -1894,6 +1895,7 @@ export class RunUI {
       <p>You beat ${entry.region}'s gauntlet and your Rival ${entry.rival}. ${entry.fallen ? `${entry.fallen} Pokémon fell along the way.` : "Nobody fell. Flawless!"}</p>
       ${tpLine}
       <div class="hof-team">${entry.team.map((m) => `<div class="mon"><img src="${this.sprite(m)}" alt="">${this.ctx.data.pokemonByKey[m.species].name}<small>Lv ${m.level}</small></div>`).join("")}</div>
+      ${this.fallenMemorial(entry.fallenMons)}
       <div class="row-buttons"><button class="btn primary" data-act="new">New run</button><button class="btn" data-act="upgrades">Trainer Upgrades</button><button class="btn" data-act="hof">Hall of Fame</button></div>`;
     this.hub.onclick = (e) => {
       const act = e.target.closest("[data-act]")?.dataset.act;
@@ -1901,6 +1903,13 @@ export class RunUI {
       if (act === "hof") this.renderHallOfFame();
       if (act === "upgrades") this.renderUpgrades();
     };
+  }
+
+  // The Pokémon that fell during a run, shown in grey under the team in the Hall of Fame
+  fallenMemorial(list) {
+    if (!list?.length) return "";
+    return `<h4 class="fallen-heading">In memory of ${list.length} fallen Pokémon</h4>
+      <div class="fallen-list memorial">${list.map((f) => `<div class="mon" title="${f.name} fell against ${f.opponent ?? "an opponent"} (battle #${f.order})"><img src="${this.sprite(f)}" alt="">${f.name}<small>Lv ${f.level} · #${f.order}</small></div>`).join("")}</div>`;
   }
 
   renderHallOfFame() {
@@ -1914,6 +1923,7 @@ export class RunUI {
         <section class="card-panel hof-entry">
           <h3>${e.date} · Gen ${e.gen} ${e.region} · Rival ${e.rival} · ${e.fallen} fallen</h3>
           <div class="hof-team">${e.team.map((m) => `<div class="mon"><img src="${this.sprite(m)}" alt="">${this.ctx.data.pokemonByKey[m.species].name}<small>Lv ${m.level}</small></div>`).join("")}</div>
+          ${this.fallenMemorial(e.fallenMons)}
         </section>`).join("") || `<p>No champions yet.</p>`}`;
     this.hub.onclick = (e) => {
       if (e.target.closest("[data-act]")?.dataset.act === "title") this.start();
