@@ -32,10 +32,19 @@ export const SHINY_CHANCE = 1 / 512;
 // rand: function returning a number in [0, 1)
 const pickFrom = (list, rand) => list[Math.floor(rand() * list.length)];
 
+// Strongest base power a level-up move may have at a level: some evolved Pokémon "learn" a heavy hitter at level 1
+// (Sudowoodo's Wood Hammer, 120), which is far too strong for a low-level team
+export function maxMovePowerAt(level) {
+  return level < 20 ? 75 : level < 30 ? 90 : level < 40 ? 100 : level < 50 ? 110 : Infinity;
+}
+
 export function levelUpMovesAt(species, level, data) {
   // Smeargle knows nothing but Sketch: it gets all 4 slots (it learns Sketch at levels 1, 11, 21…)
   if (species.key === "smeargle") return ["sketch", "sketch", "sketch", "sketch"];
-  const learned = species.learnset.levelUp.filter(([lvl, m]) => lvl <= level && data.moves[m]).map(([, m]) => m);
+  const cap = maxMovePowerAt(level);
+  const all = species.learnset.levelUp.filter(([lvl, m]) => lvl <= level && data.moves[m]).map(([, m]) => m);
+  const fine = all.filter((m) => (data.moves[m].power ?? 0) <= cap);
+  const learned = fine.some((m) => data.moves[m].category !== "status") ? fine : all; // never leave a Pokémon without an attack
   // Last 4 distinct moves, keeping the order they were learned
   const seen = new Set();
   const lastFour = [];
@@ -55,6 +64,8 @@ export function createRecruit(data, speciesKey, level, rand = Math.random, chanc
   const ability = hidden && rand() < (chances.hidden ?? HIDDEN_ABILITY_CHANCE) ? hidden : pickFrom(normal, rand);
   const gender = species.genderRate === -1 ? null : rand() < species.genderRate / 8 ? "F" : "M";
   const moves = levelUpMovesAt(species, level, data);
+  // Each stat's IV is 15–31, so recruits differ a little (and Hidden Power gets a different type)
+  const ivs = Object.fromEntries(["hp", "atk", "def", "spa", "spd", "spe"].map((s) => [s, 15 + Math.floor(rand() * 17)]));
   return {
     species: speciesKey,
     nickname: pickFrom(NICKNAMES, rand),
@@ -64,6 +75,7 @@ export function createRecruit(data, speciesKey, level, rand = Math.random, chanc
     gender,
     shiny: rand() < (chances.shiny ?? SHINY_CHANCE),
     item: null,
+    ivs,
     moves: moves.length ? moves : ["struggle"],
   };
 }

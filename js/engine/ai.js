@@ -14,6 +14,28 @@ const STATUS_OF_AILMENT = { burn: "brn", paralysis: "par", sleep: "slp", freeze:
 // Abilities that like having a status condition
 const LIKES_STATUS = new Set(["guts", "flare-boost", "toxic-boost", "quick-feet", "marvel-scale", "poison-heal"]);
 
+const MOLD_BREAKERS = new Set(["mold-breaker", "turboblaze", "teravolt"]);
+
+// Would this stat drop just fail? (Clear Body, Mist, a substitute…) The AI shouldn't keep trying it.
+function blocksStatDrop(battle, user, target, stat) {
+  if (target.volatile.substitute) return true;
+  if (battle.state.sides[target.side].conditions.mist) return true;
+  if (MOLD_BREAKERS.has(user.ability)) return false;
+  const ab = target.ability;
+  return ab === "clear-body" || ab === "white-smoke" || (ab === "hyper-cutter" && stat === "atk")
+    || (ab === "keen-eye" && stat === "accuracy") || (ab === "big-pecks" && stat === "def");
+}
+
+// Would this status condition just fail on the target?
+function blocksStatus(battle, user, target, status) {
+  if (target.volatile.substitute || battle.state.sides[target.side].conditions.safeguard) return true;
+  if (MOLD_BREAKERS.has(user.ability)) return false;
+  const ab = target.ability;
+  return (ab === "immunity" && (status === "psn" || status === "tox")) || (ab === "limber" && status === "par")
+    || ((ab === "insomnia" || ab === "vital-spirit") && status === "slp") || (ab === "water-veil" && status === "brn")
+    || (ab === "magma-armor" && status === "frz") || (ab === "leaf-guard" && battle.weather() === "sun");
+}
+
 // ===============================
 // PUBLIC
 // ===============================
@@ -167,7 +189,7 @@ function bestDamagePct(battle, user, target) {
   let best = 0;
   for (const m of user.moves) {
     const move = battle.move(m.id);
-    if (move.category === "status" || m.pp <= 0) continue;
+    if (move.category === "status" || m.pp <= 0 || (move.key === "last-resort" && !battle.lastResortReady(user))) continue;
     best = Math.max(best, Math.min(1, estimateDamage(battle, user, move, target, false) / target.hp));
   }
   return best;
@@ -196,6 +218,12 @@ function damageScore(battle, user, move, chosen) {
   score *= acc;
   if (move.key === "self-destruct" || move.key === "explosion") score -= 60 * (user.hp / user.maxHp);
   if (move.key === "fake-out") score = user.volatile.activeTurns > 0 ? -100 : score + 40;
+  if (move.key === "last-resort" && !battle.lastResortReady(user)) score = -100; // it would just fail
+  // Moves that fail unless something is true: don't spam them
+  if (move.key === "dream-eater" && !(chosen && chosen.status === "slp")) score = -100;
+  if (move.key === "snore" && user.status !== "slp") score = -100;
+  if (move.key === "spit-up" && !user.volatile.stockpile) score = -100;
+  if (move.key === "sucker-punch") score *= 0.7; // only works if the target is about to attack: a gamble
   if (move.priority > 0) score += 5;
   if (RECHARGE_MOVES.has(move.key)) score *= 0.8;
   return score;
@@ -294,6 +322,9 @@ function statusScore(battle, mon, move, target, ally, allyChoice) {
     case "quash": return 6;
     case "reflect-type": return 4;
     case "autotomize": return mon.boosts.spe >= 4 ? -20 : battle.speed(mon) < Math.max(...foes.map((f) => battle.speed(f))) ? 30 : 8;
+    case "nightmare": return target && target.side !== mon.side && target.status === "slp" && !target.volatile.nightmare ? 45 : -100;
+    case "swallow": return mon.volatile.stockpile && hpPct < 0.6 ? 50 : -100;
+    case "stockpile": return (mon.volatile.stockpile ?? 0) >= 3 ? -50 : 10;
     case "haze": {
       const foeBoosts = foes.reduce((a, f) => a + Object.values(f.boosts).reduce((x, y) => x + Math.max(0, y), 0), 0);
       return foeBoosts >= 2 ? 50 : -20;
@@ -306,6 +337,8 @@ function statusScore(battle, mon, move, target, ally, allyChoice) {
     let s = 0;
     for (const { stat, change } of move.statChanges) {
       const stage = mon.boosts[stat] ?? 0;
+      if (stat === "atk" && change > 0 && !mon.moves.some((m) => battle.move(m.id).category === "physical")) continue; // nothing to power up
+      if (stat === "spa" && change > 0 && !mon.moves.some((m) => battle.move(m.id).category === "special")) continue;
       if (change > 0 && stage < 4) s += (stat === "spe" && foes.some((f) => battle.speed(f) > battle.speed(mon)) ? 30 : 18) * Math.min(change, 2);
     }
     return hpPct > 0.6 ? s : s * 0.3;
@@ -318,6 +351,7 @@ function statusScore(battle, mon, move, target, ally, allyChoice) {
     const status = STATUS_OF_AILMENT[meta.ailment] ?? (key === "toxic" ? "tox" : null);
     if (status) {
       if (target.status) return -100;
+      if (!isAlly && blocksStatus(battle, mon, target, status)) return -100;
       if (status === "brn" && target.types.includes("fire")) return -100;
       if ((status === "psn" || status === "tox") && (target.types.includes("poison") || target.types.includes("steel"))) return -100;
       if (key === "thunder-wave" && battle.effectiveness("electric", target) === 0) return -100;
@@ -330,8 +364,9 @@ function statusScore(battle, mon, move, target, ally, allyChoice) {
       return 25;
     }
     if (isAlly) return -200;
-    if (meta.ailment === "confusion") return target.volatile.confusion ? -50 : 25;
-    if (meta.ailment === "yawn") return target.status || target.volatile.yawn ? -50 : 40;
+    if (target.volatile.substitute || battle.state.sides[target.side].conditions.safeguard) return -100;
+    if (meta.ailment === "confusion") return target.volatile.confusion || (target.ability === "own-tempo" && !MOLD_BREAKERS.has(mon.ability)) ? -100 : 25;
+    if (meta.ailment === "yawn") return target.status || target.volatile.yawn || ["insomnia", "vital-spirit"].includes(target.ability) ? -100 : 40;
     if (meta.ailment === "leech-seed") return target.types.includes("grass") || target.volatile.leechSeed ? -50 : 30;
     return 10;
   }
@@ -340,8 +375,9 @@ function statusScore(battle, mon, move, target, ally, allyChoice) {
     if (isAlly) return -100;
     let s = 0;
     for (const { stat, change } of move.statChanges) {
-      if (change < 0 && target.boosts[stat] > -3) s += 15 * -change;
+      if (change < 0 && target.boosts[stat] > -3 && !blocksStatDrop(battle, mon, target, stat)) s += 15 * -change;
     }
+    if (s === 0) return -100; // nothing would happen (Clear Body, Mist, already very low…)
     // Lower defenses before the partner attacks
     if (ally && move.statChanges.some((c) => c.stat === "def" || c.stat === "spd")) s += 10;
     return s;

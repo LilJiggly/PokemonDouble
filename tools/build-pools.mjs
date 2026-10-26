@@ -55,7 +55,7 @@ SIGNATURE["1:rival-blue"] = SIGNATURE["1:blue"];
 // Mostly the trainer's picks from the original games, to thicken thin pools. Keys: "<gen>:<id>"
 const FILLER = {
   "1:brock": "Steelix",
-  "1:lt-surge": "Porygon-Z, Skarmory, Bronzong",
+  "1:lt-surge": "Porygon-Z, Forretress, Bronzong",
   "1:erika": "Butterfree, Beautifly",
   "1:koga": "Forretress, Ninjask",
   "1:sabrina": "Venomoth",
@@ -79,7 +79,7 @@ const FILLER = {
   "2:karen": "Vileplume, Cacturne",
   "2:lance": "Gyarados, Charizard, Aerodactyl",
 
-  "3:wattson": "Porygon-Z, Skarmory, Bronzong",
+  "3:wattson": "Porygon-Z, Forretress, Bronzong",
   "3:flannery": "Castform",
   "3:norman": "Chansey",
   "3:winona": "Skarmory, Dragonite",

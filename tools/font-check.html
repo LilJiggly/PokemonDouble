@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Font check</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&family=VT323&family=Pixelify+Sans:wght@400;500&family=DotGothic16&family=Silkscreen&family=Jersey+10&family=Jersey+15&family=Tiny5&display=swap" rel="stylesheet">
+  <style>
+    body { background: #2b3347; color: #f2f5fc; font-family: system-ui, sans-serif; padding: 16px; }
+    .row { display: grid; grid-template-columns: 150px 1fr; gap: 12px; align-items: start; margin-bottom: 14px; padding: 10px; background: #343c52; border-radius: 10px; }
+    .row b { color: #ffd23f; }
+    .sample { font-size: 20px; line-height: 1.3; }
+    .sample small { display: block; font-size: 15px; color: #c4cee4; }
+  </style>
+</head>
+<body>
+  <p>Same text in each candidate. The game uses VT323 today for details and numbers (the current look).</p>
+  <script>
+    const fonts = ["VT323", "Pixelify Sans", "DotGothic16", "Jersey 10", "Jersey 15", "Tiny5", "Silkscreen", "Nunito"];
+    document.body.insertAdjacentHTML("beforeend", fonts.map((f) => `<div class="row"><b>${f}</b><div class="sample" style="font-family:'${f}'">
+      Sturdy Stone 1: Your Pokémon at full HP take 2.1% less damage.
+      <small>Vampire 10 (+2 link): Your damaging moves heal you for 11.5% of the damage dealt. HP 46 · ATK 27 · DEF 21 · 5/8 6/9 0123456789</small></div></div>`).join(""));
+  </script>
+</body>
+</html>

@@ -14,6 +14,7 @@
 import { nextRandom } from "../engine/rng.js";
 import { Battle } from "../engine/battle.js";
 import { createRecruit, levelUpMovesAt } from "./recruit.js";
+import { emptyRunStats, STARTER_LINES } from "./progress.js";
 import { itemOddsFor, tmMaxPowerFor, TIERS } from "./rules.js";
 import { ITEMS, pocketOf } from "./item-catalog.js";
 import { hasPerk as badgeHasPerk, perkParam, battleBonus } from "./badges.js";
@@ -73,6 +74,7 @@ export function newRun(ctx, { gen, pools, seed = Math.floor(Math.random() * 2 **
     nextUid: 1,
     fallen: [],
     pendingMoves: [],
+    stats: emptyRunStats(), // counters for the character unlocks (progress.js)
     badges: { slots: Array.from({ length: 8 }, (_, i) => badges[i] ?? null), links: badgeLinks, off: badgeOff.filter((id) => badges.includes(id)), equipped: badges.filter(Boolean), gen }, // the badge case, frozen for this run (§3k)
     offer: null,
     opponent: null,
@@ -92,7 +94,43 @@ export function newRun(ctx, { gen, pools, seed = Math.floor(Math.random() * 2 **
   const row = ctx.rules.progression.find((r) => r.order === 0);
   const level = playerLevelFor(ctx, 1);
   run.offer = makeRecruitOffer(run, ctx, { count: row.recruitOptions + run.perks.scout, picks: row.recruitPicks, odds: row.odds, level, starter: true });
+  applyCharacterPerk(run, ctx);
   return run;
+}
+
+// The perk of the chosen trainer (the Effect column of §3j). Effects, separated by ";":
+//   money:300  bag:oran-berry:2  item-pick:1  starter-reroll:1  starter:kanto  first-recruit:ralts
+function applyCharacterPerk(run, ctx) {
+  const effect = ctx.rules.characterUnlocks?.[run.character]?.effect;
+  if (!effect || effect === "—") return;
+  for (const part of effect.split(";").map((x) => x.trim())) {
+    const [kind, a, b] = part.split(":");
+    if (kind === "money") run.money += Number(a);
+    else if (kind === "bag" && ITEMS[a]) addToBag(run, a, Number(b ?? 1));
+    else if (kind === "item-pick") run.perks.gift += Number(a);
+    else if (kind === "starter-reroll") run.offer.rerollsLeft += Number(a);
+    else if (kind === "first-recruit") guaranteeOption(run, ctx, a);
+    else if (kind === "starter") {
+      const pools = new Set(run.settings.pools);
+      const lines = (STARTER_LINES[a] ?? []).filter((k) => ctx.data.pokemonByKey[k] && pools.has(ctx.data.pokemonByKey[k].gen));
+      const roots = new Set(lines);
+      if (lines.length && !run.offer.options.some((o) => roots.has(ctx.dex.lineOf[o.spec.species]))) guaranteeOption(run, ctx, pickOne(run, lines));
+    }
+  }
+}
+
+// Make sure the offer has a card of this species' line: it replaces the last card
+function guaranteeOption(run, ctx, speciesKey) {
+  const offer = run.offer;
+  const p = ctx.data.pokemonByKey[speciesKey];
+  if (!offer || !p || !run.settings.pools.includes(p.gen)) return;
+  const root = ctx.dex.lineOf[speciesKey];
+  if (offer.options.some((o) => ctx.dex.lineOf[o.spec.species] === root)) return;
+  const spec = createRecruit(ctx.data, speciesKey, offer.level, rand(run), recruitChances(run, ctx));
+  spec.abilitySlot = abilitySlotOf(ctx, spec);
+  const card = { spec, tier: ctx.dex.tier(root), taken: false };
+  if (offer.options.length) offer.options[offer.options.length - 1] = card;
+  else offer.options.push(card);
 }
 
 // Opponent's level for a battle
@@ -215,6 +253,7 @@ export function pickRecruit(run, ctx, optionIndex, replaceUid = null) {
   offer.picksLeft -= 1;
   const mon = { ...structuredClone(option.spec), uid: run.nextUid++ };
   run.team.push(mon);
+  noteRecruited(run, ctx, mon.species, offer.starter);
   if (offer.picksLeft <= 0) finishOffer(run, ctx);
   return { ok: true };
 }
@@ -233,7 +272,15 @@ export function swapForRecruit(run, ctx, optionIndex, uid) {
   option.taken = true;
   offer.swapsUsed = (offer.swapsUsed ?? 0) + 1;
   run.team.splice(idx, 0, { ...structuredClone(option.spec), uid: run.nextUid++ });
+  noteRecruited(run, ctx, option.spec.species, false);
   return { ok: true };
+}
+
+// Counters for the character unlocks (progress.js)
+function noteRecruited(run, ctx, species, starter) {
+  run.stats ??= emptyRunStats();
+  if (!run.stats.species.includes(species)) run.stats.species.push(species);
+  if (starter) run.stats.picks.push(ctx.dex.lineOf[species] ?? species);
 }
 
 export function skipOffer(run, ctx) {
@@ -330,12 +377,12 @@ function levelTeam(run, ctx, level) {
     const p = ctx.data.pokemonByKey[mon.species];
     for (const [lvl, move] of p.learnset.levelUp) {
       if (lvl <= old || lvl > level || mon.moves.includes(move) || !ctx.data.moves[move]) continue;
+      // Free slot: learned at once. Full: it waits in the Moves bar's "can learn" list. Either way it is flagged as new until you look at it.
       if (mon.moves.length < 4) {
         mon.moves.push(move);
         run.messages.push(`${displayName(ctx, mon)} learned ${ctx.data.moves[move].name}!`);
-      } else if (!run.pendingMoves.some((q) => q.uid === mon.uid && q.move === move)) {
-        run.pendingMoves.push({ uid: mon.uid, move });
       }
+      (mon.fresh ??= []).push(move);
     }
   }
 }
@@ -347,6 +394,12 @@ export function answerMove(run, ctx, replaceIndex) {
   const mon = run.team.find((m) => m.uid === q.uid);
   if (!mon || replaceIndex === null || replaceIndex === undefined) return;
   mon.moves[replaceIndex] = q.move;
+}
+
+// The player looked at a new move (hovered it): it is no longer highlighted
+export function seeMove(run, uid, move) {
+  const mon = run.team.find((m) => m.uid === uid);
+  if (mon?.fresh) mon.fresh = mon.fresh.filter((id) => id !== move);
 }
 
 // Move Relearner: any level-up move up to the current level
@@ -413,6 +466,9 @@ export function giveItem(run, uid, itemId) {
   if (mon.item) addToBag(run, mon.item);
   removeFromBag(run, itemId);
   mon.item = itemId;
+  run.stats ??= emptyRunStats();
+  run.stats.items += 1;
+  if (itemId.endsWith("-berry")) run.stats.berries += 1;
 }
 
 export function takeItem(run, uid) {

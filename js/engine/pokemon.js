@@ -80,3 +80,18 @@ export function createBattlePokemon(spec, data) {
     fainted: (spec.hp ?? stats.hp) <= 0,
   };
 }
+
+// The formula's own type order (not the order of TYPES)
+const HIDDEN_POWER_TYPES = ["fighting", "flying", "poison", "ground", "rock", "bug", "ghost", "steel", "fire", "water", "grass", "electric", "psychic", "ice", "dragon", "dark"];
+
+// Hidden Power's type and power come from the Pokémon's IVs (Gen 3–5 formula); shared by the battle and the run screens
+export function hiddenPowerOf(ivs) {
+  const order = ["hp", "atk", "def", "spe", "spa", "spd"];
+  let typeSum = 0;
+  let powerSum = 0;
+  order.forEach((s, i) => {
+    typeSum += (ivs[s] % 2) << i;
+    powerSum += ((ivs[s] >> 1) % 2) << i;
+  });
+  return { type: HIDDEN_POWER_TYPES[Math.floor((typeSum * 15) / 63)], power: Math.floor((powerSum * 40) / 63) + 30 };
+}

@@ -12,14 +12,16 @@ import { startTitleBanner } from "./title-banner.js";
 import { terrainFor } from "./terrain.js";
 import { CHARACTERS, GEN_LABELS, characterById } from "../game/characters.js";
 import { SPRITE_MODES, applySpriteMode } from "../game/sprite-mode.js";
-import { isUnlocked, unlockText, unlockedIds } from "../game/unlocks.js";
-import { CASE_SIZE, badgeId, badgeImage, badgeName, caseOf, caseStrengths, ownedBadges, randomLinks, parseBadgeId, perkInfo, perkOfBadge, perkParam, placeBadge, removeBadge, setBonus, unlockBadge } from "../game/badges.js";
+import { isUnlocked, unlockText, unlockedIds, grantUnlocks, nextHint as nextUnlockHint, MAX_UNLOCKS_PER_RUN } from "../game/unlocks.js";
+import { noteBattleWon } from "../game/progress.js";
+import { CASE_SIZE, badgeId, badgeImage, badgeName, caseOf, caseStrengths, ownedBadges, randomZones, validZones, zoneBoost, statOfBadge, badgeStatBoost, STAT_NAME, parseBadgeId, perkInfo, perkOfBadge, perkParam, placeBadge, removeBadge, setBonus, unlockBadge } from "../game/badges.js";
+import { targetIcon, categoryIcon } from "./target-icon.js";
 import { VERSION } from "../version.js";
 import * as Run from "../game/run.js";
 import { loadMeta, saveMeta, buyUpgrade, canBuyUpgrade, upgradeLevel, perksFromMeta, trainerPointsFor, recordRun } from "../game/meta.js";
 import { ITEMS, POCKETS, pocketOf, itemInfo, itemSprite } from "../game/item-catalog.js";
 import { itemLabel } from "../game/pokedex.js";
-import { calcStats, DEFAULT_IVS, DEFAULT_EVS } from "../engine/pokemon.js";
+import { calcStats, DEFAULT_IVS, DEFAULT_EVS, hiddenPowerOf } from "../engine/pokemon.js";
 import { NATURES, STAT_NAMES } from "../engine/constants.js";
 
 const RUN_KEY = "pd.run";
@@ -100,6 +102,9 @@ export class RunUI {
     const openCards = sameScreen
       ? [...this.hub.querySelectorAll(".move-card.open[data-key]")].map((c) => c.dataset.key)
       : [];
+    // The "can learn" list in the Moves bar keeps its scroll too (for the same Pokémon)
+    const learnBox = this.hub.querySelector(".moves-panel .move-chips.scroll");
+    const learnScroll = sameScreen && learnBox ? { uid: this.moveFocus, top: learnBox.scrollTop } : null;
     this.lastScreen = run.screen;
 
     switch (run.screen) {
@@ -118,6 +123,8 @@ export class RunUI {
         card?.querySelector(".mc-toggle")?.setAttribute("aria-expanded", "true");
       }
       window.scrollTo(0, scrollY);
+      const box = this.hub.querySelector(".moves-panel .move-chips.scroll");
+      if (box && learnScroll && learnScroll.uid === this.moveFocus) box.scrollTop = learnScroll.top;
     }
   }
 
@@ -202,10 +209,14 @@ export class RunUI {
     this.trackView("setup");
     this.hub.className = "hub";
     const meta = loadMeta();
-    if (!meta.badgeLinks?.length) { meta.badgeLinks = randomLinks(); saveMeta(meta); } // this run's linked slots
+    // this run's boost zones (older saves had pairs that don't cover the whole case)
+    if (!validZones(meta.badgeLinks)) { meta.badgeLinks = randomZones(); saveMeta(meta); }
     const unlocks = this.ctx.rules.characterUnlocks ?? {};
     const locked = (c) => !isUnlocked(meta, unlocks[c.id]);
     if (locked(characterById(meta.character))) { meta.character = "lucas"; saveMeta(meta); } // a character that is still locked
+    const lockedChars = CHARACTERS.filter((c) => locked(c));
+    const hiddenCount = lockedChars.length;
+    const hint = nextUnlockHint(meta, unlocks, CHARACTERS);
     const gens = [1, 2, 3, 4, 5].map((g) => {
       const file = this.ctx.leaders[g];
       const pools = this.ctx.rules.teamPools?.[g] ?? {};
@@ -220,13 +231,13 @@ export class RunUI {
         <h2>Your character</h2>
         <p>Your sprite is only for looks: the opponent can be the same trainer. Win runs, collect trophies and beat battles to unlock more trainers
           (${CHARACTERS.filter((c) => !locked(c)).length}/${CHARACTERS.length} unlocked).</p>
-        ${[1, 2, 3, 4, 5].map((g) => `<h3 class="character-gen">${GEN_LABELS[g]}</h3>
-        <div class="characters" role="radiogroup" aria-label="${GEN_LABELS[g]}">${CHARACTERS.filter((c) => c.gen === g).map((c) => `
-          <button class="character ${c.id === meta.character ? "selected" : ""} ${locked(c) ? "locked" : ""}" role="radio" aria-checked="${c.id === meta.character}"
-            data-act="character" data-id="${c.id}" title="${locked(c) ? `Locked: ${unlockText(unlocks[c.id])}` : c.name}" ${locked(c) ? "disabled" : ""}>
-            <img src="${c.front}" alt=""><span>${locked(c) ? "🔒 " : ""}${c.name}</span>
-            ${locked(c) ? `<small>${unlockText(unlocks[c.id])}</small>` : ""}
+        ${[1, 2, 3, 4, 5].filter((g) => CHARACTERS.some((c) => c.gen === g && !locked(c))).map((g) => `<h3 class="character-gen">${GEN_LABELS[g]}</h3>
+        <div class="characters" role="radiogroup" aria-label="${GEN_LABELS[g]}">${CHARACTERS.filter((c) => c.gen === g && !locked(c)).map((c) => `
+          <button class="character ${c.id === meta.character ? "selected" : ""}" role="radio" aria-checked="${c.id === meta.character}"
+            data-act="character" data-id="${c.id}" title="${c.name}">
+            <img src="${c.front}" alt=""><span>${c.name}</span>
           </button>`).join("")}</div>`).join("")}
+        ${hint ? `<p class="empty-note next-unlock">🔒 ${hiddenCount} more trainer${hiddenCount === 1 ? "" : "s"} to unlock. ${hint.ready ? "One is ready: it joins after your next battle or run." : `Hint: <b>${hint.character.name}</b>. ${unlockText(unlocks[hint.character.id])}.`}</p>` : ""}
       </section>
       <section class="card-panel badge-case" id="badge-case">${this.badgeCasePanel(meta)}</section>
       <section class="card-panel">
@@ -257,25 +268,53 @@ export class RunUI {
       saveMeta(m);
       applySpriteMode(this.ctx.data, m.sprites);
     };
-    this.hub.onclick = (e) => {
+    this.hub.onclick = async (e) => {
       const act = e.target.closest("[data-act]")?.dataset.act;
       if (act === "back") this.start();
-      if (act === "badge-fx") {
+      if (act === "case-help") { await this.caseHelp(); return; }
+      if (act === "perks") { await this.perksDialog(); redrawCase(); return; }
+      if (act === "shelf-tab") {
+        this.shelfGen = Number(e.target.closest("[data-gen]").dataset.gen);
+        redrawCase();
+        return;
+      }
+      // Tap a badge (in the case or in the collection): its details, and what you can do with it
+      if (act === "badge-open") { await this.badgeDialog(e.target.closest("[data-badge]").dataset.badge); redrawCase(); return; }
+      // Tap an empty slot: pick which badge goes there
+      if (act === "case-slot") {
+        const i = Number(e.target.closest("[data-slot]").dataset.slot);
+        const id = caseOf(loadMeta())[i];
+        if (id) await this.badgeDialog(id); else await this.slotDialog(i);
+        redrawCase();
+        return;
+      }
+      if (act === "case-remove") {
         const m = loadMeta();
-        const id = e.target.closest("[data-badge]").dataset.badge;
-        const off = new Set(m.badgeOff ?? []);
-        if (!off.delete(id)) off.add(id);
-        m.badgeOff = [...off];
+        removeBadge(m, Number(e.target.closest("[data-slot]").dataset.slot));
         saveMeta(m);
         redrawCase();
         return;
       }
-      if (act === "case-add" || act === "case-slot") {
+      if (act === "case-clear") {
         const m = loadMeta();
-        const id = e.target.closest("[data-badge]").dataset.badge;
-        const slot = caseOf(m).indexOf(id);
-        if (act === "case-slot" || slot !== -1) removeBadge(m, slot);
-        else if (!placeBadge(m, id)) { alert(`The badge case is full (${CASE_SIZE}). Take a badge out first.`); return; }
+        m.badgeCase = Array(CASE_SIZE).fill(null);
+        saveMeta(m);
+        redrawCase();
+        return;
+      }
+      if (act === "case-auto") {
+        // Strongest badges first (a higher gym number is stronger), into the slots with the biggest zone boost first
+        const m = loadMeta();
+        const zones = m.badgeLinks ?? [];
+        const boostOf = (i) => { const z = zones.find((x) => x.includes(i)); return z ? zoneBoost(z.length) : 0; };
+        const order = Array.from({ length: CASE_SIZE }, (_, i) => i).sort((a, b) => boostOf(b) - boostOf(a) || a - b);
+        const byGen = {};
+        for (const id of ownedBadges(m)) byGen[parseBadgeId(id).gen] = (byGen[parseBadgeId(id).gen] ?? 0) + 1;
+        const best = [...ownedBadges(m)].sort((x, y) => parseBadgeId(y).order - parseBadgeId(x).order || byGen[parseBadgeId(y).gen] - byGen[parseBadgeId(x).gen] || parseBadgeId(x).gen - parseBadgeId(y).gen)
+          .slice(0, CASE_SIZE);
+        const slots = Array(CASE_SIZE).fill(null);
+        best.forEach((id, k) => { slots[order[k]] = id; });
+        m.badgeCase = slots;
         saveMeta(m);
         redrawCase();
         return;
@@ -296,35 +335,55 @@ export class RunUI {
         if (!pools.length) { alert("Pick at least one generation for the Pokémon Pool."); return; }
         const meta = loadMeta();
         this.run = Run.newRun(this.ctx, { gen, pools, perks: perksFromMeta(meta), character: meta.character, badges: caseOf(meta), badgeLinks: meta.badgeLinks, badgeOff: meta.badgeOff ?? [] });
-        meta.badgeLinks = randomLinks(); // the next run gets new links
+        meta.badgeLinks = randomZones(); // the next run gets new links
         saveMeta(meta);
         this.render();
       }
     };
-    // Drag a badge onto a slot of the case (a filled slot swaps)
+    // Drag a badge onto a slot of the case (a filled slot swaps), or off the case onto the collection to take it out.
+    // Slots light up while you drag.
     this.hub.ondragstart = (e) => {
       const el = e.target.closest?.("[data-badge]");
       if (!el) return;
       this.badgeDrag = el.dataset.badge;
+      this.badgeDragFromCase = el.classList.contains("case-slot");
+      this.hub.classList.add("badge-dragging");
       e.dataTransfer.effectAllowed = "move";
       e.dataTransfer.setData("text/plain", this.badgeDrag);
     };
     this.hub.ondragover = (e) => {
+      if (!this.badgeDrag) return;
       const slot = e.target.closest?.(".case-slot[data-slot]");
       this.hub.querySelectorAll(".case-slot.drop-ok").forEach((el) => el !== slot && el.classList.remove("drop-ok"));
-      if (!slot || !this.badgeDrag) return;
+      if (!slot) {
+        if (this.badgeDragFromCase && e.target.closest?.(".badge-shelves")) e.preventDefault();
+        return;
+      }
       e.preventDefault();
       slot.classList.add("drop-ok");
     };
-    this.hub.ondragend = () => { this.badgeDrag = null; this.hub.querySelectorAll(".drop-ok").forEach((el) => el.classList.remove("drop-ok")); };
+    this.hub.ondragend = () => {
+      this.badgeDrag = null;
+      this.badgeDragFromCase = false;
+      this.hub.classList.remove("badge-dragging");
+      this.hub.querySelectorAll(".drop-ok").forEach((el) => el.classList.remove("drop-ok"));
+    };
     this.hub.ondrop = (e) => {
+      if (!this.badgeDrag) return;
       const slot = e.target.closest?.(".case-slot[data-slot]");
-      if (!slot || !this.badgeDrag) return;
-      e.preventDefault();
       const m = loadMeta();
-      placeBadge(m, this.badgeDrag, Number(slot.dataset.slot));
+      if (slot) {
+        e.preventDefault();
+        placeBadge(m, this.badgeDrag, Number(slot.dataset.slot));
+      } else if (this.badgeDragFromCase && e.target.closest?.(".badge-shelves")) {
+        e.preventDefault();
+        const at = caseOf(m).indexOf(this.badgeDrag);
+        if (at !== -1) removeBadge(m, at);
+      } else return;
       saveMeta(m);
       this.badgeDrag = null;
+      this.badgeDragFromCase = false;
+      this.hub.classList.remove("badge-dragging");
       redrawCase();
     };
   }
@@ -381,14 +440,22 @@ export class RunUI {
   // One move as a card: name, type, category, power, accuracy, PP and what it does.
   // compact: no description (used on the narrow recruit cards)
   // toggle: show an "Effect" button to open/close the description (team builder)
-  moveCard(id, { compact = false, toggle = false, key = "" } = {}) {
+  // A move's data as it is for this Pokémon: Hidden Power's type and power come from its IVs
+  moveData(id, mon) {
     const m = this.ctx.data.moves[id];
+    if (id === "return" || id === "frustration") return { ...m, power: 102 }; // no friendship system: always the maximum
+    if (id !== "hidden-power") return m;
+    return { ...m, ...hiddenPowerOf(mon?.ivs ?? DEFAULT_IVS) };
+  }
+
+  moveCard(id, { compact = false, toggle = false, key = "", mon = null } = {}) {
+    const m = this.moveData(id, mon);
     const plain = /^Inflicts regular damage( with no additional effect)?\.?$/i.test(m.shortEffect ?? "");
     const desc = !m.shortEffect || plain ? "Just damage, no extra effect." : m.shortEffect;
     return `
       <div class="move-card ${compact ? "compact" : ""}" ${key ? `data-key="${key}"` : ""} data-type="${m.type}" style="--type: var(--t-${m.type})" title="${m.name} · ${moveStats(m)}\n${desc}">
         <div class="mc-name">${m.name}</div>
-        <div class="mc-tags"><span class="mc-type">${m.type}</span><span class="cat-pill ${m.category}">${CATEGORY_LABEL[m.category]}</span></div>
+        <div class="mc-tags"><span class="mc-type">${m.type}</span><span class="cat-pill ${m.category}">${categoryIcon(m.category)}${CATEGORY_LABEL[m.category]}</span>${targetIcon(m.target, m)}</div>
         <div class="mc-stats">
           <span><small>Pow</small>${m.power ?? "—"}</span>
           <span><small>Acc</small>${m.accuracy ?? "—"}</span>
@@ -402,7 +469,7 @@ export class RunUI {
 
   // opts.keyPrefix: gives each card a stable key (used to keep opened descriptions open)
   moveGrid(moves, opts = {}) {
-    return `<div class="move-cards">${moves.map((id, i) => this.moveCard(id, { ...opts, key: opts.keyPrefix ? `${opts.keyPrefix}:${i}:${id}` : "" })).join("")}</div>`;
+    return `<div class="move-cards">${moves.map((id, i) => this.moveCard(id, { mon: opts.mon, ...opts, key: opts.keyPrefix ? `${opts.keyPrefix}:${i}:${id}` : "" })).join("")}</div>`;
   }
 
   // "Pebbles ♂ (Geodude)": nickname first, species in small text
@@ -544,12 +611,29 @@ export class RunUI {
   }
 
   // Selector at the top of the dialogs: one sprite per Pokémon, tap to look at that one
+  // Hovering a new move marks it as seen: its highlight (and the Pokémon's dot) goes away
+  markSeen(e) {
+    const el = e.target.closest?.(".is-new[data-move]");
+    if (!el) return;
+    const uid = Number(el.dataset.uid);
+    Run.seeMove(this.run, uid, el.dataset.move);
+    el.classList.remove("is-new");
+    el.querySelector(".new-tag")?.remove();
+    const mon = this.run.team.find((m) => m.uid === uid);
+    if (!mon?.fresh?.length) document.querySelectorAll(`.new-dot[data-uid="${uid}"], .new-tag[data-uid="${uid}"]`).forEach((x) => x.remove());
+  }
+
+  // Small yellow dot on a Pokémon that has a move you haven't looked at yet
+  newDot(mon) {
+    return mon.fresh?.length ? `<i class="new-dot" data-uid="${mon.uid}" title="New move available"></i>` : "";
+  }
+
   monStrip(mon) {
     const team = this.run.team;
     if (team.length < 2) return "";
     return `<div class="mon-strip" role="group" aria-label="Choose a Pokémon">${team.map((m, j) => `
       <button class="mon-pick ${m === mon ? "current" : ""} ${j < 2 ? "lead" : ""}" data-result='{"goto":${m.uid}}' ${m === mon ? `aria-current="true"` : ""}
-        title="${this.ctx.data.pokemonByKey[m.species].name}${j < 2 ? " (lead)" : ""}"><img src="${this.sprite(m)}" alt="${this.ctx.data.pokemonByKey[m.species].name}"></button>`).join("")}</div>`;
+        title="${this.ctx.data.pokemonByKey[m.species].name}${j < 2 ? " (lead)" : ""}"><img src="${this.sprite(m)}" alt="${this.ctx.data.pokemonByKey[m.species].name}">${this.newDot(m)}</button>`).join("")}</div>`;
   }
 
   // ===============================
@@ -562,32 +646,25 @@ export class RunUI {
     const offer = run.offer;
     const starter = offer.starter;
     this.hub.className = "hub";
-    const multi = offer.picksLeft > 1;
     const cards = offer.options.map((o, i) => {
       const m = o.spec;
-      const p = this.ctx.data.pokemonByKey[m.species];
       const nature = m.nature.charAt(0).toUpperCase() + m.nature.slice(1);
       return `
-        <button class="offer-card tier-${o.tier} ${o.taken ? "taken" : ""}" data-pick="${i}" style="animation-delay:${i * 80}ms"
-          role="${multi ? "checkbox" : "radio"}" aria-checked="false" ${o.taken || offer.picksLeft <= 0 ? "disabled" : ""}>
-          <span class="select-mark" aria-hidden="true"></span>
+        <button class="offer-card tier-${o.tier} ${o.taken ? "taken" : ""}" data-act="recruit-open" data-pick="${i}" style="animation-delay:${i * 80}ms"
+          ${o.taken || offer.picksLeft <= 0 ? "disabled" : ""}>
           <span class="tier">${o.tier}${o.taken ? " · picked" : ""}</span>
           <img class="big" src="${this.sprite(m)}" alt="">
           <span class="name">${this.monName(m)}</span>
           <span>${this.typeBadges(m.species)}</span>
           <span class="detail">Lv ${m.level} · ${nature}</span>
-          <span class="detail nature-effect">${this.natureEffect(m.nature)}</span>
-          ${this.abilityList(m)}
-          ${this.moveGrid(m.moves, { compact: true })}
-          <span class="detail">Base stat total ${p.bst}</span>
+          ${o.taken ? "" : `<span class="open-hint">Tap for details</span>`}
         </button>`;
     }).join("");
     const headline = starter ? "Choose your starters"
       : `You beat ${run.lastBattle?.opponent}! Recruit time`;
     const replacement = offer.replacementPicks ? ` Includes ${offer.replacementPicks} replacement pick${offer.replacementPicks > 1 ? "s" : ""} for the Pokémon you lost.` : "";
-    const rerollTip = this.rerollsLeft(offer) > 0 && offer.picksLeft > 1 ? ` Not happy with the rest? Confirm your picks first, then use the reroll: cards you picked stay, the others are replaced.` : "";
-    const sub = starter ? `Select ${offer.picksLeft} of ${offer.options.length}, then confirm. They'll fight Gym 1 at level ${offer.level}.${rerollTip}`
-      : `Select up to ${offer.picksLeft} (${offer.picks} of ${offer.options.length}), then confirm. Recruits join at level ${offer.level}.${replacement}${run.team.length >= 6 ? " Your team is full: picking means replacing someone." : ""}${rerollTip}`;
+    const picks = offer.picksLeft;
+    const sub = `Tap a Pokémon to see everything about it, then lock it in. ${starter ? `Lock in ${picks} starter${picks > 1 ? "s" : ""}` : `You can lock in ${picks} more`}${starter ? ` (they'll fight Gym 1 at level ${offer.level})` : ` (they join at level ${offer.level})`}.${replacement}${!starter && run.team.length >= 6 ? " Your team is full: locking in means replacing someone." : ""} Rerolling replaces the cards you haven't locked in.`;
     this.hub.innerHTML = `
       ${starter ? "" : this.track()}
       <div class="post-battle">${this.rewardsBanner()}${this.nextUpCard()}</div>
@@ -596,77 +673,148 @@ export class RunUI {
         <div><h1>${headline}</h1><p>${sub}</p></div>
         <div class="row-buttons">
           <button class="btn reroll-btn ${this.rerollsLeft(offer) <= 0 ? "" : "free"}" data-act="reroll" ${this.rerollsLeft(offer) <= 0 || offer.picksLeft <= 0 ? "disabled" : ""}
-            title="Replaces every card you haven't confirmed. Cards you picked stay.">${this.rerollsLeft(offer) <= 0 ? "No rerolls left" : `<span class="dice">🎲</span> Free reroll${this.rerollsLeft(offer) > 1 ? ` ×${this.rerollsLeft(offer)}` : ""}`}</button>
+            title="Replaces every card you haven't locked in. Locked-in Pokémon stay.">${this.rerollsLeft(offer) <= 0 ? "No rerolls left" : `<span class="dice">🎲</span> Free reroll${this.rerollsLeft(offer) > 1 ? ` ×${this.rerollsLeft(offer)}` : ""}`}</button>
           ${!starter && (offer.swapsUsed ?? 0) < perkParam(run, this.ctx.rules, "swap") ? `<button class="btn" data-act="swap" title="Swap badge: trade one of your Pokémon for any card, without using a pick.">🔁 Swap</button>` : ""}
           ${starter ? "" : `<button class="btn" data-act="skip" title="${offer.picksLeft < offer.picks ? "Skip the rest of your picks" : "Take nobody"}">Skip</button>`}
         </div>
       </div>
-      <div class="offer-grid" role="${multi ? "group" : "radiogroup"}" aria-label="Recruits">${cards}</div>
-      <div class="confirm-bar"><span class="confirm-text"></span><button class="btn primary" data-act="confirm" disabled>Confirm</button></div>
+      <div class="offer-grid" role="group" aria-label="Recruits">${cards}</div>
       ${run.team.length ? `<section class="card-panel"><h3>Your team (${run.team.length}/6)</h3><div class="team-grid">${run.team.map((m) => this.miniCard(m)).join("")}</div></section>` : ""}`;
-
-    const nameOf = (i) => this.ctx.data.pokemonByKey[offer.options[i].spec.species].name;
-    const selection = this.setupSelection({
-      limit: offer.picksLeft,
-      exact: starter,
-      describe: (sel) => sel.length
-        ? `${starter ? "Starters" : "Recruit"}: <b>${sel.map(nameOf).join(", ")}</b>`
-        : `Select ${starter ? offer.picksLeft : `up to ${offer.picksLeft}`} Pokémon`,
-      confirmLabel: (sel) => (starter && sel.length < offer.picksLeft
-        ? `Select ${offer.picksLeft - sel.length} more` : `Confirm${sel.length > 1 ? ` (${sel.length})` : ""}`),
-    });
-
-    // Take the selected cards (asks who to release when the team is full)
-    const confirmPicks = async () => {
-      for (const index of selection.get()) {
-        if (run.offer !== offer) break;
-        let replace = null;
-        if (run.team.length >= 6) {
-          replace = await this.modal({
-            title: "Your team is full",
-            body: `<p>Who makes room for ${nameOf(index)}? They'll be released (their held item goes to your bag).</p>`,
-            options: run.team.map((m) => ({ value: m.uid, html: `<img src="${this.sprite(m)}" alt=""> ${this.monName(m)} <small>Lv ${m.level}</small>` })),
-            cancel: `Don't take ${nameOf(index)}`,
-          });
-          if (replace === null) continue;
-        }
-        Run.pickRecruit(run, this.ctx, index, replace);
-      }
-    };
 
     this.hub.onclick = async (e) => {
       const act = e.target.closest("[data-act]")?.dataset.act;
+      if (act === "details") { await this.detailsDialog(Number(e.target.closest("[data-uid]").dataset.uid)); return; }
+      if (act === "recruit-open") {
+        // The same panel as your team's details, for a Pokémon you could recruit, with a Lock in button
+        await this.recruitDialog(Number(e.target.closest("[data-pick]").dataset.pick));
+        this.render();
+        return;
+      }
       if (act === "skip") { Run.skipOffer(run, this.ctx); this.render(); return; }
       if (act === "swap") {
         if (await this.swapDialog(offer)) this.render();
         return;
       }
       if (act === "reroll") {
-        const chosen = selection.get();
-        // "Confirm first, then reroll" only works while you still have picks left after confirming
-        const canKeep = chosen.length > 0 && chosen.length < offer.picksLeft;
-        const options = [];
-        if (canKeep) options.push({ value: "keep", html: `<b>Confirm ${chosen.map(nameOf).join(", ")}</b>, then reroll the rest <small>Your picks stay, only the other cards change</small>` });
-        options.push({ value: "drop", html: chosen.length ? `🎲 Reroll now <small>Your current selection is cleared and you choose again from the new cards</small>` : `🎲 Reroll` });
-        const how = await this.modal({
+        const ok = await this.modal({
           title: "Use your free reroll?",
-          body: `<p>Cards you have confirmed stay. Every other card is replaced by a new one.${offer.picksLeft > 1 && !chosen.length ? " Tip: select the ones you like and confirm first, then reroll for the rest." : ""}</p>`,
-          options,
+          body: `<p>Every card you haven't locked in is replaced by a new one. Pokémon you locked in stay.</p>`,
+          options: [{ value: true, html: "🎲 Reroll" }],
           cancel: "Keep these cards",
         });
-        if (!how) return;
-        if (how === "keep") await confirmPicks();
-        if (run.offer === offer && offer.picksLeft > 0) Run.rerollOffer(run, this.ctx);
-        this.render();
-        return;
+        if (ok && run.offer === offer) { Run.rerollOffer(run, this.ctx); this.render(); }
       }
-      if (act === "confirm") {
-        await confirmPicks();
-        this.render();
-        return;
-      }
-      selection.click(e);
     };
+  }
+
+  // The recruit screen's Pokémon panel: the same layout as the details window of your team, plus a Lock in button.
+  // ◀ ▶ and the sprites at the top flip through the cards.
+  async recruitDialog(index) {
+    const { run, ctx } = this;
+    const offer = run.offer;
+    const o = offer.options[index];
+    if (!o || o.taken || offer.picksLeft <= 0) return false;
+    const m = o.spec;
+    const p = ctx.data.pokemonByKey[m.species];
+    const nature = m.nature.charAt(0).toUpperCase() + m.nature.slice(1);
+    const [up, down] = NATURES[m.nature] ?? [];
+    const active = DETAIL_TABS.some((t) => t.id === this.detailsTab) ? this.detailsTab : "stats";
+    const head = `<div class="mon-strip" role="group" aria-label="Choose a Pokémon">${offer.options.map((x, j) => `
+      <button class="mon-pick ${j === index ? "current" : ""}" data-result='{"goto":${j}}' ${x.taken ? "disabled" : ""} title="${ctx.data.pokemonByKey[x.spec.species].name}"><img src="${this.sprite(x.spec)}" alt=""></button>`).join("")}</div>`;
+    const body = `
+      <div class="details">
+        <div class="details-head">
+          <img src="${this.sprite(m)}" alt="">
+          <div class="details-info">
+            <div class="details-name">${this.monName(m)}</div>
+            <div class="tile-sub">Lv ${m.level} · ${this.typeBadges(m.species)} · <span class="tier-label tier-${o.tier}">${o.tier}</span></div>
+            <div class="tile-sub">Nature: <b>${nature}</b>${up ? ` (+${STAT_NAMES[up]}, −${STAT_NAMES[down]})` : " (neutral)"}</div>
+            <div class="tile-sub">Base stat total ${p.bst} · ${offer.picksLeft} pick${offer.picksLeft > 1 ? "s" : ""} left</div>
+          </div>
+          <div class="details-actions">
+            <button class="btn primary" data-result='{"act":"lock"}'>Lock in</button>
+          </div>
+        </div>
+        <div class="tabs details-tabs" role="tablist" aria-label="Details">${DETAIL_TABS.map((t) => `
+          <button class="tab ${t.id === active ? "active" : ""}" role="tab" data-tab="${t.id}"
+            aria-selected="${t.id === active}"><img src="images/items/${t.icon}.png" alt=""><span>${t.label}</span></button>`).join("")}
+        </div>
+        <div class="tab-panels">
+          <section data-tab-panel="stats">${this.statsTable(m)}</section>
+          <section data-tab-panel="abilities">${this.abilityDetails(m)}</section>
+          <section data-tab-panel="evolution">${this.evolutionLine(m)}</section>
+          <section data-tab-panel="moves">
+            <div class="dm-top"><span class="dm-hint">What it knows right now.</span>
+              <label class="switch" title="Show what every move does"><input type="checkbox" data-local="effects" ${this.showEffects ? "checked" : ""}><span class="track-dot"></span> Effects</label></div>
+            ${this.moveGrid(m.moves, { mon: m })}
+          </section>
+        </div>
+      </div>`;
+    const result = await this.modal({
+      title: "",
+      label: `${p.name}, recruit option ${index + 1} of ${offer.options.length}`,
+      head,
+      body,
+      layout: "actions",
+      wide: true,
+      nav: offer.options.filter((x) => !x.taken).length > 1,
+      options: [],
+      cancel: "Close",
+      onOpen: (dialog) => this.wireDetailTabs(dialog, active),
+    });
+    if (!result) return false;
+    if (result.goto !== undefined) return this.recruitDialog(result.goto);
+    if (result.nav) {
+      const open = offer.options.map((x, j) => j).filter((j) => !offer.options[j].taken);
+      const at = open.indexOf(index);
+      return this.recruitDialog(open[(at + result.nav + open.length) % open.length]);
+    }
+    if (result.act === "lock") return this.lockIn(index);
+    return false;
+  }
+
+  // Lock in a recruit (asks who to release when the team is full)
+  async lockIn(index) {
+    const { run, ctx } = this;
+    const name = ctx.data.pokemonByKey[run.offer.options[index].spec.species].name;
+    let replace = null;
+    if (run.team.length >= 6) {
+      replace = await this.modal({
+        title: "Your team is full",
+        body: `<p>Who makes room for ${name}? They'll be released (their held item goes to your bag).</p>`,
+        options: run.team.map((m) => ({ value: m.uid, html: `<img src="${this.sprite(m)}" alt=""> ${this.monName(m)} <small>Lv ${m.level}</small>` })),
+        cancel: `Don't take ${name}`,
+      });
+      if (replace === null) return false;
+    }
+    return Run.pickRecruit(run, ctx, index, replace).ok;
+  }
+
+  // Tabs and the Effects switch of a details-style window (the details of your team and of recruits)
+  wireDetailTabs(dialog, active) {
+    const show = (id) => {
+      this.detailsTab = id;
+      for (const tab of dialog.querySelectorAll("[data-tab]")) {
+        tab.classList.toggle("active", tab.dataset.tab === id);
+        tab.setAttribute("aria-selected", String(tab.dataset.tab === id));
+      }
+      for (const panel of dialog.querySelectorAll("[data-tab-panel]")) {
+        const off = panel.dataset.tabPanel !== id;
+        panel.classList.toggle("off", off);
+        panel.setAttribute("aria-hidden", String(off));
+      }
+    };
+    show(active);
+    dialog.classList.toggle("show-effects", !!this.showEffects);
+    dialog.addEventListener("click", (e) => {
+      const tab = e.target.closest("[data-tab]");
+      if (tab) show(tab.dataset.tab);
+      if (e.target.closest("[data-local=effects]")) {
+        this.showEffects = !this.showEffects;
+        try { localStorage.setItem("pd.showEffects", this.showEffects ? "1" : "0"); } catch { /* ignore */ }
+        dialog.classList.toggle("show-effects", this.showEffects);
+      }
+    });
   }
 
   // Cards that select like radio buttons (limit 1) or checkboxes (limit > 1), without re-rendering.
@@ -761,9 +909,10 @@ export class RunUI {
       <div class="fallen-list">${fallen.map((f) => `<div class="mon"><img src="${this.sprite(f)}" alt="">${f.name}</div>`).join("")}</div></section>`;
   }
 
+  // A team member on the recruit and item screens: tap it for its details
   miniCard(m) {
-    return `<div class="mon-card"><div class="mon-head"><img src="${this.sprite(m)}" alt="">
-      <div><div class="mon-name">${this.monName(m)}</div><div class="mon-sub">Lv ${m.level} · ${this.abilityText(m)}</div></div></div></div>`;
+    return `<button class="mon-card mini" data-act="details" data-uid="${m.uid}" title="Tap for details">${this.newDot(m)}<div class="mon-head"><img src="${this.sprite(m)}" alt="">
+      <div><div class="mon-name">${this.monName(m)}</div><div class="mon-sub">Lv ${m.level} · ${this.abilityText(m)}</div></div></div></button>`;
   }
 
   // ===============================
@@ -807,8 +956,9 @@ export class RunUI {
       confirmLabel: (sel) => `Confirm${sel.length > 1 ? ` (${sel.length})` : ""}`,
     });
 
-    this.hub.onclick = (e) => {
+    this.hub.onclick = async (e) => {
       const act = e.target.closest("[data-act]")?.dataset.act;
+      if (act === "details") { await this.detailsDialog(Number(e.target.closest("[data-uid]").dataset.uid)); return; }
       if (act === "skip") { Run.skipOffer(this.run, this.ctx); this.render(); return; }
       if (act === "confirm") {
         for (const index of selection.get()) {
@@ -856,7 +1006,7 @@ export class RunUI {
           ${this.abilityList(m)}
           ${this.statStrip(m)}
           <div class="mon-item">${m.item ? `<span class="held-chip" draggable="true" data-drag="held" data-uid="${m.uid}" title="Drag to another Pokémon or back to the Bag">${this.itemImg(m.item)} ${itemInfo(m.item).name}</span>` : `<span class="mon-sub">No held item</span>`}</div>
-          ${this.moveGrid(m.moves, { toggle: true, keyPrefix: m.uid })}
+          ${this.moveGrid(m.moves, { keyPrefix: m.uid, mon: m })}
           ${run.team.length > 1 ? this.slotStrip(m) : ""}
           <div class="mon-actions">
             <button class="btn small" data-act="item" data-uid="${m.uid}">Item</button>
@@ -918,8 +1068,8 @@ export class RunUI {
 
     this.hub.classList.toggle("show-effects", !!this.showEffects);
     this.hub.onclick = (e) => this.onHubClick(e);
+    this.hub.onmouseover = (e) => this.markSeen(e);
     this.attachDragDrop();
-    if (run.pendingMoves.length) this.askPendingMove();
   }
 
   // ===============================
@@ -1034,20 +1184,31 @@ export class RunUI {
       <small>${isNew ? "Added to your badge collection. Check it in the badge case before your next run." : "You already have this badge."}</small></div></div>`;
   }
 
-  // The case as 8 slots (4 × 2) with each badge's strength: the gym number, +1 per neighbour of the same generation
-  caseGrid(slots, links = [], { editable = false } = {}) {
-    const strengths = Object.fromEntries(caseStrengths(slots, links).map((b) => [b.slot, b]));
-    const linkOf = (i) => links.findIndex((l) => l.includes(i)); // 0, 1, 2 or -1: which linked pair the slot is in
-    return `<div class="case-board"><div class="case-title"><i></i> LEAGUE BADGE <i></i></div><div class="case-slots" role="group" aria-label="Badge case">${slots.map((id, i) => {
+  // The case as 8 slots (4 × 2), drawn as separate coloured boxes: the boost zones. Every badge in a box is stronger (★).
+  caseGrid(slots, zones = [], { editable = false } = {}) {
+    const strengths = Object.fromEntries(caseStrengths(slots, zones).map((b) => [b.slot, b]));
+    const COLS = 4;
+    // Old saves can have pairs that aren't boxes: show those slots on their own
+    const shown = validZones(zones) ? zones : slots.map((_, i) => [i]);
+    const slotHtml = (i, boost) => {
+      const id = slots[i];
       const st = strengths[i];
-      const link = linkOf(i);
-      const partner = link === -1 ? null : links[link].find((x) => x !== i);
       const perk = id ? perkInfo(perkOfBadge(this.ctx.rules, id), st.strength) : null;
-      const linkText = link === -1 ? "" : st?.boost ? ` Linked with slot ${partner + 1}: +${st.boost} strength.` : ` Linked with slot ${partner + 1}: put a badge there too and both get stronger.`;
-      return `<div class="case-slot ${id ? "filled" : ""} ${link === -1 ? "" : `linked link-${link}`}" data-slot="${i}" ${id && editable ? `draggable="true" data-badge="${id}" data-act="case-slot"` : ""}
-        title="${id ? `${badgeName(st.gen, st.gym)}: ${perk.name}, strength ${st.strength}. ${perk.effect}.${linkText}${editable ? " Tap to take it out." : ""}` : `Slot ${i + 1}.${linkText}`}">
-        ${id ? `${this.badgeImg(id)}<span class="strength ${st.boost ? "boosted" : ""}">${st.strength}</span>` : `<span>${i + 1}</span>`}
-        ${link === -1 ? "" : `<span class="link-mark">🔗${"ABC"[link]}</span>`}</div>`;
+      const zoneText = boost ? ` In a ${"★".repeat(boost)} zone: stronger.` : "";
+      return `<div class="case-slot ${id ? "filled" : ""}" data-slot="${i}" ${editable ? `data-act="case-slot"` : ""} ${id && editable ? `draggable="true" data-badge="${id}"` : ""}
+        title="${id ? `${badgeName(st.gen, st.gym)}: ${perk.name}, ${perk.effect}.${zoneText}` : `Slot ${i + 1}.${zoneText}`}">
+        ${id ? `${this.badgeImg(id)}` : `<span class="slot-no">${i + 1}</span>`}
+        ${id && editable ? `<button class="case-x" data-act="case-remove" data-slot="${i}" title="Take it out of the case" aria-label="Take it out of the case">×</button>` : ""}</div>`;
+    };
+    return `<div class="case-board"><div class="case-title"><i></i> LEAGUE BADGE <i></i></div>
+      <div class="case-slots" role="group" aria-label="Badge case">${shown.map((z, k) => {
+      const sorted = [...z].sort((a, b) => a - b);
+      const row = Math.floor(sorted[0] / COLS), col = sorted[0] % COLS;
+      const w = new Set(sorted.map((n) => n % COLS)).size, h = new Set(sorted.map((n) => Math.floor(n / COLS))).size;
+      const boost = validZones(zones) ? zoneBoost(sorted.length) : 0;
+      return `<div class="case-zone zone-${validZones(zones) ? k : -1}" style="grid-column: ${col + 1} / span ${w}; grid-row: ${row + 1} / span ${h}; --cols: ${w}">
+        ${boost ? `<span class="zone-boost" title="Every badge in this box is stronger">${"★".repeat(boost)}</span>` : ""}
+        ${sorted.map((i) => slotHtml(i, boost)).join("")}</div>`;
     }).join("")}</div></div>`;
   }
 
@@ -1055,15 +1216,15 @@ export class RunUI {
   // off: ids of badges whose effect is switched off. editable: show an on / off switch on every effect (New run screen)
   perkChips(slots, links = [], { off = [], editable = false } = {}) {
     const worn = caseStrengths(slots, links);
-    if (!worn.length) return `<p class="empty-note">No effects yet. Put badges in the case.</p>`;
+    if (!worn.length) return `<p class="empty-note">Nothing yet: drag a badge into the case to see what it does.</p>`;
     const set = setBonus(slots, this.ctx.rules);
     return `<div class="perk-chips">${worn.map((b) => {
       const perk = perkInfo(perkOfBadge(this.ctx.rules, b.id), b.strength);
       const isOff = off.includes(b.id);
-      return `<span class="perk-chip ${isOff ? "off" : ""}" title="${badgeName(b.gen, b.gym)}">${this.badgeImg(b.id, "mini")}<span><b>${perk.name} <i class="lvl">${b.strength}${b.boost ? ` (+${b.boost} link)` : ""}</i></b><small>${isOff ? "Switched off" : perk.effect}</small></span>
-        ${editable ? `<label class="switch" title="Turn this badge's effect on or off"><input type="checkbox" data-act="badge-fx" data-badge="${b.id}" ${isOff ? "" : "checked"}><span class="track-dot"></span></label>` : ""}</span>`;
+      return `<span class="perk-chip ${isOff ? "off" : ""}">${this.badgeImg(b.id, "mini")}<span><b>${perk.name}</b><small class="stat-line">+${Math.round(badgeStatBoost(b.strength) * 1000) / 10}% ${STAT_NAME[statOfBadge(this.ctx.rules, b.id)] ?? ""} · whole team</small><small>${isOff ? "Switched off" : perk.effect}</small></span>
+        ${editable ? `<label class="switch"><input type="checkbox" data-act="badge-fx" data-badge="${b.id}" ${isOff ? "" : "checked"}><span class="track-dot"></span></label>` : ""}</span>`;
     }).join("")}${set.parts.map((p) => `<span class="perk-chip set"><span class="set-gen">Gen ${p.gen}</span><span><b>Set bonus: ${p.count} badges</b><small>+${p.pct}% Attack, Defense, Sp. Atk, Sp. Def and Speed for your Pokémon</small></span></span>`).join("")}</div>
-      <p class="empty-note">${set.pct ? `Total set bonus: +${set.pct}%. ` : "Set bonus: wear 3 badges from one generation (5 and 8 give more). "}Strength = the badge's gym number, +2 when it sits in a linked pair 🔗 and the other slot has a badge too. Use the switch to turn a badge's effect off if you don't want it this run.</p>`;
+      ${editable ? `<p class="empty-note">Use a switch to turn a badge's effect off for this run.</p>` : ""}`;
   }
 
   badgeButton() {
@@ -1086,26 +1247,156 @@ export class RunUI {
     });
   }
 
-  // New run screen: the badge case. Tap a badge to put it in the case or take it out, or drag it onto a slot.
+  // New run screen: the badge case. Drag badges in and out, or tap a badge for its details and what to do with it.
   badgeCasePanel(meta) {
     const slots = caseOf(meta);
     const links = meta.badgeLinks ?? [];
     const owned = ownedBadges(meta);
     const leaders = this.ctx.leaders;
-    return `<h2>Badge case</h2>
-      <p>Badges you won in earlier runs, from any generation. Fill the case with up to ${CASE_SIZE}: they give perks for the whole run and <b>can't be changed once the run starts</b>. Badges get stronger with their gym number. This run, some slots are <b>linked 🔗</b> in pairs (the same letter): two badges in a linked pair boost each other (+2 strength), so where you put them matters. Several badges from one generation give a set bonus. Win gyms to unlock more.</p>
-      ${this.caseGrid(slots, links, { editable: true })}
-      <div class="case-perks">${this.perkChips(slots, links, { off: meta.badgeOff ?? [], editable: true })}</div>
-      <h3>Collection <small>${owned.size}/40</small></h3>
-      ${[1, 2, 3, 4, 5].map((g) => `<div class="badge-row"><span class="badge-row-label">Gen ${g} · ${leaders[g].region}</span>
+    const rulesSets = this.ctx.rules.badges?.sets ?? [{ count: 3, pct: 2 }, { count: 5, pct: 4 }, { count: 8, pct: 6 }];
+    const tiers = rulesSets.map((t) => t.count);
+    const shelfGen = this.shelfGen ?? 1;
+    const shelf = (g) => {
+      const inCase = slots.filter((id) => id && parseBadgeId(id).gen === g).length;
+      const pct = setBonus(slots.filter((id) => id && parseBadgeId(id).gen === g), this.ctx.rules).pct;
+      const top = tiers[tiers.length - 1];
+      const nextTier = tiers.find((t) => t > inCase);
+      const marks = tiers.map((t) => `<i class="notch ${inCase >= t ? "on" : ""}" style="left:${(t / top) * 100}%"></i>`).join("");
+      return `<div class="badge-row"><div class="badge-row-head"><span class="badge-row-label">Gen ${g} · ${leaders[g].region}</span>
+        <span class="set-meter"><span class="set-text">${nextTier ? `${inCase} in case · ${nextTier - inCase} more for +${rulesSets.find((t) => t.count === nextTier)?.pct ?? "?"}%` : "Full set"}</span>${pct ? `<b>+${pct}% stats</b>` : ""}</span></div>
+        <div class="set-bar" aria-hidden="true"><i class="fill" style="width:${Math.min(100, (inCase / top) * 100)}%"></i>${marks}</div>
         <div class="badge-tiles">${Array.from({ length: 8 }, (_, i) => {
           const id = badgeId(g, i + 1);
-          const has = owned.has(id);
           const gym = leaders[g].opponents[i];
-          return has
-            ? `<button class="badge-tile ${slots.includes(id) ? "in-case" : ""}" data-act="case-add" data-badge="${id}" draggable="true" title="${badgeName(g, i + 1)} (${gym.name}): ${perkInfo(perkOfBadge(this.ctx.rules, id), i + 1).name}: ${perkInfo(perkOfBadge(this.ctx.rules, id), i + 1).effect}">${this.badgeImg(id)}</button>`
-            : `<span class="badge-tile locked" title="Beat ${gym.name} in Gen ${g} to unlock: ${perkInfo(perkOfBadge(this.ctx.rules, id), i + 1).name}">${this.badgeImg(id, "locked")}</span>`;
-        }).join("")}</div></div>`).join("")}`;
+          return owned.has(id)
+            ? `<button class="badge-tile ${slots.includes(id) ? "in-case" : ""}" data-act="badge-open" data-badge="${id}" draggable="true">${this.badgeImg(id)}${slots.includes(id) ? `<i class="in-mark">✓</i>` : ""}</button>`
+            : `<button class="badge-tile locked" data-act="badge-open" data-badge="${id}">${this.badgeImg(id, "locked")}<i class="lock">🔒</i></button>`;
+        }).join("")}</div></div>`;
+    };
+    return `<div class="case-head"><h2>Badge case</h2>
+        <button class="btn small" data-act="case-help">? How it works</button></div>
+      <p class="case-intro">Drag badges into the case, or tap a badge for its details. Every coloured zone boosts the badges inside it. It's locked once the run starts.</p>
+      <div class="case-layout">
+        <div class="case-left">
+          ${this.caseGrid(slots, links, { editable: true })}
+          <div class="case-tools"><button class="btn small" data-act="case-auto">✨ Auto-fill</button>
+            <button class="btn small" data-act="case-clear" ${slots.some(Boolean) ? "" : "disabled"}>Clear</button>
+            <button class="btn small" data-act="perks">Perks (${slots.filter(Boolean).length})</button>
+            <span class="case-count">${slots.filter(Boolean).length}/${CASE_SIZE} in the case</span></div>
+        </div>
+        <div class="case-main">
+          <div class="tabs shelf-tabs" role="tablist" aria-label="Badge generations">${[1, 2, 3, 4, 5].map((g) => {
+            const have = Array.from({ length: 8 }, (_, i) => owned.has(badgeId(g, i + 1))).filter(Boolean).length;
+            return `<button class="tab ${g === shelfGen ? "active" : ""}" role="tab" aria-selected="${g === shelfGen}" data-act="shelf-tab" data-gen="${g}">
+              <span>Gen ${g}</span><small class="tab-have">${have}/8</small></button>`;
+          }).join("")}</div>
+          <div class="badge-shelves">${shelf(shelfGen)}</div>
+        </div>
+      </div>`;
+  }
+
+  // One badge: what it does at its strength, where it sits, and what you can do with it
+  async badgeDialog(id) {
+    const meta = loadMeta();
+    const { gen, order } = parseBadgeId(id);
+    const gym = this.ctx.leaders[gen].opponents[order - 1];
+    const owned = ownedBadges(meta).has(id);
+    const slots = caseOf(meta);
+    const zones = meta.badgeLinks ?? [];
+    const at = slots.indexOf(id);
+    const st = at !== -1 ? caseStrengths(slots, zones).find((b) => b.id === id) : null;
+    const strength = st?.strength ?? order;
+    const perkId = perkOfBadge(this.ctx.rules, id);
+    const perk = perkInfo(perkId, strength);
+    const stat = statOfBadge(this.ctx.rules, id);
+    const pctText = (v) => `${Math.round(v * 1000) / 10}%`;
+    const off = (meta.badgeOff ?? []).includes(id);
+    const where = !owned ? `<p class="empty-note">🔒 Locked. Beat ${gym.name} (Gym ${order}) in Gen ${gen} to win it.</p>`
+      : st && st.boost ? `<p class="empty-note">In a ${"★".repeat(st.boost)} zone: this badge is stronger here.</p>`
+      : st ? ""
+      : `<p class="empty-note">Not in the case. A zone with more ★ makes it stronger.</p>`;
+    await this.modal({
+      title: badgeName(gen, order),
+      wide: true,
+      body: `<div class="badge-detail">
+        <div class="bd-head">${this.badgeImg(id, owned ? "" : "locked")}<div><b>${gym.name}'s badge</b><small>Gen ${gen} · Gym ${order}</small></div></div>
+        ${stat ? `<div class="bd-stat"><b>+${pctText(badgeStatBoost(strength))} ${STAT_NAME[stat]}</b><small>whole team</small></div>` : ""}
+        <div class="bd-effect"><b>${perk.name}</b>${st ? `<small>can be switched off</small>` : ""}<p>${off && st ? "Switched off for this run." : perk.effect}.</p></div>
+        ${where}
+        <div class="bd-toggles">
+          ${st ? `<label class="switch" title="Off: the effect doesn't work this run (the badge still counts for the set bonus)"><input type="checkbox" data-local="fx" ${off ? "" : "checked"}><span class="track-dot"></span> Effect on</label>` : ""}
+          </div></div>`,
+      cancel: "Close",
+      onOpen: (dialog) => dialog.addEventListener("change", (e) => {
+        if (e.target.closest("[data-local=fx]")) {
+          const m = loadMeta();
+          const set = new Set(m.badgeOff ?? []);
+          if (e.target.checked) set.delete(id); else set.add(id);
+          m.badgeOff = [...set];
+          saveMeta(m);
+          dialog.querySelector(".bd-effect p").textContent = e.target.checked ? `${perk.effect}.` : "Switched off for this run.";
+          dialog.querySelector(".bd-effect").classList.toggle("off", !e.target.checked);
+        }
+      }),
+    });
+  }
+
+  // An empty slot: choose a badge for it
+  async slotDialog(i) {
+    const meta = loadMeta();
+    const slots = caseOf(meta);
+    const zones = meta.badgeLinks ?? [];
+    const z = zones.find((x) => x.includes(i));
+    const boost = z ? zoneBoost(z.length) : 0;
+    const free = [...ownedBadges(meta)].filter((id) => !slots.includes(id)).sort((a, b) => parseBadgeId(b).order - parseBadgeId(a).order);
+    const id = await this.modal({
+      title: `Slot ${i + 1}`,
+      body: `<p>${boost ? `This slot is in a ${"★".repeat(boost)} zone: every badge here is stronger.` : "This slot has no zone boost."}</p>`,
+      options: free.map((b) => {
+        const { gen, order } = parseBadgeId(b);
+        const perk = perkInfo(perkOfBadge(this.ctx.rules, b), Math.min(10, order + boost));
+        return { value: b, html: `${this.badgeImg(b, "mini")} ${badgeName(gen, order)} <small>${perk.name}</small>` };
+      }),
+      cancel: free.length ? "Cancel" : "Close",
+    });
+    if (!id) return;
+    const m = loadMeta();
+    placeBadge(m, id, i);
+    saveMeta(m);
+  }
+
+  // What the badges in the case give, with a switch for each effect
+  async perksDialog() {
+    const render = () => { const m = loadMeta(); return this.perkChips(caseOf(m), m.badgeLinks ?? [], { off: m.badgeOff ?? [], editable: true }); };
+    await this.modal({
+      title: "Your perks",
+      wide: true,
+      body: `<div class="case-perks" data-perks>${render()}</div>`,
+      cancel: "Close",
+      onOpen: (dialog) => dialog.addEventListener("change", (e) => {
+        const id = e.target.closest?.("[data-act=badge-fx]")?.dataset.badge;
+        if (!id) return;
+        const m = loadMeta();
+        const set = new Set(m.badgeOff ?? []);
+        if (!set.delete(id)) set.add(id);
+        m.badgeOff = [...set];
+        saveMeta(m);
+        dialog.querySelector("[data-perks]").innerHTML = render();
+      }),
+    });
+  }
+
+  // The rules of the case, for the "How it works" button
+  async caseHelp() {
+    await this.modal({
+      title: "How the badge case works",
+      body: `<p>Gym leaders give badges. Once you own one you keep it for every later run.</p>
+        <p><b>Fill the case</b> with up to ${CASE_SIZE} badges from any generation. Their perks last the whole run and can't be changed once it starts.</p>
+        <p><b>Zones:</b> the case is split into coloured zones of 1, 2 or 3 touching slots. Every badge inside a zone gets stronger: ★★★ for a zone of one slot, ★★ for two, ★ for three. The zones change every run, so where you put your badges matters.</p>
+        <p><b>Set bonus:</b> several badges from one generation (3, 5 or 8) give a bonus to your Pokémon's stats.</p>
+        <p><b>Switches</b> next to a perk turn it off for the run if you don't want it.</p>`,
+      cancel: "Got it",
+    });
   }
 
   // Swap badge: pick a recruit card, then the Pokémon you give up
@@ -1145,7 +1436,7 @@ export class RunUI {
   // The popup for a move in the Moves bar: its details, and for a new move the choice of which slot it takes
   async movePopup(mon, id, from) {
     const { run, ctx } = this;
-    const m = ctx.data.moves[id];
+    const m = this.moveData(id, mon);
     const learnable = from !== "known";
     const options = learnable ? [0, 1, 2, 3].filter((i) => i <= mon.moves.length).map((i) => ({
       value: i,
@@ -1153,7 +1444,8 @@ export class RunUI {
     })) : [];
     const slot = await this.modal({
       title: `${m.name}${from === "tm" ? " (TM)" : ""}`,
-      body: `<div class="new-move">${this.moveCard(id)}</div>
+      wide: true,
+      body: `<div class="new-move">${this.moveCard(id, { mon })}</div>
         ${learnable ? `<p>${Run.displayName(ctx, mon)} can learn this. ${from === "tm" ? "TMs are reusable: teaching one doesn't use it up." : "Level-up moves are free."}</p>` : `<p>${Run.displayName(ctx, mon)} already knows this move. Drag it onto another slot to change the order.</p>`}`,
       options,
       cancel: learnable ? "Not now" : "Close",
@@ -1161,6 +1453,31 @@ export class RunUI {
     if (slot === null || !learnable) return;
     if (from === "tm") Run.teachTM(run, ctx, mon.uid, id, slot);
     else Run.relearnMove(run, ctx, mon.uid, id, slot);
+  }
+
+  // category + "50 pow · 100%" + the target icon, for a move row
+  mvStats(id, mon = null) {
+    const m = this.moveData(id, mon);
+    return `<span class="mv-stats"><span class="mv-line"><span class="cat-pill ${m.category}">${categoryIcon(m.category)}${CATEGORY_LABEL[m.category]}</span>${m.power ? `<b>${m.power}</b> pow · ` : ""}${m.accuracy ? `${m.accuracy}%` : "—"}</span>${targetIcon(m.target, m)}</span>`;
+  }
+
+  // Every move a Pokémon can learn right now (TMs you own first, then missed level-up moves) as tappable rows.
+  // dialog: inside the details window the rows close it and hand the move back (data-result) instead of data-act.
+  learnList(mon, { dialog = false } = {}) {
+    const { run, ctx } = this;
+    const moves = ctx.data.moves;
+    const tms = Run.teachableTMs(run, ctx, mon);
+    const relearn = Run.relearnableMoves(ctx, mon).reverse().filter((id) => !tms.includes(id));
+    const chip = (id, from) => {
+      const how = dialog ? `data-result='${JSON.stringify({ act: "move-popup", move: id, from })}'` : `data-act="move-popup"`;
+      const fresh = mon.fresh?.includes(id);
+      return `<button class="move-chip ${fresh ? "is-new" : ""}" data-uid="${mon.uid}" ${how} data-from="${from}" data-move="${id}" draggable="true" data-drag="learn"
+        style="--type: var(--t-${this.moveData(id, mon).type})" title="Tap for details · Drag onto a move to learn it in its place">
+        <span class="mv-name">${from === "tm" ? "TM " : ""}${moves[id].name}${fresh ? ` <em class="new-tag">New</em>` : ""}</span>${this.mvStats(id, mon)}
+        ${this.showEffects ? `<span class="mv-effect">${this.effectText(id)}</span>` : ""}</button>`;
+    };
+    const rows = [...tms.map((id) => chip(id, "tm")), ...relearn.map((id) => chip(id, "relearn"))];
+    return { html: rows.join(""), count: rows.length, tms: tms.length };
   }
 
   // A TM tapped in the Bag: its details and who can learn it, then the usual popup to pick the slot
@@ -1191,35 +1508,25 @@ export class RunUI {
     const mon = run.team.find((m) => m.uid === this.moveFocus) ?? run.team[0];
     this.moveFocus = mon.uid;
     const moves = ctx.data.moves;
-    const stats = (id) => {
-      const m = moves[id];
-      return `<span class="mv-stats">${m.power ? `<b>${m.power}</b> pow` : "status"} · ${m.accuracy ? `${m.accuracy}%` : "—"}</span>`;
-    };
+    const stats = (id) => this.mvStats(id, mon);
     const slots = [0, 1, 2, 3].map((i) => {
       const id = mon.moves[i];
       if (!id) return `<div class="move-slot empty" data-slot="${i}" data-uid="${mon.uid}"><span class="mv-name">Empty slot</span></div>`;
-      return `<div class="move-slot" data-slot="${i}" data-uid="${mon.uid}" draggable="true" data-drag="slot" data-act="move-popup" data-move="${id}" data-from="known" style="--type: var(--t-${moves[id].type})"
+      const fresh = mon.fresh?.includes(id);
+      return `<div class="move-slot ${fresh ? "is-new" : ""}" data-slot="${i}" data-uid="${mon.uid}" draggable="true" data-drag="slot" data-act="move-popup" data-move="${id}" data-from="known" style="--type: var(--t-${this.moveData(id, mon).type})"
         title="Tap for details · Drag onto another slot to change the order">
-        <span class="mv-name">${moves[id].name}</span>${stats(id)}
-        ${this.chipEffects ? `<span class="mv-effect">${this.effectText(id)}</span>` : ""}</div>`;
+        <span class="mv-name">${moves[id].name}${fresh ? ` <em class="new-tag">New</em>` : ""}</span>${stats(id)}
+        ${this.showEffects ? `<span class="mv-effect">${this.effectText(id)}</span>` : ""}</div>`;
     }).join("");
-    // Tap a move: a popup shows what it does and lets you learn it. Drag it onto a slot to learn it right away.
-    const chip = (id, from) => `<button class="move-chip" data-act="move-popup" data-from="${from}" data-uid="${mon.uid}" data-move="${id}" draggable="true" data-drag="learn"
-        style="--type: var(--t-${moves[id].type})" title="Tap for details · Drag onto a slot to learn it">
-        <span class="mv-name">${from === "tm" ? "TM " : ""}${moves[id].name}</span>${stats(id)}
-        ${this.chipEffects ? `<span class="mv-effect">${this.effectText(id)}</span>` : ""}</button>`;
-    // Every move it can learn right now: the TMs you own for it first, then the level-up moves it has missed
-    const tms = Run.teachableTMs(run, ctx, mon);
-    const relearn = Run.relearnableMoves(ctx, mon).reverse().filter((id) => !tms.includes(id));
-    const all = [...tms.map((id) => chip(id, "tm")), ...relearn.map((id) => chip(id, "relearn"))];
+    const all = this.learnList(mon);
     return `<div class="moves-panel">
       <div class="mon-strip" role="group" aria-label="Choose a Pokémon">${run.team.map((m) => `
-        <button class="mon-pick ${m === mon ? "current" : ""}" data-act="move-focus" data-uid="${m.uid}" title="${Run.displayName(ctx, m)}"><img src="${this.sprite(m)}" alt=""></button>`).join("")}</div>
+        <button class="mon-pick ${m === mon ? "current" : ""}" data-act="move-focus" data-uid="${m.uid}" title="${Run.displayName(ctx, m)}"><img src="${this.sprite(m)}" alt="">${this.newDot(m)}</button>`).join("")}</div>
       <div class="moves-for"><span><b>${Run.displayName(ctx, mon)}</b> <small>Lv ${mon.level}</small></span>
-        <label class="switch" title="Show what every move does"><input type="checkbox" data-act="chip-effects" ${this.chipEffects ? "checked" : ""}><span class="track-dot"></span> Effects</label></div>
+        <label class="switch" title="Show what every move does"><input type="checkbox" data-act="chip-effects" ${this.showEffects ? "checked" : ""}><span class="track-dot"></span> Effects</label></div>
       <div class="move-slots">${slots}</div>
-      <h3>Moves it can learn <small>${all.length} · ${tms.length} TM${tms.length === 1 ? "" : "s"}</small></h3>
-      <div class="move-chips scroll">${all.join("") || `<p class="empty-note">No new moves right now. Win battles for TMs, or level up.</p>`}</div>
+      <h3>Moves it can learn <small>${all.count} · ${all.tms} TM${all.tms === 1 ? "" : "s"}</small></h3>
+      <div class="move-chips scroll">${all.html || `<p class="empty-note">No new moves right now. Win battles for TMs, or level up.</p>`}</div>
       <p class="empty-note">Drag a move onto a slot to learn it. Drag a slot onto another to swap them. Tap a move to read what it does.</p>
     </div>`;
   }
@@ -1285,6 +1592,7 @@ export class RunUI {
       <button class="team-tile ${i < 2 ? "lead" : ""}" data-act="details" data-uid="${m.uid}" draggable="true" data-drag="mon" style="--type: var(--t-${p.types[0]})">
         ${i < 2 ? `<span class="lead-tag">LEAD</span>` : ""}
         ${evoReady ? `<span class="evo-tag">Evolve!</span>` : ""}
+        ${m.fresh?.length ? `<span class="new-tag" data-uid="${m.uid}">New move!</span>` : ""}
         <img src="${this.sprite(m)}" alt="">
         <span class="tile-name">${this.monName(m)}</span>
         <span class="tile-sub">Lv ${m.level}</span>
@@ -1383,6 +1691,7 @@ export class RunUI {
     const act = (value, label, { disabled = false, ready = false } = {}) =>
       `<button class="btn small ${ready ? "ready" : ""}" data-result='{"act":"${value}"}' ${disabled ? "disabled" : ""}>${label}</button>`;
     const active = DETAIL_TABS.some((t) => t.id === this.detailsTab) ? this.detailsTab : "stats";
+    const learn = this.learnList(mon, { dialog: true });
     const body = `
       <div class="details">
         <div class="details-head">
@@ -1408,9 +1717,16 @@ export class RunUI {
           ${patches ? `<div class="panel-actions">${act("patch", "Use an Ability Patch…")}</div>` : ""}</section>
         <section data-tab-panel="evolution">${this.evolutionLine(mon)}
           ${evo.length ? `<div class="panel-actions">${act("evolve", evo.some((o) => o.ready) ? "Evolve!" : "Evolve…", { ready: evo.some((o) => o.ready) })}</div>` : ""}</section>
-        <section data-tab-panel="moves">${this.moveGrid(mon.moves, { toggle: true })}
-          <div class="panel-actions">
-            <button class="btn small" data-local="effects" type="button">${this.showEffects ? "Hide all effects" : "Show all effects"}</button>
+        <section data-tab-panel="moves">
+          <div class="dm-top"><span class="dm-hint">Tap a move to read what it does.</span>
+            <label class="switch" title="Show what every move does"><input type="checkbox" data-local="effects" ${this.showEffects ? "checked" : ""}><span class="track-dot"></span> Effects</label></div>
+          <div class="dm-grid">
+            <div class="dm-known"><h4>Knows <small>drag to change the order</small></h4>
+              ${this.moveGrid(mon.moves, { mon })}
+              ${mon.moves.length < 4 ? `<div class="move-cards empty-slots">${Array.from({ length: 4 - mon.moves.length }, (_, k) => `<div class="move-card empty-slot" data-slot="${mon.moves.length + k}">Empty slot</div>`).join("")}</div>` : ""}
+              <button data-result='{"act":"reload"}' data-reload hidden type="button"></button></div>
+            <div class="dm-learn"><h4>Can learn <small>${learn.count}${learn.tms ? ` · ${learn.tms} TM${learn.tms === 1 ? "" : "s"}` : ""}</small></h4>
+              <div class="move-chips">${learn.html || `<p class="empty-note">No new moves right now.</p>`}</div></div>
           </div></section>
         </div>
       </div>`;
@@ -1425,6 +1741,21 @@ export class RunUI {
       options: [],
       cancel: "Close",
       onOpen: (dialog) => {
+        // On wide screens the learnable moves sit in their own column to the right of the window
+        const backdrop = dialog.parentElement;
+        const side = dialog.querySelector(".dm-learn");
+        const out = side && window.matchMedia("(min-width: 1100px)").matches;
+        if (out) {
+          backdrop.classList.add("has-side");
+          dialog.querySelector(".dm-grid").classList.add("learn-out");
+          side.classList.add("side-column");
+          backdrop.appendChild(side);
+        }
+        // The learnable moves keep their scroll position when the window reopens for the same Pokémon
+        const scroller = out ? side : dialog.querySelector(".dm-learn .move-chips");
+        if (scroller) {
+          scroller.addEventListener("scroll", () => { this.learnScrollDlg = { uid: mon.uid, top: scroller.scrollTop }; });
+        }
         const show = (id) => {
           this.detailsTab = id;
           for (const tab of dialog.querySelectorAll("[data-tab]")) {
@@ -1436,10 +1767,54 @@ export class RunUI {
             panel.classList.toggle("off", off);
             panel.setAttribute("aria-hidden", String(off));
           }
+          if (out) side.hidden = id !== "moves";
         };
         show(active);
+        if (scroller && this.learnScrollDlg?.uid === mon.uid) {
+          const top = this.learnScrollDlg.top;
+          scroller.scrollTop = top;
+          if (!scroller.scrollTop && top) { // not visible yet (another tab is open): apply when the Moves tab is shown
+            backdrop.addEventListener("click", (e) => { if (e.target.closest("[data-tab=moves]")) scroller.scrollTop = top; }, { once: true });
+          }
+        }
+        backdrop.classList.toggle("show-effects", !!this.showEffects);
         dialog.classList.toggle("show-effects", !!this.showEffects);
-        dialog.addEventListener("click", (e) => {
+        // Moves tab: drag a known move onto another to swap them, or drag a learnable move onto one to learn it in its place
+        dialog.querySelectorAll(".dm-known .move-cards:not(.empty-slots) .move-card").forEach((card, i) => {
+          card.draggable = true;
+          card.dataset.slot = i;
+          card.dataset.drag = "slot";
+        });
+        backdrop.addEventListener("mouseover", (e) => this.markSeen(e));
+        let drag = null;
+        const target = (e) => e.target.closest?.(".dm-known .move-card[data-slot]");
+        backdrop.addEventListener("dragstart", (e) => {
+          const el = e.target.closest?.("[data-drag]");
+          if (!el) return;
+          drag = { kind: el.dataset.drag, slot: Number(el.dataset.slot), move: el.dataset.move, from: el.dataset.from };
+          e.dataTransfer.effectAllowed = "move";
+          e.dataTransfer.setData("text/plain", "move");
+        });
+        backdrop.addEventListener("dragover", (e) => {
+          const t = target(e);
+          backdrop.querySelectorAll(".drop-ok").forEach((x) => x !== t && x.classList.remove("drop-ok"));
+          if (!drag || !t || (drag.kind === "slot" && Number(t.dataset.slot) === drag.slot)) return;
+          e.preventDefault();
+          t.classList.add("drop-ok");
+        });
+        backdrop.addEventListener("dragend", () => { drag = null; backdrop.querySelectorAll(".drop-ok").forEach((x) => x.classList.remove("drop-ok")); });
+        backdrop.addEventListener("drop", (e) => {
+          const t = target(e);
+          if (!drag || !t) return;
+          e.preventDefault();
+          const slot = Number(t.dataset.slot);
+          if (drag.kind === "slot") Run.swapMoves(run, mon.uid, drag.slot, slot);
+          else if (drag.from === "tm") Run.teachTM(run, ctx, mon.uid, drag.move, slot);
+          else Run.relearnMove(run, ctx, mon.uid, drag.move, slot);
+          drag = null;
+          backdrop.querySelector("[data-reload]")?.click(); // closes the window; it reopens with the new moves
+        });
+        backdrop.addEventListener("click", (e) => {
           const tab = e.target.closest("[data-tab]");
           if (tab) show(tab.dataset.tab);
           const toggle = e.target.closest("[data-act=toggle-desc]");
@@ -1452,7 +1827,8 @@ export class RunUI {
             this.showEffects = !this.showEffects;
             try { localStorage.setItem("pd.showEffects", this.showEffects ? "1" : "0"); } catch { /* ignore */ }
             dialog.classList.toggle("show-effects", this.showEffects);
-            all.textContent = this.showEffects ? "Hide all effects" : "Show all effects";
+            backdrop.classList.toggle("show-effects", this.showEffects);
+            // (the switch moves by itself)
           }
         });
       },
@@ -1460,6 +1836,7 @@ export class RunUI {
     if (!result) return;
     if (result.goto) return this.detailsDialog(result.goto);
     if (result.nav) return this.detailsDialog(this.neighbour(mon, result.nav).uid);
+    if (result.act === "move-popup") await this.movePopup(mon, result.move, result.from);
     if (result.act === "swap") await this.swapDialog(mon);
     if (result.act === "item") await this.itemDialog(mon);
     if (result.act === "evolve") await this.evolveDialog(mon);
@@ -1592,7 +1969,8 @@ export class RunUI {
       return;
     }
     if (act === "chip-effects") {
-      this.chipEffects = !this.chipEffects;
+      this.showEffects = !this.showEffects;
+      try { localStorage.setItem("pd.showEffects", this.showEffects ? "1" : "0"); } catch { /* ignore */ }
       this.render();
       return;
     }
@@ -1625,6 +2003,7 @@ export class RunUI {
       this.showEffects = !this.showEffects;
       try { localStorage.setItem("pd.showEffects", this.showEffects ? "1" : "0"); } catch { /* ignore */ }
       this.hub.classList.toggle("show-effects", this.showEffects);
+      this.render();
       return;
     }
     const uid = Number(btn.dataset.uid);
@@ -1685,24 +2064,6 @@ export class RunUI {
       });
       if (id) Run.sellItem(run, ctx, id);
     }
-    this.render();
-  }
-
-  async askPendingMove() {
-    const { run, ctx } = this;
-    const q = run.pendingMoves[0];
-    const mon = run.team.find((m) => m.uid === q.uid);
-    if (!mon) { Run.answerMove(run, ctx, null); this.render(); return; }
-    const newMove = ctx.data.moves[q.move];
-    const choice = await this.modal({
-      title: `${ctx.data.pokemonByKey[mon.species].name} wants to learn ${newMove.name}`,
-      body: `<p class="modal-label">New move</p><div class="new-move">${this.moveCard(q.move)}</div>
-        <p class="modal-label">Pick a move to forget</p>`,
-      layout: "cards",
-      options: mon.moves.map((id, i) => ({ value: i, html: this.moveCard(id) })),
-      cancel: `Don't learn ${newMove.name}`,
-    });
-    Run.answerMove(run, ctx, choice);
     this.render();
   }
 
@@ -1807,15 +2168,23 @@ export class RunUI {
         screen.destroy();
         await new Promise((r) => setTimeout(r, 900));
         if (this.run !== mine) return;
+        const turns = this.run.battle?.turn ?? null;
         Run.finishBattle(this.run, this.ctx);
         // Winning a gym unlocks its badge for good (§3k)
         const reward = this.run.lastBattle?.rewards;
-        if (reward?.badge && !this.preview) {
+        let granted = [];
+        if (!this.preview) {
           const meta = loadMeta();
-          reward.badgeNew = unlockBadge(meta, reward.badge.gen, reward.badge.order);
+          if (reward?.badge) reward.badgeNew = unlockBadge(meta, reward.badge.gen, reward.badge.order);
+          // Progress for the character unlocks (§3j): at most 2 new trainers per run
+          if (this.run.lastBattle?.won) noteBattleWon(meta, this.run, this.ctx, { turns });
+          const rules = this.ctx.rules.characterUnlocks ?? {};
+          granted = grantUnlocks(meta, rules, CHARACTERS, MAX_UNLOCKS_PER_RUN - (this.run.unlockedThisRun?.length ?? 0));
           saveMeta(meta);
+          this.run.unlockedThisRun = [...(this.run.unlockedThisRun ?? []), ...granted];
         }
         this.render();
+        if (granted.length && !["over", "won"].includes(this.run.screen)) await this.announceUnlocks(granted);
       },
     });
     this.battleScreen = screen;
@@ -1832,18 +2201,37 @@ export class RunUI {
     const tp = trainerPointsFor(run, this.ctx.rules);
     if (!run.tpAwarded && !this.preview) {
       const meta = loadMeta();
-      const before = unlockedIds(meta, this.ctx.rules.characterUnlocks ?? {}, CHARACTERS);
       meta.tp += tp;
       meta.earned += tp;
-      recordRun(meta, run);
+      recordRun(meta, run, this.ctx);
+      const granted = grantUnlocks(meta, this.ctx.rules.characterUnlocks ?? {}, CHARACTERS, MAX_UNLOCKS_PER_RUN - (run.unlockedThisRun?.length ?? 0));
       saveMeta(meta);
       run.tpAwarded = true;
-      run.newUnlocks = unlockedIds(meta, this.ctx.rules.characterUnlocks ?? {}, CHARACTERS).filter((id) => !before.includes(id));
+      run.newUnlocks = [...(run.unlockedThisRun ?? []), ...granted];
     }
     const fresh = (run.newUnlocks ?? []).map((id) => characterById(id));
     return `<p class="tp-earned">+${tp} Trainer Points <small>(spend them in Trainer Upgrades)</small></p>
       ${fresh.length ? `<section class="card-panel"><h3>New trainers unlocked!</h3>
-        <div class="characters">${fresh.map((c) => `<div class="character selected"><img src="${c.front}" alt=""><span>${c.name}</span></div>`).join("")}</div></section>` : ""}`;
+        <div class="characters">${fresh.map((c) => `<div class="character selected"><img src="${c.front}" alt=""><span>${c.name}</span>${this.perkLine(c.id)}</div>`).join("")}</div></section>` : ""}`;
+  }
+
+  // What a trainer's perk does (only perks the game applies are shown)
+  perkLine(id) {
+    const rule = (this.ctx.rules.characterUnlocks ?? {})[id];
+    return rule?.effect && rule.effect !== "—" ? `<small>Perk: ${rule.perk}</small>` : "";
+  }
+
+  // "New trainer!" one at a time, with what they do
+  async announceUnlocks(ids) {
+    for (const id of ids) {
+      const c = characterById(id);
+      const perk = this.perkLine(id);
+      await this.modal({
+        title: "New trainer unlocked!",
+        body: `<div class="unlock-card"><img src="${c.front}" alt=""><b>${c.name}</b>${perk ? `<p>${perk.replace(/<\/?small>/g, "")}</p>` : ""}<p class="empty-note">Pick them on the New run screen.</p></div>`,
+        cancel: "Nice!",
+      });
+    }
   }
 
   renderOver() {

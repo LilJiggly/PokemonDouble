@@ -63,7 +63,7 @@ _Last updated: October 09, 2026_
 ### Recruit stats
 - **Ability:** random. **Normal abilities 90%** (split evenly), **Hidden Ability 10%** _(editable)_. Can be changed later with an Ability Patch or Hidden Ability Patch (see Items).
 - **Nature:** random.
-- **IVs:** perfect (31 in every stat).
+- **IVs:** recruits roll 15–31 in each stat (opponents have 31 in every stat).
 - **EVs:** none.
 - **Moves:** the last 4 level-up moves the species learns at its level.
 
@@ -286,65 +286,69 @@ The **shop** in the hub is split into **sections** (tabs, like the Bag): Items (
 
 | ID | Upgrade | Max level | Cost per level | Effect per level |
 |---|---|---|---|---|
-| scout | Scout | 2 | 4 | +1 card in the starter draft |
+| scout | Scout | 1 extra card on every recruit screen and item screen | 1 extra card on every recruit screen and item screen | 2 extra cards on every recruit screen and item screen |
 | dice | Lucky Dice | 2 | 5 | +1 free reroll per recruit screen |
 | allowance | Allowance | 3 | 3 | +500 starting money |
 | bag | Bigger Bag | 2 | 3 | Level 1: +2 Super Potions. Level 2: + Sitrus Berry and Full Heal |
-| gift | Gift Box | 1 | 6 | +1 pick (and +1 card) in the starting items |
-| hidden | Hidden Potential | 1 | 8 | Hidden Ability chance 10% → 20% |
+| gift | Gift Box | Every item screen shows 1 more card | Every item screen shows 1 more card | Every item screen shows 1 more card and lets you take 1 more item |
+| hidden | Hidden Potential | 2.1% extra chance that a recruit has its Hidden Ability | 5.3% extra chance that a recruit has its Hidden Ability | 9.5% extra chance that a recruit has its Hidden Ability |
 | shiny | Shiny Charm | 1 | 5 | Shiny chance 1/512 → 1/128 (cosmetic) |
 
 ### 3j. Character unlocks ✏️ _(editable table)_
 
-Playable characters are unlocked by progress. Progress is saved with the Trainer Points (meta save), so it survives losing. The unlock column accepts these forms:
+Trainers unlock through **themes**: you do something that fits them and they join. Progress is saved with the Trainer Points (meta save), so it survives losing. A trainer's **Unlock** cell is one or more clauses; `A or B` means either way, `A and B` means both (counted over all your runs, not in one run):
 
 - `Start`: available from the beginning.
-- `Runs: N`: finish N runs, won or lost.
-- `Wins: N`: reach the Hall of Fame N times.
-- `Win Gen G`: reach the Hall of Fame in Challenge Gen G (a regional trophy).
-- `Beat battle N`: beat battle #N (§3a numbering) in any run.
-- `TP earned: N`: earn N Trainer Points in total.
+- `Runs: N`, `Wins: N`, `Win Gen G`, `Beat battle N`, `TP earned: N`: finish N runs, reach the Hall of Fame N times, win Challenge Gen G, beat battle #N (§3a numbering), earn N Trainer Points in total.
+- `Line win: X`: reach the Hall of Fame with a Pokémon of the evolution line of X (the first stage, like `ralts`) on the team. `Line gym N: X`: have that line on the team when you beat battle #N. `Line picks N: X`: pick that line at the starter draft in N runs.
+- `Starters: kanto` (or johto, hoenn, sinnoh, unova): have all three starter lines of that region on your team together.
+- `Type win: T`: reach the Hall of Fame with a T-type Pokémon on the team. `Type gym N: T`: have a T-type on the team when you beat battle #N.
+- `Species: N`: recruit N different species in total. `Badges: N`: own N badges.
+- `Clean win` (or `Clean win Gen G`): reach the Hall of Fame without losing a Pokémon. `Clean gym N`: get through battle #N without losing one.
+- `Quick wins: N`: win N gym battles in 4 turns or fewer. `Berries: N`, `Items: N`: give N berries or N held items to your Pokémon in total. `Diverse win`: reach the Hall of Fame with six different types on the team.
 
-Characters that are missing from the table are free. The **Perk** column is for later: a perk each unlocked trainer gives (Wally's idea: a Ralts is guaranteed at the first recruitment). It is not used by the game yet.
+**Pacing.** At most **2 trainers unlock per run**: the rest wait for the next battle or run, so each one feels like an event. Each unlock gets a "New trainer unlocked!" popup (or the end-of-run list) with what the perk does. The picker only shows trainers you have, plus a hint for the one closest to unlocking. Characters that are missing from the table are free.
 
-| ID | Character | Unlock | Perk |
-|---|---|---|---|
-| red-gb | Red (Red / Blue) | Runs: 3 | — |
-| oak | Prof. Oak (Yellow) | Win Gen 1 | — |
-| ethan-gsc | Ethan (Gold / Silver / Crystal) | Runs: 5 | — |
-| kris | Kris (Crystal) | Runs: 8 | — |
-| ethan | Ethan (HeartGold / SoulSilver) | Start | — |
-| lyra | Lyra (HeartGold / SoulSilver) | Start | — |
-| lance | Lance (HeartGold / SoulSilver) | Win Gen 2 | — |
-| silver | Silver (HeartGold / SoulSilver) | Beat battle 10 | — |
-| red | Red (FireRed / LeafGreen) | Start | — |
-| leaf | Leaf (FireRed / LeafGreen) | Start | — |
-| brendan-rs | Brendan (Ruby / Sapphire) | Runs: 4 | — |
-| may-rs | May (Ruby / Sapphire) | Runs: 4 | — |
-| brendan | Brendan (Emerald) | Start | — |
-| may | May (Emerald) | Start | — |
-| red-e | Red (Emerald (Battle Frontier)) | Wins: 2 | — |
-| steven | Steven (Emerald) | Win Gen 3 | — |
-| wally | Wally (Ruby / Sapphire) | Beat battle 6 | _Planned:_ the first recruitment always offers a Ralts |
-| lucas | Lucas (Platinum) | Start | — |
-| dawn | Dawn (Platinum) | Start | — |
-| barry | Barry (Platinum) | Win Gen 4 | — |
-| buck | Buck (Diamond / Pearl) | Beat battle 7 | — |
-| cheryl | Cheryl (Diamond / Pearl) | TP earned: 20 | — |
-| marley | Marley (Diamond / Pearl) | Beat battle 9 | — |
-| mira | Mira (Diamond / Pearl) | Beat battle 11 | — |
-| riley | Riley (Diamond / Pearl) | TP earned: 40 | — |
-| hilbert | Hilbert (Black / White) | Wins: 1 | — |
-| hilda | Hilda (Black / White) | Wins: 1 | — |
-| juniper | Prof. Juniper (Black / White) | Runs: 10 | — |
-| nate | Nate (Black 2 / White 2) | Win Gen 5 | — |
-| rosa | Rosa (Black 2 / White 2) | Win Gen 5 | — |
-| bianca | Bianca (Black 2 / White 2) | Beat battle 6 | — |
-| cheren | Cheren (Black 2 / White 2) | Beat battle 10 | — |
-| hugh | Hugh (Black 2 / White 2) | Beat battle 12 | — |
-| chili | Chili (Black 2 / White 2) | TP earned: 25 | — |
-| cilan | Cilan (Black 2 / White 2) | TP earned: 25 | — |
-| cress | Cress (Black 2 / White 2) | TP earned: 25 | — |
+**Perks.** The **Perk** column is the text players see; the **Effect** column is what the game applies (`—` means planned, not in the game yet). Effects, joined by `;`: `money:300`, `bag:oran-berry:2`, `item-pick:1` (one more starting item pick), `starter-reroll:1` (one more free reroll in the starter draft), `starter:kanto` (the starter draft always has a starter of that region), `first-recruit:ralts` (the starter draft always has that line). The names, themes and planned perks are suggestions to edit.
+
+| ID | Character | Unlock | Perk | Effect |
+|---|---|---|---|---|
+| red-gb | Red (R/B) | Starters: kanto | Planned: Kanto starters appear more often | — |
+| oak | Prof. Oak (Yellow) | Species: 25 | Planned: recruit cards show an IV rating | — |
+| ethan-gsc | Ethan (G/S/C) | Starters: johto or Line win: cyndaquil or Line win: chikorita or Line win: totodile | Planned: Johto starters appear more often | — |
+| kris | Kris (Crystal) | Clean win | Planned: one fainted Pokémon per run comes back with half HP | — |
+| ethan | Ethan (HGSS) | Start | One extra free reroll in the starter draft | starter-reroll:1 |
+| lyra | Lyra (HGSS) | Start | Planned: shiny chance 1/512 → 1/384 (cosmetic) | — |
+| lance | Lance (HGSS) | Win Gen 2 and Type win: dragon | Planned: Dragon-type recruits appear more often | — |
+| silver | Silver (HGSS) | Type win: dark or Line gym 7: sneasel | Planned: +1 level on all your Pokémon in the first gym | — |
+| red | Red (FRLG) | Start | The starter draft always has a Kanto starter | starter:kanto |
+| leaf | Leaf (FRLG) | Start | +₽300 starting money | money:300 |
+| brendan-rs | Brendan (R/S) | Line win: treecko or Line win: torchic or Line win: mudkip | Planned: Hoenn starters appear more often | — |
+| may-rs | May (R/S) | Berries: 30 | Planned: berries cost half in the shop | — |
+| brendan | Brendan (Emerald) | Start | The starter draft always has a Hoenn starter | starter:hoenn |
+| may | May (Emerald) | Start | Start with 2 extra Oran Berries | bag:oran-berry:2 |
+| red-e | Red (Battle Frontier) | Wins: 3 and Starters: kanto | Planned: start with a Fire Stone, Water Stone and Leaf Stone | — |
+| steven | Steven (Emerald) | Win Gen 3 and Type win: steel or Win Gen 3 and Type win: rock | Planned: start with a Hard Stone or Metal Coat | — |
+| wally | Wally (R/S) | Line win: ralts or Line gym 4: ralts or Line picks 3: ralts | The starter draft always offers a Ralts | first-recruit:ralts |
+| lucas | Lucas (Platinum) | Start | One extra item pick (and card) in the starting items | item-pick:1 |
+| dawn | Dawn (Platinum) | Start | Planned: recruit cards hint at the Pokémon's best stat | — |
+| barry | Barry (Platinum) | Quick wins: 3 | Planned: your lead Pokémon start with a Quick Claw | — |
+| buck | Buck (D/P) | Type gym 5: fighting | Planned: Fighting moves are 5% more accurate | — |
+| cheryl | Cheryl (D/P) | Clean gym 4 | Planned: Potions heal 20 more HP | — |
+| marley | Marley (D/P) | Items: 25 | Planned: one extra held item at the start | — |
+| mira | Mira (D/P) | Species: 50 | Planned: one extra recruit card on every recruit screen | — |
+| riley | Riley (D/P) | Badges: 16 | Planned: your weakest badge gets +1 strength | — |
+| hilbert | Hilbert (B/W) | Wins: 1 | Planned: one extra card in the starter draft | — |
+| hilda | Hilda (B/W) | Wins: 2 | Planned: one extra Rare card on the first recruit screen | — |
+| juniper | Prof. Juniper (B/W) | Species: 100 | Planned: evolution stones cost 30% less | — |
+| nate | Nate (B2/W2) | Win Gen 5 | Planned: all your Pokémon get +1 level at every gym | — |
+| rosa | Rosa (B2/W2) | Win Gen 5 and Diverse win | Planned: type-resist berries in the starting items | — |
+| bianca | Bianca (B2/W2) | Type gym 6: normal | Planned: a free reroll after your first battle of each run | — |
+| cheren | Cheren (B2/W2) | Clean win Gen 5 | Planned: Guard Spec and X items cost half | — |
+| hugh | Hugh (B2/W2) | Quick wins: 5 | Planned: rival fights give 20% more money | — |
+| chili | Chili (B2/W2) | Type win: fire | Planned: Fire moves hit 5% harder | — |
+| cilan | Cilan (B2/W2) | Type win: grass | Planned: Grass moves hit 5% harder | — |
+| cress | Cress (B2/W2) | Type win: water | Planned: Water moves hit 5% harder | — |
 
 ### 3k. Gym badges ✏️ _(editable tables)_
 
@@ -352,52 +356,54 @@ Badges work like the jokers in Balatro: every badge has **its own effect**, no t
 
 **Strength.** An effect's size depends on the badge's **strength**: its **gym number** (1–8), so the first gyms give small effects and the last ones strong ones. Strength 1 is a few percent, strength 8 or more is big. The numbers per strength are in the scaling table below (they live in `js/game/badges.js`).
 
-**Linked slots.** The 8 slots of the case (a 4 × 2 grid) have **1, 2 or 3 random pairs of linked slots** (new ones for every run, shown with 🔗 and a letter on the New run screen). **Two badges in a linked pair boost each other: +2 strength each** (at most 10), as long as both slots hold a badge. So where you put your badges matters.
+**Stat boost.** Like the badges of the main games, **every badge raises one stat of your whole team by itself**: Attack, Defense, Sp. Atk, Sp. Def or Speed, set in the **Stat** column by the gym's type (rock and steel: Defense, fighting and ground: Attack, water and grass: Sp. Def, flying and electric: Speed…). It is small (1% at strength 1 up to 5.5% at strength 10) and **always on**. Only the badge's secondary effect (the **Perk** column) has an on / off switch, and a switched-off badge still gives its stat and counts for the set bonus.
+
+**Boost zones.** The 8 slots of the case (a 4 × 2 grid) are split into **random zones** of 1, 2 or 3 touching slots (new ones for every run, shown as coloured groups on the New run screen). **Every zone boosts the badges inside it**: +3 strength in a one-slot zone, +2 in a two-slot zone, +1 in a three-slot zone (at most 10). So putting a strong badge in a small zone makes it much stronger, and a long zone boosts several badges a little. Only **Rainmaker** calls weather, so weather badges never clash; Sunbringer, Sand Caller and Cold Snap boost Fire, Rock/Ground/Steel and Ice moves.
 
 The **Perk** column is the effect id (the game reads it, so you can move effects between badges, but give every badge a different one). The **Effect** column is only text for you (at the badge's own gym strength).
 
-| ID | Badge | Leader | Perk | Effect |
-|---|---|---|---|---|
-| 1-1 | Boulder Badge | Brock | sturdy-stone | Sturdy Stone: Your Pokémon at full HP take 3% less damage |
-| 1-2 | Cascade Badge | Misty | rain-start | Rainmaker: Rain falls at the start of every battle (4 turns) |
-| 1-3 | Thunder Badge | Lt. Surge | para-ward | Static Guard: 35% chance to block paralysis |
-| 1-4 | Rainbow Badge | Erika | regen | Regrowth: Your Pokémon heal 2.5% of their max HP at the end of every turn |
-| 1-5 | Soul Badge | Koga | poison-ward | Antidote Charm: 55% chance to block poison |
-| 1-6 | Marsh Badge | Sabrina | stat-spa | Mind Over Matter: +7% Sp. Atk |
-| 1-7 | Volcano Badge | Blaine | sun-start | Sunbringer: Harsh sunlight at the start of every battle (8 turns) |
-| 1-8 | Earth Badge | Giovanni | sand-start | Sand Caller: A sandstorm at the start of every battle (8 turns) |
-| 2-1 | Zephyr Badge | Falkner | stat-spe | Tailwind: +2% Speed |
-| 2-2 | Hive Badge | Bugsy | multi-hit | Swarm: Your multi-hit moves always hit at least 2 times |
-| 2-3 | Plain Badge | Whitney | wallet | Lucky Wallet: +16% prize money |
-| 2-4 | Fog Badge | Morty | dodge | Thick Fog: Foes' moves are 5% less accurate |
-| 2-5 | Storm Badge | Chuck | stat-atk | Brawler: +6% Attack |
-| 2-6 | Mineral Badge | Jasmine | stat-def | Iron Skin: +7% Defense |
-| 2-7 | Glacier Badge | Pryce | hail-start | Cold Snap: Hail at the start of every battle (8 turns) |
-| 2-8 | Rising Badge | Clair | super-effective | Weakness Hunter: Your super effective moves deal 17% more damage |
-| 3-1 | Stone Badge | Roxanne | weakness-guard | Bedrock: Super effective moves against you deal 4% less damage |
-| 3-2 | Knuckle Badge | Brawly | opener | Opening Salvo: On the first turn of a battle your moves deal 12% more damage |
-| 3-3 | Dynamo Badge | Wattson | crit-eye | Sharp Eyes: Your moves have a +5% chance to be critical hits |
-| 3-4 | Heat Badge | Flannery | last-stand | Last Stand: Your Pokémon below 1/3 HP deal 16.5% more damage |
-| 3-5 | Balance Badge | Norman | interest | Interest: After every win you earn 7% of the money you hold (at most ₽260) |
-| 3-6 | Feather Badge | Winona | accuracy | Eagle Eye: Your moves are 7% more accurate |
-| 3-7 | Mind Badge | Tate & Liza | swap | Swap: Twice per recruit screen, swap one of your Pokémon for any card (no pick needed) |
-| 3-8 | Rain Badge | Juan | vampire | Vampire: Your damaging moves heal you for 13.5% of the damage dealt |
-| 4-1 | Coal Badge | Roark | revenge | Vengeance: +2% damage for each of your Pokémon that has fainted this battle (up to 3) |
-| 4-2 | Forest Badge | Gardenia | reroll | Reroller: +1 free reroll on every recruit screen |
-| 4-3 | Relic Badge | Fantina | second-wind | Second Wind: 26% chance that a Pokémon that would faint survives with 1 HP (once per battle) |
-| 4-4 | Cobble Badge | Maylene | closer | Closer: Your moves deal 11.5% more damage to targets below half HP |
-| 4-5 | Fen Badge | Crasher Wake | ko-heal | Spoils of War: A Pokémon that knocks out a foe recovers 17% of its max HP |
-| 4-6 | Mine Badge | Byron | thorns | Spikes: Foes that make contact with your Pokémon lose 7% of their max HP |
-| 4-7 | Icicle Badge | Candice | burn-ward | Frost Veil: 75% chance to block burns |
-| 4-8 | Beacon Badge | Volkner | recruit | Extra Recruit: +1 card and +1 pick on every recruit screen |
-| 5-1 | Basic Badge | Cheren | scout | Scout: +1 card on every recruit and item screen |
-| 5-2 | Toxic Badge | Roxie | stab-plus | Signature Style: Same-type attack bonus +3.5% |
-| 5-3 | Insect Badge | Burgh | hidden | Hidden Potential: +6% Hidden Ability chance for recruits |
-| 5-4 | Bolt Badge | Elesa | sleep-ward | Wide Awake: 45% chance to block sleep |
-| 5-5 | Quake Badge | Clay | haggler | Haggler: Shop prices are 9% lower |
-| 5-6 | Jet Badge | Skyla | tm | TM Master: 65% chance of an extra TM after every battle |
-| 5-7 | Legend Badge | Drayden | stat-spd | Dragon Scales: +8% Sp. Def |
-| 5-8 | Wave Badge | Marlon | gift | Gift Box: +1 card and +1 pick on every item screen |
+| ID | Badge | Leader | Stat | Perk | Effect |
+|---|---|---|---|---|---|
+| 1-1 | Boulder Badge | Brock | def | sturdy-stone | Sturdy Stone: A Pokémon at full HP takes 2.1% less damage from every hit |
+| 1-2 | Cascade Badge | Misty | spd | rain-start | Rainmaker: Rain starts when every battle begins and lasts 3 turns |
+| 1-3 | Thunder Badge | Lt. Surge | spe | para-ward | Static Guard: Each time something tries to paralyze one of your Pokémon, there is a 24% chance it is stopped |
+| 1-4 | Rainbow Badge | Erika | spd | regen | Regrowth: Your Pokémon heal 1.7% of their max HP at the end of every turn |
+| 1-5 | Soul Badge | Koga | atk | poison-ward | Antidote Charm: Each time something tries to poison one of your Pokémon, there is a 38% chance it is stopped |
+| 1-6 | Marsh Badge | Sabrina | spa | stat-spa | Mind Over Matter: Your Pokémon's Sp. Atk is 4.9% higher |
+| 1-7 | Volcano Badge | Blaine | spa | fire-boost | Sunbringer: Your Fire moves do 11.2% more damage |
+| 1-8 | Earth Badge | Giovanni | atk | rock-boost | Sand Caller: Your Rock, Ground and Steel moves do 12.6% more damage |
+| 2-1 | Zephyr Badge | Falkner | spe | stat-spe | Tailwind: Your Pokémon's Speed is 1.4% higher |
+| 2-2 | Hive Badge | Bugsy | atk | multi-hit | Swarm: Moves that hit several times hit at least 2 times |
+| 2-3 | Plain Badge | Whitney | def | wallet | Lucky Wallet: You earn 7% more prize money after every win |
+| 2-4 | Fog Badge | Morty | spa | dodge | Thick Fog: Foes' attacks are 3.5% more likely to miss |
+| 2-5 | Storm Badge | Chuck | atk | stat-atk | Brawler: Your Pokémon's Attack is 4.2% higher |
+| 2-6 | Mineral Badge | Jasmine | def | stat-def | Iron Skin: Your Pokémon's Defense is 4.9% higher |
+| 2-7 | Glacier Badge | Pryce | spd | ice-boost | Cold Snap: Your Ice moves do 11.2% more damage |
+| 2-8 | Rising Badge | Clair | spa | super-effective | Weakness Hunter: Your super effective attacks do 11.9% more damage |
+| 3-1 | Stone Badge | Roxanne | def | weakness-guard | Bedrock: Attacks that are super effective against your Pokémon do 2.8% less damage |
+| 3-2 | Knuckle Badge | Brawly | atk | opener | Opening Salvo: On turn 1 of every battle, your attacks do 6.3% more damage |
+| 3-3 | Dynamo Badge | Wattson | spe | crit-eye | Sharp Eyes: Your attacks have 3.5% extra chance to be critical hits |
+| 3-4 | Heat Badge | Flannery | spa | last-stand | Last Stand: Your Pokémon with less than a third of their HP left do 9.8% more damage |
+| 3-5 | Balance Badge | Norman | def | interest | Interest: After every win you earn 4.8% of the money you hold (at most ₽160) |
+| 3-6 | Feather Badge | Winona | spe | accuracy | Eagle Eye: Your attacks are 4.9% more likely to hit |
+| 3-7 | Mind Badge | Tate & Liza | spa | swap | Swap: On every recruit screen you can trade one of your Pokémon for any card, once. A trade doesn't use a pick |
+| 3-8 | Rain Badge | Juan | spd | vampire | Vampire: Your Pokémon heal 9.5% of the damage they deal |
+| 4-1 | Coal Badge | Roark | def | revenge | Vengeance: Each of your Pokémon that has fainted in this battle adds 1.4% to your damage (up to 3 fainted) |
+| 4-2 | Forest Badge | Gardenia | spd | reroll | Reroller: 1 extra free reroll on every recruit screen |
+| 4-3 | Relic Badge | Fantina | spa | second-wind | Second Wind: When one of your Pokémon would faint, there is a 11% chance it hangs on with 1 HP instead (once per battle) |
+| 4-4 | Cobble Badge | Maylene | atk | closer | Closer: Your attacks do 8.1% more damage to foes at half HP or less |
+| 4-5 | Fen Badge | Crasher Wake | spd | ko-heal | Spoils of War: A Pokémon that knocks out a foe heals 9.8% of its max HP |
+| 4-6 | Mine Badge | Byron | def | thorns | Spikes: Foes that hit your Pokémon with a contact move lose 4.9% of their max HP |
+| 4-7 | Icicle Badge | Candice | spd | burn-ward | Frost Veil: Each time something tries to burn one of your Pokémon, there is a 52% chance it is stopped |
+| 4-8 | Beacon Badge | Volkner | spe | recruit | Extra Recruit: Every recruit screen shows 1 more card and lets you take 1 more Pokémon |
+| 5-1 | Basic Badge | Cheren | def | scout | Scout: 1 extra card on every recruit screen and item screen |
+| 5-2 | Toxic Badge | Roxie | atk | stab-plus | Signature Style: Attacks that match the user's own type get 2.5% extra power, on top of the usual bonus |
+| 5-3 | Insect Badge | Burgh | atk | hidden | Hidden Potential: 4.2% extra chance that a recruit has its Hidden Ability |
+| 5-4 | Bolt Badge | Elesa | spe | sleep-ward | Wide Awake: Each time something tries to put to sleep one of your Pokémon, there is a 31% chance it is stopped |
+| 5-5 | Quake Badge | Clay | atk | haggler | Haggler: Everything in the shop costs 6.3% less |
+| 5-6 | Jet Badge | Skyla | spe | tm | TM Master: After every win there is a 24.5% chance to get a second TM |
+| 5-7 | Legend Badge | Drayden | spa | stat-spd | Dragon Scales: Your Pokémon's Sp. Def is 5.6% higher |
+| 5-8 | Wave Badge | Marlon | spd | gift | Gift Box: Every item screen shows 1 more card and lets you take 1 more item |
 
 #### Effect scaling
 
@@ -405,46 +411,46 @@ What each effect does at strength 1, 4 and 8 (information only; edit `EFFECTS` i
 
 | Perk | Name | Strength 1 | Strength 4 | Strength 8 |
 |---|---|---|---|---|
-| sturdy-stone | Sturdy Stone | Your Pokémon at full HP take 3% less damage | Your Pokémon at full HP take 9% less damage | Your Pokémon at full HP take 17% less damage |
-| weakness-guard | Bedrock | Super effective moves against you deal 4% less damage | Super effective moves against you deal 10% less damage | Super effective moves against you deal 18% less damage |
-| opener | Opening Salvo | On the first turn of a battle your moves deal 8% more damage | On the first turn of a battle your moves deal 20% more damage | On the first turn of a battle your moves deal 36% more damage |
-| last-stand | Last Stand | Your Pokémon below 1/3 HP deal 6% more damage | Your Pokémon below 1/3 HP deal 16.5% more damage | Your Pokémon below 1/3 HP deal 30.5% more damage |
-| revenge | Vengeance | +2% damage for each of your Pokémon that has fainted this battle (up to 3) | +5% damage for each of your Pokémon that has fainted this battle (up to 3) | +9% damage for each of your Pokémon that has fainted this battle (up to 3) |
-| closer | Closer | Your moves deal 4% more damage to targets below half HP | Your moves deal 11.5% more damage to targets below half HP | Your moves deal 21.5% more damage to targets below half HP |
-| super-effective | Weakness Hunter | Your super effective moves deal 3% more damage | Your super effective moves deal 9% more damage | Your super effective moves deal 17% more damage |
-| stab-plus | Signature Style | Same-type attack bonus +2% | Same-type attack bonus +6.5% | Same-type attack bonus +12.5% |
-| crit-eye | Sharp Eyes | Your moves have a +2% chance to be critical hits | Your moves have a +6.5% chance to be critical hits | Your moves have a +12.5% chance to be critical hits |
-| accuracy | Eagle Eye | Your moves are 2% more accurate | Your moves are 5% more accurate | Your moves are 9% more accurate |
-| dodge | Thick Fog | Foes' moves are 2% less accurate | Foes' moves are 5% less accurate | Foes' moves are 9% less accurate |
-| multi-hit | Swarm | Your multi-hit moves always hit at least 2 times | Your multi-hit moves always hit at least 2 times | Your multi-hit moves always hit at least 3 times |
-| vampire | Vampire | Your damaging moves heal you for 3% of the damage dealt | Your damaging moves heal you for 7.5% of the damage dealt | Your damaging moves heal you for 13.5% of the damage dealt |
-| thorns | Spikes | Foes that make contact with your Pokémon lose 2% of their max HP | Foes that make contact with your Pokémon lose 5% of their max HP | Foes that make contact with your Pokémon lose 9% of their max HP |
-| regen | Regrowth | Your Pokémon heal 1% of their max HP at the end of every turn | Your Pokémon heal 2.5% of their max HP at the end of every turn | Your Pokémon heal 4.5% of their max HP at the end of every turn |
-| ko-heal | Spoils of War | A Pokémon that knocks out a foe recovers 5% of its max HP | A Pokémon that knocks out a foe recovers 14% of its max HP | A Pokémon that knocks out a foe recovers 26% of its max HP |
-| second-wind | Second Wind | 10% chance that a Pokémon that would faint survives with 1 HP (once per battle) | 34% chance that a Pokémon that would faint survives with 1 HP (once per battle) | 66% chance that a Pokémon that would faint survives with 1 HP (once per battle) |
-| stat-atk | Brawler | +2% Attack | +5% Attack | +9% Attack |
-| stat-spa | Mind Over Matter | +2% Sp. Atk | +5% Sp. Atk | +9% Sp. Atk |
-| stat-def | Iron Skin | +2% Defense | +5% Defense | +9% Defense |
-| stat-spd | Dragon Scales | +2% Sp. Def | +5% Sp. Def | +9% Sp. Def |
-| stat-spe | Tailwind | +2% Speed | +5% Speed | +9% Speed |
-| para-ward | Static Guard | 15% chance to block paralysis | 45% chance to block paralysis | 85% chance to block paralysis |
-| poison-ward | Antidote Charm | 15% chance to block poison | 45% chance to block poison | 85% chance to block poison |
-| burn-ward | Frost Veil | 15% chance to block burns | 45% chance to block burns | 85% chance to block burns |
-| sleep-ward | Wide Awake | 15% chance to block sleep | 45% chance to block sleep | 85% chance to block sleep |
-| rain-start | Rainmaker | Rain falls at the start of every battle (3 turns) | Rain falls at the start of every battle (6 turns) | Rain falls at the start of every battle (8 turns) |
-| sun-start | Sunbringer | Harsh sunlight at the start of every battle (3 turns) | Harsh sunlight at the start of every battle (6 turns) | Harsh sunlight at the start of every battle (8 turns) |
-| sand-start | Sand Caller | A sandstorm at the start of every battle (3 turns) | A sandstorm at the start of every battle (6 turns) | A sandstorm at the start of every battle (8 turns) |
-| hail-start | Cold Snap | Hail at the start of every battle (3 turns) | Hail at the start of every battle (6 turns) | Hail at the start of every battle (8 turns) |
-| recruit | Extra Recruit | +1 card on every recruit screen | +1 card on every recruit screen | +1 card and +1 pick on every recruit screen |
-| swap | Swap | Once per recruit screen, swap one of your Pokémon for any card (no pick needed) | Once per recruit screen, swap one of your Pokémon for any card (no pick needed) | Twice per recruit screen, swap one of your Pokémon for any card (no pick needed) |
-| reroll | Reroller | +1 free reroll on every recruit screen | +1 free reroll on every recruit screen | +2 free rerolls on every recruit screen |
-| scout | Scout | +1 card on every recruit and item screen | +1 card on every recruit and item screen | +2 cards on every recruit and item screen |
-| wallet | Lucky Wallet | +10% prize money | +19% prize money | +31% prize money |
-| hidden | Hidden Potential | +3% Hidden Ability chance for recruits | +7.5% Hidden Ability chance for recruits | +13.5% Hidden Ability chance for recruits |
-| gift | Gift Box | +1 card on every item screen | +1 card on every item screen | +1 card and +1 pick on every item screen |
-| tm | TM Master | 15% chance of an extra TM after every battle | 45% chance of an extra TM after every battle | 85% chance of an extra TM after every battle |
-| interest | Interest | After every win you earn 3% of the money you hold (at most ₽100) | After every win you earn 6% of the money you hold (at most ₽220) | After every win you earn 10% of the money you hold (at most ₽380) |
-| haggler | Haggler | Shop prices are 3% lower | Shop prices are 7.5% lower | Shop prices are 13.5% lower |
+| sturdy-stone | Sturdy Stone | A Pokémon at full HP takes 2.1% less damage from every hit | A Pokémon at full HP takes 6.3% less damage from every hit | A Pokémon at full HP takes 11.9% less damage from every hit |
+| weakness-guard | Bedrock | Attacks that are super effective against your Pokémon do 2.8% less damage | Attacks that are super effective against your Pokémon do 7% less damage | Attacks that are super effective against your Pokémon do 12.6% less damage |
+| opener | Opening Salvo | On turn 1 of every battle, your attacks do 4.2% more damage | On turn 1 of every battle, your attacks do 10.5% more damage | On turn 1 of every battle, your attacks do 18.9% more damage |
+| last-stand | Last Stand | Your Pokémon with less than a third of their HP left do 3.5% more damage | Your Pokémon with less than a third of their HP left do 9.8% more damage | Your Pokémon with less than a third of their HP left do 18.2% more damage |
+| revenge | Vengeance | Each of your Pokémon that has fainted in this battle adds 1.4% to your damage (up to 3 fainted) | Each of your Pokémon that has fainted in this battle adds 3.5% to your damage (up to 3 fainted) | Each of your Pokémon that has fainted in this battle adds 6.3% to your damage (up to 3 fainted) |
+| closer | Closer | Your attacks do 2.8% more damage to foes at half HP or less | Your attacks do 8.1% more damage to foes at half HP or less | Your attacks do 15.1% more damage to foes at half HP or less |
+| super-effective | Weakness Hunter | Your super effective attacks do 2.1% more damage | Your super effective attacks do 6.3% more damage | Your super effective attacks do 11.9% more damage |
+| stab-plus | Signature Style | Attacks that match the user's own type get 1.4% extra power, on top of the usual bonus | Attacks that match the user's own type get 4.6% extra power, on top of the usual bonus | Attacks that match the user's own type get 8.8% extra power, on top of the usual bonus |
+| crit-eye | Sharp Eyes | Your attacks have 1.4% extra chance to be critical hits | Your attacks have 4.6% extra chance to be critical hits | Your attacks have 8.8% extra chance to be critical hits |
+| accuracy | Eagle Eye | Your attacks are 1.4% more likely to hit | Your attacks are 3.5% more likely to hit | Your attacks are 6.3% more likely to hit |
+| dodge | Thick Fog | Foes' attacks are 1.4% more likely to miss | Foes' attacks are 3.5% more likely to miss | Foes' attacks are 6.3% more likely to miss |
+| multi-hit | Swarm | Moves that hit several times hit at least 2 times | Moves that hit several times hit at least 2 times | Moves that hit several times hit at least 3 times |
+| vampire | Vampire | Your Pokémon heal 2.1% of the damage they deal | Your Pokémon heal 5.3% of the damage they deal | Your Pokémon heal 9.5% of the damage they deal |
+| thorns | Spikes | Foes that hit your Pokémon with a contact move lose 1.4% of their max HP | Foes that hit your Pokémon with a contact move lose 3.5% of their max HP | Foes that hit your Pokémon with a contact move lose 6.3% of their max HP |
+| regen | Regrowth | Your Pokémon heal 0.7% of their max HP at the end of every turn | Your Pokémon heal 1.7% of their max HP at the end of every turn | Your Pokémon heal 3.2% of their max HP at the end of every turn |
+| ko-heal | Spoils of War | A Pokémon that knocks out a foe heals 2.8% of its max HP | A Pokémon that knocks out a foe heals 8.1% of its max HP | A Pokémon that knocks out a foe heals 15.1% of its max HP |
+| second-wind | Second Wind | When one of your Pokémon would faint, there is a 5% chance it hangs on with 1 HP instead (once per battle) | When one of your Pokémon would faint, there is a 14% chance it hangs on with 1 HP instead (once per battle) | When one of your Pokémon would faint, there is a 26% chance it hangs on with 1 HP instead (once per battle) |
+| stat-atk | Brawler | Your Pokémon's Attack is 1.4% higher | Your Pokémon's Attack is 3.5% higher | Your Pokémon's Attack is 6.3% higher |
+| stat-spa | Mind Over Matter | Your Pokémon's Sp. Atk is 1.4% higher | Your Pokémon's Sp. Atk is 3.5% higher | Your Pokémon's Sp. Atk is 6.3% higher |
+| stat-def | Iron Skin | Your Pokémon's Defense is 1.4% higher | Your Pokémon's Defense is 3.5% higher | Your Pokémon's Defense is 6.3% higher |
+| stat-spd | Dragon Scales | Your Pokémon's Sp. Def is 1.4% higher | Your Pokémon's Sp. Def is 3.5% higher | Your Pokémon's Sp. Def is 6.3% higher |
+| stat-spe | Tailwind | Your Pokémon's Speed is 1.4% higher | Your Pokémon's Speed is 3.5% higher | Your Pokémon's Speed is 6.3% higher |
+| para-ward | Static Guard | Each time something tries to paralyze one of your Pokémon, there is a 10% chance it is stopped | Each time something tries to paralyze one of your Pokémon, there is a 31% chance it is stopped | Each time something tries to paralyze one of your Pokémon, there is a 59% chance it is stopped |
+| poison-ward | Antidote Charm | Each time something tries to poison one of your Pokémon, there is a 10% chance it is stopped | Each time something tries to poison one of your Pokémon, there is a 31% chance it is stopped | Each time something tries to poison one of your Pokémon, there is a 59% chance it is stopped |
+| burn-ward | Frost Veil | Each time something tries to burn one of your Pokémon, there is a 10% chance it is stopped | Each time something tries to burn one of your Pokémon, there is a 31% chance it is stopped | Each time something tries to burn one of your Pokémon, there is a 59% chance it is stopped |
+| sleep-ward | Wide Awake | Each time something tries to put to sleep one of your Pokémon, there is a 10% chance it is stopped | Each time something tries to put to sleep one of your Pokémon, there is a 31% chance it is stopped | Each time something tries to put to sleep one of your Pokémon, there is a 59% chance it is stopped |
+| rain-start | Rainmaker | Rain starts when every battle begins and lasts 3 turns | Rain starts when every battle begins and lasts 4 turns | Rain starts when every battle begins and lasts 5 turns |
+| fire-boost | Sunbringer | Your Fire moves do 2.8% more damage | Your Fire moves do 7% more damage | Your Fire moves do 12.6% more damage |
+| rock-boost | Sand Caller | Your Rock, Ground and Steel moves do 2.8% more damage | Your Rock, Ground and Steel moves do 7% more damage | Your Rock, Ground and Steel moves do 12.6% more damage |
+| ice-boost | Cold Snap | Your Ice moves do 2.8% more damage | Your Ice moves do 7% more damage | Your Ice moves do 12.6% more damage |
+| recruit | Extra Recruit | Every recruit screen shows 1 more card | Every recruit screen shows 1 more card | Every recruit screen shows 1 more card and lets you take 1 more Pokémon |
+| swap | Swap | On every recruit screen you can trade one of your Pokémon for any card, once. A trade doesn't use a pick | On every recruit screen you can trade one of your Pokémon for any card, once. A trade doesn't use a pick | On every recruit screen you can trade one of your Pokémon for any card, twice. A trade doesn't use a pick |
+| reroll | Reroller | 1 extra free reroll on every recruit screen | 1 extra free reroll on every recruit screen | 2 extra free rerolls on every recruit screen |
+| scout | Scout | 1 extra card on every recruit screen and item screen | 1 extra card on every recruit screen and item screen | 2 extra cards on every recruit screen and item screen |
+| wallet | Lucky Wallet | You earn 3.5% more prize money after every win | You earn 8.8% more prize money after every win | You earn 15.8% more prize money after every win |
+| hidden | Hidden Potential | 2.1% extra chance that a recruit has its Hidden Ability | 5.3% extra chance that a recruit has its Hidden Ability | 9.5% extra chance that a recruit has its Hidden Ability |
+| gift | Gift Box | Every item screen shows 1 more card | Every item screen shows 1 more card | Every item screen shows 1 more card and lets you take 1 more item |
+| tm | TM Master | After every win there is a 7% chance to get a second TM | After every win there is a 17.5% chance to get a second TM | After every win there is a 31.5% chance to get a second TM |
+| interest | Interest | After every win you earn 2% of the money you hold (at most ₽60) | After every win you earn 4.1% of the money you hold (at most ₽135) | After every win you earn 6.9% of the money you hold (at most ₽235) |
+| haggler | Haggler | Everything in the shop costs 2.1% less | Everything in the shop costs 5.3% less | Everything in the shop costs 9.5% less |
 
 #### Set bonus
 
@@ -585,7 +591,7 @@ Every trainer has a pool of **every species of their type** (Gen 1–4, Gen 4 ty
 | 0 | — | — |
 | 1 | Shinx, Mareep, Electrike, Pikachu, Magnemite, Voltorb, Chinchou | Bronzor |
 | 2 | Luxio, Flaaffy, Plusle, Minun, Pachirisu | Porygon |
-| 3 | Rotom, Lanturn, Magneton, Raichu, Manectric, Electrode | Skarmory |
+| 3 | Rotom, Lanturn, Magneton, Raichu, Manectric, Electrode | Forretress |
 | 4 | Electabuzz, Ampharos, Luxray, Jolteon | Bronzong, Porygon2 |
 | 5 | Magnezone, Electivire, Zapdos, Raikou | Porygon-Z |
 
@@ -930,7 +936,7 @@ Every trainer has a pool of **every species of their type** (Gen 1–4, Gen 4 ty
 | 0 | — | — |
 | 1 | Shinx, Mareep, Electrike, Pikachu, Magnemite, Voltorb, Chinchou | Bronzor |
 | 2 | Luxio, Flaaffy, Plusle, Minun, Pachirisu | Porygon |
-| 3 | Rotom, Lanturn, Magneton, Raichu, Manectric, Electrode | Skarmory |
+| 3 | Rotom, Lanturn, Magneton, Raichu, Manectric, Electrode | Forretress |
 | 4 | Electabuzz, Ampharos, Luxray, Jolteon | Bronzong, Porygon2 |
 | 5 | Magnezone, Electivire, Zapdos, Raikou | Porygon-Z |
 
@@ -1664,7 +1670,7 @@ Two fonts, both from Google Fonts (linked in `index.html`), set as variables at 
 | Variable | Font | Used for |
 |---|---|---|
 | `--font-main` | Nunito | `body` (so everything by default: headings, buttons, Pokémon and trainer names, the text box and menus), plus `.hit-badge`, `.move-info b`, `.banner-frame .textbox p`, `.mc-name` |
-| `--font-info` | VT323 | Details and numbers (its 5/8 and 6/9 are easy to tell apart): the group rule in the "Details and numbers" block (`.info`, `.hpbox .level`, `.hpbox .hp-numbers`, `.move-btn .move-meta`, `.move-btn .move-power`, `.move-info`, `.target-btn .who`, `.party-card .pinfo`, `.turn-badge`, `.facts`, `.mon-sub`, `.mc-stats`, `.mc-desc`, `.mc-toggle`, `.mc-type`, `.move-card .cat-pill`, `.modal-label`, `.mon-item`, `.bag-entry`, `.offer-card .detail`, `.offer-card .tier`, `.track .stop`, `.modal small`, `.modal p`, `.confirm-mon`, `.confirm-text`, `.fallen-list small`, `.hof-team small`, `.hub p`, `.empty-note`, `.choice small`, `.messages p`, `.money`, `.tp-pill`, `.reward`, `.tile-sub`, `.tile-item`, `.tab-count`, `.stats-table`, `.shop-item small`, `.shop-item .btn.small`, `.upgrade-card .btn.small`, `.evo-mon small`, `.ability-list`, `.species-name`, `.next-facts`, `.me-card small`, `.version-tag`) and `.menu-title small`, `.sum-info .pinfo`, `.sum-stats span`, `.sum-move span`, `.slot-label`, `.modal-count`, `.ability-full .ab-now`, `.ability-full p`, `.dialog-moves` |
+| `--font-info` | Silkscreen (DotGothic16 as fallback) | Details and numbers (its 5/8 and 6/9 are easy to tell apart): the group rule in the "Details and numbers" block (`.info`, `.hpbox .level`, `.hpbox .hp-numbers`, `.move-btn .move-meta`, `.move-btn .move-power`, `.move-info`, `.target-btn .who`, `.party-card .pinfo`, `.turn-badge`, `.facts`, `.mon-sub`, `.mc-stats`, `.mc-desc`, `.mc-toggle`, `.mc-type`, `.move-card .cat-pill`, `.modal-label`, `.mon-item`, `.bag-entry`, `.offer-card .detail`, `.offer-card .tier`, `.track .stop`, `.modal small`, `.modal p`, `.confirm-mon`, `.confirm-text`, `.fallen-list small`, `.hof-team small`, `.hub p`, `.empty-note`, `.choice small`, `.messages p`, `.money`, `.tp-pill`, `.reward`, `.tile-sub`, `.tile-item`, `.tab-count`, `.stats-table`, `.shop-item small`, `.shop-item .btn.small`, `.upgrade-card .btn.small`, `.evo-mon small`, `.ability-list`, `.species-name`, `.next-facts`, `.me-card small`, `.version-tag`) and `.menu-title small`, `.sum-info .pinfo`, `.sum-stats span`, `.sum-move span`, `.slot-label`, `.modal-count`, `.ability-full .ab-now`, `.ability-full p`, `.dialog-moves` |
 
 `tools/sprite-check.html` uses the browser's system font.
 
@@ -1851,3 +1857,35 @@ All Rock-type lines up to Gen 4. Slugma (Fire) and Steelix (Steel/Ground) are in
 - **v0.9.8 · October 24, 2026:** The team starts in the grid view. The Moves bar is the only way to learn moves now: the old Move Relearner and TM dialogs, the Moves / TM buttons on the team cards and TM dragging from the Bag are gone. Tapping a move in the bar (known or learnable) opens a popup with its details and, for new moves, which slot it takes. "Show effects" shows the effect of every move in the bar, including your four current moves.
 - **v0.9.9 · October 24, 2026:** Removed the red −% sale tag in the shop (sale items keep the struck-through old price and the "Today's deals" section). The buy popup of shop items shows the old price of a sale item.
 - **v0.10.0 · October 24, 2026:** Counter and Mirror Coat (and Metal Burst) now hit whoever hit you, they used to hit the user. Reflect, Light Screen, Tailwind and Safeguard show as tags at the top of the battle scene while they are up. Badges: you can switch each badge's effect off in the badge case (it still counts for the set bonus), all damage, stat and heal effects are about 30% weaker and the weather starters last 3–5 turns, the unlock message no longer says what the badge does, and the Next battle panel shows the leader's badge greyed out until you own it. Bag TMs are clickable (details and who can learn it). The item pick screen shows your team like the recruit screen. Items can be dragged between Pokémon in the grid view too. The Moves tab is back in the details window (no relearn button). Show effects is a small switch and the effect text appears inside the move cards. The "Done" button on the recruit screen is now "Skip", and rerolling with all your picks selected rerolls instead of locking them in.
+- **v0.10.1 · October 24, 2026:** Moves show a small target icon (foes on top, you and your partner below, the Pokémon it hits filled in: red for foes, green for you and your partner, dotted for "one of these") on move cards, in the battle move menu and in the Moves bar. The tooltip says who it hits.
+- **v0.10.2 · October 24, 2026:** The target icon sits on a dark chip with stronger colours so it is readable on every card. Physical, Special and Status moves have a small icon (orange burst, blue swirl, grey bubbles) in their category tag. Payback fix: it now doubles against a Pokémon that switched in this turn too (before, only when the target had attacked), with a test.
+- **v0.10.3 · October 24, 2026:** The Physical / Special / Status icons are plain one-colour shapes (star, ring, bar) in the tag's text colour.
+- **v0.10.4 · October 24, 2026:** Shorter move labels: Phys / Spec / Status next to the icons, and short target texts (One target, Both foes, All others, Random foe, Self, Partner, Your side, Foe side, Whole field, Everyone, Varies).
+- **v0.10.5 · October 24, 2026:** The team shown under the recruit and item screens is clickable: tap a Pokémon to open its details window.
+- **v0.10.6 · October 24, 2026:** In the target icon, a damaging move shows your partner red when it hits them too (Surf, Earthquake, Explosion), so you can see it will hurt them. Status moves keep the green.
+- **v0.10.7 · October 24, 2026:** Last Resort now works (it fails until the Pokémon has used all its other moves since it came in; the AI waits too). Recruit cards: a "Moves & details" switch above the cards (off by default, remembered) hides the moves, abilities, nature effect and base stat total, and the card grid is wider with more padding. One "Effects" switch everywhere: the per-card Effect buttons are gone and the details window's Moves tab has the same switch. The details window's Moves tab has a right column with every move the Pokémon can learn (tap one for the learn popup).
+- **v0.10.8 · October 24, 2026:** Recruit cards show only the sprite, name, types, level and nature (the "Moves & details" switch is gone). A detail panel next to the cards shows everything about the Pokémon you tapped last: abilities, stats, nature effect and its moves with their effects. In the details window the Moves tab is wider with the learnable moves as their own column on the right, and moves can be dragged there too: drag a move onto another to swap their order, or drag a learnable move onto one of yours to learn it in its place.
+- **v0.10.9 · October 24, 2026:** Recruiting is now one Pokémon at a time. Tap a recruit card to open the same panel as your team's details (stats, abilities, evolution, moves) and press Lock in to take it; ◀ ▶ and the sprites at the top flip through the other cards. The side panel and the select-then-confirm bar are gone, so rerolling only replaces cards you haven't locked in. In the details window the learnable moves are now a separate column to the right of the window (wide screens).
+- **v0.10.10 · October 24, 2026:** Move rows in the Moves bar (known and learnable) show whether the move is Physical, Special or Status next to its power and accuracy, with the target icon on the right. The move popup is wider, with the Physical/Special/Status pill and target icon on the right of its card.
+- **v0.10.11 · October 24, 2026:** The "wants to learn a new move" popup after levelling up is gone. A Pokémon with a new move gets a small yellow dot (and a "New move!" tag on its team tile); in the Moves bar and details window the new move is highlighted with a "New" tag until you hover it. Moves a full Pokémon couldn't take sit in its "Moves it can learn" list, same as before.
+- **v0.10.12 · October 24, 2026:** Hidden Power shows its real type and power (from the Pokémon's IVs) everywhere: move cards, the Moves bar, popups and the battle summary. Sucker Punch no longer reads a stale move from a previous turn when its target didn't pick a move this turn (e.g. used an item). The Physical / Special / Status pills are all the same width.
+- **v0.10.13 · October 24, 2026:** The "Moves it can learn" list remembers its scroll position, in the Moves bar and in the details window, so teaching several TMs in a row doesn't jump back to the top.
+- **v0.10.14 · October 24, 2026:** Fixed Hidden Power's type: the formula used the wrong type order (all-31 IVs gave Steel; it is Dark, power 70). It also fixes the move in battle.
+- **v0.10.15 · October 24, 2026:** Recruits now roll their IVs (15–31 for each stat) instead of all being 31, so stats differ slightly between Pokémon and Hidden Power gets different types. Shown in the Stats tab.
+- **v0.10.16 · October 24, 2026:** Hidden Power, Return and Frustration show their real base power (Hidden Power 30–70 from the IVs, Return and Frustration 102) in the battle move menu and the run screens instead of 1 or —.
+- **v0.10.17 · October 24, 2026:** New badge case screen. Two columns: the case with the collection shelves on the left, a live "Your perks" panel on the right with a preview card of what a badge does in the slot you point at or drag over. Linked slots are joined by a coloured bar. Drag badges in, out (drop on the collection) or between slots; tap a badge in the case to pick it up and tap a slot to move it; × takes one out. Auto-fill (strongest badges, linked slots first) and Clear buttons, a "How it works" popup instead of the text wall, set-bonus meters per generation and clearer locked badges. The "flinched!" message now says what caused it, e.g. "(Fake Out from Zubat)".
+- **v0.10.18 · October 24, 2026:** The character picker only shows trainers you have unlocked, plus a line with the number still locked and one hint. Set bonus meters in the badge case are now a progress bar with notches at 3, 5 and 8 badges and their bonus, with text like "2 in case · 1 more for +2%". A legend under the case explains the strength number, the yellow boost and the link letters.
+- **v0.10.19 · October 24, 2026:** The detail and number font is now DotGothic16 (clearer than VT323; to switch back change `--font-info` and the link in `index.html`). Perk descriptions in the badge case use the full text colour. Added the draft character unlock plan to §3j (themes, perks and pacing; not in the game yet). `tools/font-check.html` compares fonts.
+- **v0.11.0 · October 24, 2026:** Character unlock system (§3j): trainers now unlock through themes instead of counters: win with a Pokémon line (Wally: Ralts), collect a region's three starters (Red), win with a type, recruit many species, clean wins, quick gym wins, badges, berries and items. At most 2 trainers unlock per run, each with a "New trainer unlocked!" popup, and the picker hints at the closest one. Trainers have perks: Ethan, Red, Brendan, Leaf, May, Lucas and Wally work now (more are planned in the table). Text is bigger with more letter spacing, small labels are in capitals, and the panel colours have more contrast.
+- **v0.11.1 · October 24, 2026:** The pixel font (details and numbers) is bigger (font-size-adjust 0.57 → 0.7) with more letter spacing (0.11em), word spacing and line height (1.5) so the letters no longer touch. The badge case perk chips, preview card and shelves have more padding.
+- **v0.12.0 · October 24, 2026:** Badge case boost zones. The old linked pairs are gone: the 4 × 2 case is split into random coloured zones of 1–3 touching slots and every zone boosts the badges in it (+3 strength for a one-slot zone, +2 for two, +1 for three). The collection shelves are tabs (one per generation). Weather badges no longer overlap: only Rainmaker calls weather; Sunbringer now boosts Fire moves, Sand Caller Rock/Ground/Steel moves and Cold Snap Ice moves.
+- **v0.12.1 · October 24, 2026:** The perks list in the badge case is folded away: the right panel shows the badge icons with their strength (point at one for its effect) and a "Details and switches" fold with the full list. The legend under the case is two short buttons (Strength, Zone boost). Perk icons, the legend and locked badges show their info when tapped (no help cursor).
+- **v0.13.0 · October 24, 2026:** The badge case has no side panel any more: tapping a badge (in the case or the collection) opens a details window like the move popup, with what it does at its strength, where it sits and what you can do (put it in a free slot, take it out, turn its effect off). Tapping an empty slot lists the badges you can put there. Perks and the two legend labels open their own windows. All badge effects have plain-language descriptions, and several were scaled down: Opening Salvo, Last Stand, Spoils of War, Second Wind, TM Master, Lucky Wallet, Interest, status wards (max 75%), and the extra picks/cards/rerolls/swaps now come at gym 8 (Swarm's 3 hits at gym 6).
+- **v0.13.1 · October 24, 2026:** Badges in the case show their strength as a stack beside the badge: the zone boost on top, the total strength in the middle and the gym number at the bottom (gym number + boost = total). The zone tag reads "ZONE +2".
+- **v0.13.2 · October 24, 2026:** The badge window shows the strength as an equation with highlighted numbers: gym number + zone boost (in the zone's colour) = strength. The effect switch sits under it. The "In slot N" line and the Strength / Zone boost labels under the case are gone (desktop first; mobile comes later).
+- **v0.14.0 · October 24, 2026:** Every badge now raises one stat of your whole team by itself (like the main games), by the gym's type: 1% at strength 1 up to 5.5% at strength 10, always on. Only the secondary effect can be switched off; a switched-off badge keeps its stat boost and the set bonus. The badge window and the perks list show both. New Stat column in the §3k table.
+- **v0.14.1 · October 24, 2026:** The strength numbers are gone from the badge screens: no number stack on the badges, no equation or number in the badge window, no level number in the perks list. A zone's boost is shown as stars (★★★ for a one-slot zone, ★★ for two, ★ for three); the badge window and perks list show the real values (the stat boost and the effect at the badge's boosted strength). Strength still works the same underneath (§3k).
+- **v0.14.2 · October 24, 2026:** Boost zones follow the sketch: the case is split into separate rectangular boxes (one slot, two side by side, two on top of each other, or three in a row), drawn as coloured boxes with gaps between them and a ★ tag on the border. No more L-shapes. Saves with other shapes get new zones.
+- **v0.14.3 · October 26, 2026:** The battle screens (move menu, targets, Pokémon list, HP boxes) use a tighter version of the pixel font again (less letter spacing and line height), so the cards fit now that the other screens use bigger text.
+- **v0.14.4 · October 26, 2026:** Moves a Pokémon "learns" at level 1 are capped by level (max power 75 below level 20, 90 below 30, 100 below 40, 110 below 50): Brock's Sudowoodo no longer has a 120-power Wood Hammer at level 12. Skarmory is no longer filler for the electric leaders (Forretress instead). Trainer AI: no more spamming moves that fail (Dream Eater on an awake target, Snore, Spit Up, Screech and other stat drops against Clear Body, White Smoke, Mist or a substitute, status moves against Safeguard, Insomnia, Limber…), boosting moves without a matching attack, and Sucker Punch is a gamble. New tests for Fake Out, Dream Eater, Clear Body and the AI. The detail font is now Silkscreen (to switch back, change `--font-info` and the link in `index.html`).
+- **v0.14.5 · October 26, 2026:** Confusion now lasts 1–4 attacks like in Gen 4 (it was one turn too short: a Pokémon could snap out before its first attack). Checked Dragon Rush's accuracy (75%, measured 74% over 10,000 uses) and the 50% self-hit chance; a sweep of every move for crashes and impossible HP or stat stages found nothing, and 22 more interactions (Substitute, Safeguard, Mist, Destiny Bond, Encore, Yawn, Perish Song…) behave correctly.

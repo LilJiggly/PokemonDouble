@@ -16,7 +16,7 @@
 import {
   typeMultiplier, stageMultiplier, accuracyStageMultiplier, CRIT_CHANCE, STAT_NAMES, STATUS_NAMES, TYPES,
 } from "./constants.js";
-import { createBattlePokemon, emptyBoosts } from "./pokemon.js";
+import { createBattlePokemon, emptyBoosts, hiddenPowerOf } from "./pokemon.js";
 import { nextRandom, randomInt, chance, pick } from "./rng.js";
 import {
   makesContact, PUNCH, SOUND, RECOIL, TWO_TURN, HITS_INVULNERABLE, RECHARGE, RAMPAGE, THAWS_USER, WEATHER_HEAL,
@@ -56,6 +56,8 @@ const STATUS_CURE_TEXT = {
 };
 
 const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+
+const TYPE_BOOST_BADGES = { "fire-boost": ["fire"], "rock-boost": ["rock", "ground", "steel"], "ice-boost": ["ice"] };
 
 export class Battle {
   constructor(data, state) {
@@ -118,10 +120,10 @@ export class Battle {
       });
     }
     for (const m of this.bySpeed(this.activeMons())) this.runSwitchInAbility(m);
-    // Weather badges (a sandstorm, rain…): they start every battle
-    for (const side of st.sides) for (const [id, weather] of [["rain-start", "rain"], ["sun-start", "sun"], ["sand-start", "sand"], ["hail-start", "hail"]]) {
-      const turns = this.bfx(side.index, id);
-      if (turns && this.setWeather(weather, null)) st.field.weatherTurns = turns;
+    // Rainmaker badge: rain starts every battle (the only weather badge, so they never clash)
+    for (const side of st.sides) {
+      const turns = this.bfx(side.index, "rain-start");
+      if (turns && this.setWeather("rain", null)) st.field.weatherTurns = turns;
     }
     st.turn = 1;
     st.phase = "choose";
@@ -381,7 +383,7 @@ export class Battle {
       if (mon.volatile.torment && mon.volatile.lastMove === m.id) disabled = true;
       if (mon.volatile.encore && mon.volatile.encore.move !== m.id) disabled = true;
       return { index: i, id: m.id, name: move.name, type: this.moveType(mon, move), pp: m.pp, maxPp: m.maxPp,
-        target: move.target, disabled };
+        power: this.shownPower(mon, move), target: move.target, disabled };
     });
     const struggle = moves.every((m) => m.disabled);
     const trapped = this.isTrapped(mon);
@@ -455,6 +457,7 @@ export class Battle {
       v.flinch = false; v.moved = false; v.damagedBy = []; v.hurtThisTurn = false;
       v.magicCoat = false; v.snatch = false;
       v.lastDamage = null;
+      v.pendingMove = null; // only moves picked this turn count (Sucker Punch, Me First…)
     }
     for (const side of st.sides) { side.conditions.followMe = null; delete side.conditions.wideGuard; delete side.conditions.quickGuard; }
     for (const a of actions) if (a.type === "move") a.mon.volatile.pendingMove = a.moveId;
@@ -488,7 +491,11 @@ export class Battle {
       if (a.type === "switch") {
         this.pursuitBeforeSwitch(a.mon);
         if (a.mon.fainted) { this.checkWin(); continue; }
-        this.doSwitch(a.mon.side, this.slotOf(a.mon), a.teamIndex);
+        const slotOfSwitch = this.slotOf(a.mon);
+        this.doSwitch(a.mon.side, slotOfSwitch, a.teamIndex);
+        // The Pokémon that came in counts as having acted this turn (Payback doubles against it)
+        const arrived = this.monAt(a.mon.side, slotOfSwitch);
+        if (arrived) arrived.volatile.moved = true;
       } else if (a.type === "item") {
         this.useBagItem(a.mon.side, a.item, a.teamIndex);
       } else {
@@ -939,7 +946,7 @@ export class Battle {
       if (statusMove) this.msg("But it failed!");
       return false;
     }
-    target.volatile.confusion = randomInt(this.state, 1, 4);
+    target.volatile.confusion = randomInt(this.state, 2, 5); // the last count is the turn it snaps out: 1–4 turns of risk (Gen 4)
     this.log({ t: "volatile", ...this.ref(target), volatile: "confusion", text: `${this.name(target, true)} became confused!` });
     this.checkStatusBerries(target);
     return true;
@@ -1052,16 +1059,15 @@ export class Battle {
     return move.type;
   }
 
+  // The base power to show for a move whose power doesn't depend on the target (null: use the move's own)
+  shownPower(user, move) {
+    if (move.key === "hidden-power") return this.hiddenPower(user).power;
+    if (move.key === "return" || move.key === "frustration") return 102;
+    return null;
+  }
+
   hiddenPower(mon) {
-    const order = ["hp", "atk", "def", "spe", "spa", "spd"];
-    let typeSum = 0;
-    let powerSum = 0;
-    order.forEach((s, i) => {
-      typeSum += (mon.ivs[s] % 2) << i;
-      powerSum += ((mon.ivs[s] >> 1) % 2) << i;
-    });
-    const hpTypes = TYPES.filter((t) => t !== "normal");
-    return { type: hpTypes[Math.floor((typeSum * 15) / 63)], power: Math.floor((powerSum * 40) / 63) + 30 };
+    return hiddenPowerOf(mon.ivs);
   }
 
   basePower(user, target, move) {
@@ -1138,6 +1144,7 @@ export class Battle {
     let p = bp;
     if (user.volatile.helpingHand) p *= 1.5;
     if (TYPE_BOOST_ITEMS[item] === type) p *= 1.2;
+    for (const [id, types] of Object.entries(TYPE_BOOST_BADGES)) if (types.includes(type)) p *= 1 + this.bfx(user.side, id); // Sunbringer, Sand Caller, Cold Snap badges
     if (item === "muscle-band" && move.category === "physical") p *= 1.1;
     if (item === "wise-glasses" && move.category === "special") p *= 1.1;
     if (item === "adamant-orb" && user.species === "dialga" && (type === "dragon" || type === "steel")) p *= 1.2;
@@ -1319,7 +1326,7 @@ export class Battle {
       }
     }
     if (v.flinch) {
-      this.log({ t: "cant", ...this.ref(user), reason: "flinch", text: `${this.name(user, true)} flinched!` });
+      this.log({ t: "cant", ...this.ref(user), reason: "flinch", text: `${this.name(user, true)} flinched!${v.flinchBy ? ` (${v.flinchBy})` : ""}` });
       if (user.ability === "steadfast") this.boost(user, { spe: 1 }, user);
       return false;
     }
@@ -1454,6 +1461,7 @@ export class Battle {
       text: calledBy ? `${move.name}!` : `${this.name(user, true)} used ${move.name}!` });
 
     if (!calledBy) {
+      if (!(v.usedMoves ??= []).includes(moveId)) v.usedMoves.push(moveId); // for Last Resort
       v.lastMove = moveId;
       st.field.previousMove = st.field.lastMove ?? null; // Copycat copies this
       st.field.lastMove = moveId;
@@ -1466,7 +1474,7 @@ export class Battle {
       // Picks the target up: it can't move this turn. Fails on Flying types and heavy Pokémon.
       const t = chosenTarget && this.monAt(chosenTarget.side, chosenTarget.slot);
       if (!t || t.fainted || t.types.includes("flying") || t.weightKg >= 200 || t.volatile.substitute) { this.msg("But it failed!"); return; }
-      if (!t.volatile.moved) t.volatile.flinch = true;
+      if (!t.volatile.moved) { t.volatile.flinch = true; t.volatile.flinchBy = `Sky Drop from ${this.name(user, true)}`; }
     }
     if (two && !v.charging) {
       const skip = (moveId === "solar-beam" && this.weather() === "sun");
@@ -1860,7 +1868,8 @@ export class Battle {
     }
     const t0 = targets[0];
     if ((key === "dream-eater" && t0?.status !== "slp") || (key === "snore" && user.status !== "slp")
-      || (key === "spit-up" && !user.volatile.stockpile) || ["fling", "natural-gift", "bide"].includes(key)) {
+      || (key === "spit-up" && !user.volatile.stockpile) || ["fling", "natural-gift", "bide"].includes(key)
+      || (key === "last-resort" && !this.lastResortReady(user))) {
       this.msg("But it failed!");
       return;
     }
@@ -2150,6 +2159,12 @@ export class Battle {
     }
   }
 
+  // Last Resort only works once the user has used every other move it knows since it came in (and knows at least one)
+  lastResortReady(user) {
+    const others = user.moves.map((m) => m.id).filter((id) => id !== "last-resort");
+    return others.length > 0 && others.every((id) => user.volatile.usedMoves?.includes(id));
+  }
+
   hitCount(user, move) {
     const meta = move.meta;
     if (move.key === "triple-kick") return 3;
@@ -2200,11 +2215,11 @@ export class Battle {
     if (meta.category === "damage-ailment" && meta.ailmentChance > 0 && !shieldDust) {
       if (chance(st, meta.ailmentChance * serene)) this.applyAilment(user, target, move, {});
     }
-    if (user.ability === "stench" && !meta.flinchChance && !shieldDust && chance(st, 10)) this.flinch(target);
+    if (user.ability === "stench" && !meta.flinchChance && !shieldDust && chance(st, 10)) this.flinch(target, "Stench", user);
     if (meta.flinchChance > 0 && !shieldDust) {
-      if (chance(st, meta.flinchChance * serene)) this.flinch(target);
+      if (chance(st, meta.flinchChance * serene)) this.flinch(target, move.name, user);
     } else if (["kings-rock", "razor-fang"].includes(this.item(user)) && !shieldDust && chance(st, 10)) {
-      this.flinch(target);
+      this.flinch(target, this.itemName(this.item(user)), user);
     }
     if (move.statChanges.length && meta.statChance > 0) {
       if (meta.category === "damage-raise") {
@@ -2215,9 +2230,11 @@ export class Battle {
     }
   }
 
-  flinch(target) {
+  // by: the move, ability or item that caused it (named in the "flinched!" message), source: who used it
+  flinch(target, by = null, source = null) {
     if (target.volatile.moved || this.ability(target) === "inner-focus") return;
     target.volatile.flinch = true;
+    target.volatile.flinchBy = by ? `${by}${source ? ` from ${this.name(source, true)}` : ""}` : null;
   }
 
   // Apply a move's ailment (status or volatile)

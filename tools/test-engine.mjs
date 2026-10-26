@@ -8,6 +8,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { prepareData } from "../js/engine/data.js";
 import { Battle } from "../js/engine/battle.js";
+import { chooseTurn } from "../js/engine/ai.js";
 import { calcStats } from "../js/engine/pokemon.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -404,7 +405,13 @@ test("Gym badges: stats, set bonus and weather", () => {
   eq(at(stat, 0, 0).stats.hp, at(plain, 0, 0).stats.hp, "HP is not boosted");
   eq(badgeBattle({ "rain-start": 4 }).weather(), "rain", "rain");
   eq(badgeBattle({ "rain-start": 4 }).state.field.weatherTurns, 4, "lasts as long as the badge says");
-  eq(badgeBattle({ "sand-start": 4 }).weather(), "sand", "sand");
+  eq(badgeBattle({ "fire-boost": 0.5 }).weather(), null, "type badges call no weather");
+});
+test("Type badges (Sunbringer, Sand Caller, Cold Snap) boost their types only", () => {
+  const fire = (effects) => { const b = badgeBattle(effects, {}, { me: "charmander", moves: ["flamethrower", "splash"], foe: "bulbasaur" }); return dmg(b, at(b, 0, 0), at(b, 1, 0), "flamethrower"); };
+  const plain = fire({});
+  assert(fire({ "fire-boost": 0.5 }) > plain * 1.3, "Fire moves hit harder");
+  eq(fire({ "ice-boost": 0.5 }), plain, "other types are unchanged");
 });
 test("Gym badges: status wards, Regrowth, Vampire, Second Wind, Spikes", () => {
   const b = badgeBattle({ "sleep-ward": 1 });
@@ -458,6 +465,119 @@ test("Reflect and Light Screen send events so the screen can keep showing them",
   let off = false;
   for (let i = 0; i < 6; i++) off = round(b2, p1(1), p2(0)).some((e) => e.t === "sidecond" && e.key === "lightScreen" && !e.on) || off;
   assert(off, "light screen should wear off after 5 turns with an event");
+});
+test("Payback doubles when the target moved first, or switched in this turn", () => {
+  const mk = () => battle([mon("snorlax", ["payback", "splash"]), mon("magikarp", ["splash"])],
+    [mon("alakazam", ["tackle", "splash"]), mon("magikarp", ["splash"]), mon("blissey", ["splash"])]);
+  const power = (b, target) => { const f = b.monAt(1, 0); const old = f.volatile.moved; f.volatile.moved = target; const d = dmg(b, at(b, 0, 0), f, "payback"); f.volatile.moved = old; return d; };
+  // 1) the foe is faster and attacks first
+  const b1 = mk();
+  const ev1 = b1.submitTurn([[move(0, 0, { side: 1, slot: 0 }), move(1, 0, { side: 1, slot: 0 })], [move(0, 0, { side: 0, slot: 0 }), move(1, 0, { side: 0, slot: 0 })]]);
+  const hit1 = ev1.find((e) => e.t === "damage" && e.move === "payback");
+  assert(hit1 && hit1.amount > power(mk(), false), "Payback should double after the foe moved");
+  // 2) the foe switches to Blissey (a big HP pool): Payback hits the new Pokémon with double power
+  const b2 = mk();
+  const plain = power(b2, false), doubled = power(b2, true);
+  const ev2 = b2.submitTurn([[move(0, 0, { side: 1, slot: 0 }), move(1, 0, { side: 1, slot: 0 })], [{ slot: 0, type: "switch", teamIndex: 2 }, move(1, 0, { side: 0, slot: 0 })]]);
+  const hit2 = ev2.find((e) => e.t === "damage" && e.move === "payback");
+  assert(hit2 && hit2.amount > plain * 1.5 && hit2.amount <= doubled, `damage ${hit2?.amount} vs plain ${plain}`);
+});
+test("Last Resort fails until every other move has been used", () => {
+  const b = duel("snorlax", ["last-resort", "tackle"], "blissey", ["splash", "splash"]);
+  const ev1 = round(b, p1(0), p2(0));
+  assert(ev1.some((e) => /failed/i.test(e.text ?? "")) && !ev1.some((e) => e.t === "damage" && e.move === "last-resort"), "should fail on turn 1");
+  round(b, p1(1), p2(0)); // Tackle
+  const ev3 = round(b, p1(0), p2(0));
+  assert(ev3.some((e) => e.t === "damage" && e.move === "last-resort"), "should hit once Tackle has been used");
+  const solo = duel("snorlax", ["last-resort", "splash"], "blissey", ["splash", "splash"]);
+  assert(!solo.lastResortReady(at(solo, 0, 0)), "not ready before Splash was used");
+  round(solo, p1(1), p2(0));
+  assert(solo.lastResortReady(at(solo, 0, 0)), "ready after Splash");
+});
+test("Sucker Punch only works on a foe that is about to attack", () => {
+  const b = duel("snorlax", ["sucker-punch", "splash"], "blissey", ["tackle", "splash"]);
+  const ev1 = round(b, p1(0), p2(0));
+  assert(ev1.some((e) => e.t === "damage" && e.move === "sucker-punch"), "hits a foe that picked Tackle");
+  const ev2 = round(b, p1(0), p2(1));
+  assert(!ev2.some((e) => e.t === "damage" && e.move === "sucker-punch"), "fails against Splash");
+  const fast = duel("snorlax", ["sucker-punch", "splash"], "blissey", ["quick-attack", "splash"]);
+  const ev3 = round(fast, p1(0), p2(0));
+  assert(ev3.findIndex((e) => e.t === "damage" && e.move === "sucker-punch") === -1 || ev3.findIndex((e) => e.move === "quick-attack") < ev3.findIndex((e) => e.move === "sucker-punch"), "fails when the foe moves first");
+});
+test("Hidden Power type follows the Gen 3–5 order (all 31 IVs: Dark, 70)", () => {
+  const b = duel("snorlax", ["hidden-power", "splash"], "blissey", ["splash", "splash"]);
+  eq(b.hiddenPower(at(b, 0, 0)).type, "dark", "type");
+  eq(b.hiddenPower(at(b, 0, 0)).power, 70, "power");
+  const m = at(b, 0, 0);
+  m.ivs = { hp: 31, atk: 30, def: 30, spa: 30, spd: 30, spe: 30 }; // only HP is odd: type bit 0 → Fighting
+  eq(b.hiddenPower(m).type, "fighting", "type with one odd IV");
+});
+test("Fake Out: flinches a slower foe on the first turn, fails on later turns, no flinch against Inner Focus", () => {
+  const b = duel("meowth", ["fake-out", "tackle"], "snorlax", ["tackle", "splash"]);
+  const ev1 = round(b, p1(0), p2(0));
+  assert(ev1.some((e) => e.t === "damage" && e.move === "fake-out"), "hits on turn 1");
+  assert(ev1.some((e) => e.reason === "flinch"), "the foe flinches");
+  const ev2 = round(b, p1(0), p2(0));
+  assert(!ev2.some((e) => e.t === "damage" && e.move === "fake-out") && /failed/i.test(text(ev2)), "fails on turn 2");
+  const f = duel("meowth", ["fake-out", "tackle"], "machop", ["tackle", "splash"], { foeExtra: { ability: "inner-focus" } });
+  const ev3 = round(f, p1(0), p2(0));
+  assert(ev3.some((e) => e.t === "damage" && e.move === "fake-out") && !ev3.some((e) => e.reason === "flinch"), "Inner Focus is not flinched");
+});
+test("Dream Eater fails on an awake target and works on a sleeping one", () => {
+  const b = duel("gengar", ["dream-eater", "splash"], "snorlax", ["splash", "splash"]);
+  const ev = round(b, p1(0), p2(0));
+  assert(!ev.some((e) => e.t === "damage" && e.move === "dream-eater") && /failed/i.test(text(ev)), "awake: fails");
+  const s = duel("gengar", ["dream-eater", "splash"], "snorlax", ["splash", "splash"]);
+  at(s, 1, 0).status = "slp"; at(s, 1, 0).sleepTurns = 3;
+  assert(round(s, p1(0), p2(0)).some((e) => e.t === "damage" && e.move === "dream-eater"), "asleep: hits");
+});
+test("Stat-lowering moves fail against Clear Body, White Smoke and Mist", () => {
+  for (const ability of ["clear-body", "white-smoke"]) {
+    const b = duel("koffing", ["screech", "splash"], "metang", ["splash", "splash"], { foeExtra: { ability } });
+    round(b, p1(0), p2(0));
+    eq(at(b, 1, 0).boosts.def, 0, `${ability}: Defense untouched`);
+  }
+  const plain = duel("koffing", ["screech", "splash"], "snorlax", ["splash", "splash"], { foeExtra: { ability: "thick-fat" } });
+  round(plain, p1(0), p2(0));
+  assert(at(plain, 1, 0).boosts.def <= -2, "without it, Screech lowers Defense");
+});
+test("AI doesn't spam moves that would fail", () => {
+  // Dream Eater against an awake target: it picks something else
+  const d = duel("snorlax", ["splash", "splash"], "gengar", ["dream-eater", "shadow-ball"]);
+  const pick = chooseTurn(d, 1)[0];
+  eq(d.getRequest(1).slots[0].moves[pick.move].id, "shadow-ball", "Shadow Ball instead of Dream Eater");
+  // Screech against Clear Body: it picks the other move
+  const c = duel("metang", ["splash", "splash"], "koffing", ["screech", "sludge"], { userExtra: { ability: "clear-body" } });
+  const pick2 = chooseTurn(c, 1)[0];
+  eq(c.getRequest(1).slots[0].moves[pick2.move].id, "sludge", "Sludge instead of Screech");
+  // Fake Out only on the first turn
+  const f = duel("snorlax", ["splash", "splash"], "meowth", ["fake-out", "tackle"]);
+  eq(f.getRequest(1).slots[0].moves[chooseTurn(f, 1)[0].move].id, "fake-out", "turn 1: Fake Out");
+  round(f, p1(0), p2(0));
+  eq(f.getRequest(1).slots[0].moves[chooseTurn(f, 1)[0].move].id, "tackle", "later turns: not Fake Out");
+});
+test("Confusion lasts 1–4 attacks, hurts about half of them, and is gone after switching out", () => {
+  const counts = {};
+  let hurt = 0, tries = 0;
+  for (let seed = 1; seed <= 400; seed++) {
+    const b = duel("snorlax", ["splash", "splash"], "blissey", ["splash", "splash"], { seed });
+    b.tryConfuse(at(b, 0, 0), at(b, 1, 0), { statusMove: true });
+    let n = 0;
+    while (at(b, 0, 0).volatile.confusion && n < 10) {
+      const ev = round(b, p1(0), p2(0));
+      if (/hurt itself in its confusion/.test(text(ev))) hurt++;
+      tries++; n++;
+    }
+    counts[n] = (counts[n] ?? 0) + 1;
+  }
+  eq(Object.keys(counts).sort().join(), "2,3,4,5", "it ends on the 2nd to 5th turn (the last one is snapping out)");
+  const rate = hurt / tries;
+  assert(rate > 0.3 && rate < 0.5, `self-hit rate ${rate.toFixed(2)} should be about 0.5 of the confused attacks`);
+  const b = duel("snorlax", ["splash", "splash"], "blissey", ["splash", "splash"]);
+  b.tryConfuse(at(b, 0, 0), at(b, 1, 0), { statusMove: true });
+  b.submitTurn([[{ slot: 0, type: "switch", teamIndex: 2 }, s1], [p2(0), s1]]);
+  b.submitTurn([[{ slot: 0, type: "switch", teamIndex: 0 }, s1], [p2(0), s1]]);
+  assert(!b.state.sides[0].team[0].volatile.confusion, "confusion is gone after switching out and in");
 });
 test("Spite takes 4 PP off the foe's last move", () => {
   const b = duel("alakazam", ["spite", "splash"], "snorlax", ["tackle", "splash"]);

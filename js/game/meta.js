@@ -6,6 +6,8 @@
 // from runs, so it survives losing.
 // =====================================================
 
+import { noteRunEnd } from "./progress.js";
+
 export const META_KEY = "pd.meta";
 
 export function emptyMeta() {
@@ -59,13 +61,14 @@ export function beatenCount(run) {
 }
 
 // Progress for character unlocks (see unlocks.js)
-export function recordRun(meta, run) {
+export function recordRun(meta, run, ctx = null) {
   meta.runs += 1;
   meta.best = Math.max(meta.best ?? 0, beatenCount(run));
   if (run.screen === "won") {
     meta.wins = (meta.wins ?? 0) + 1;
     meta.winGens = { ...meta.winGens, [run.settings.gen]: (meta.winGens?.[run.settings.gen] ?? 0) + 1 };
   }
+  if (ctx) noteRunEnd(meta, run, ctx); // lines, types, clean wins… for the character unlocks
 }
 
 // TP for a finished run: per opponent beaten, plus the Hall of Fame bonus

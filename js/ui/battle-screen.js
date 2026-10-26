@@ -8,29 +8,31 @@
 
 import { chooseTurn, chooseSwitches } from "../engine/ai.js";
 import { alignSprite, hovers } from "./sprite-align.js";
+import { targetIcon, categoryIcon } from "./target-icon.js";
 import { itemInfo } from "../game/item-catalog.js";
 import { NATURES, STAT_NAMES } from "../engine/constants.js";
+import { hiddenPowerOf } from "../engine/pokemon.js";
 
 const PLAYER = 0;
 const FOE = 1;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const posKey = (side, slot) => `${side}-${slot}`;
-export const CATEGORY_LABEL = { physical: "Physical", special: "Special", status: "Status" };
+export const CATEGORY_LABEL = { physical: "Phys", special: "Spec", status: "Status" };
 export const TARGET_LABEL = {
-  "selected-pokemon": "One Pokémon of your choice",
-  "selected-pokemon-me-first": "One Pokémon of your choice",
+  "selected-pokemon": "One target",
+  "selected-pokemon-me-first": "One target",
   "all-opponents": "Both foes",
-  "all-other-pokemon": "Everyone else, including your partner!",
-  "random-opponent": "A random foe",
-  user: "Itself",
-  ally: "Your partner",
-  "user-or-ally": "Itself or your partner",
-  "users-field": "Your whole side",
-  "user-and-allies": "Your whole side",
-  "opponents-field": "The foe's side",
-  "entire-field": "The whole field",
-  "all-pokemon": "Every Pokémon",
-  "specific-move": "Depends on the situation",
+  "all-other-pokemon": "All others",
+  "random-opponent": "Random foe",
+  user: "Self",
+  ally: "Partner",
+  "user-or-ally": "Self or partner",
+  "users-field": "Your side",
+  "user-and-allies": "Your side",
+  "opponents-field": "Foe side",
+  "entire-field": "Whole field",
+  "all-pokemon": "Everyone",
+  "specific-move": "Varies",
 };
 
 // Short line with category, power and accuracy for a move
@@ -568,17 +570,17 @@ export class BattleScreen {
         return;
       }
       const buttons = slotReq.moves.map((m) => {
-        const data = this.data.moves[m.id];
+        const data = { ...this.data.moves[m.id], ...(m.power != null ? { power: m.power } : {}) };
         return `
         <button class="btn move-btn" data-move="${m.index}" ${m.disabled ? "disabled" : ""}
           style="--type: var(--t-${m.type === "???" ? "unknown" : m.type})">
           <span class="move-name">${m.name}</span>
           <span class="move-meta">
             <span class="type-pill">${m.type}</span>
-            <span class="cat-pill ${data.category}">${CATEGORY_LABEL[data.category]}</span>
+            <span class="cat-pill ${data.category}">${categoryIcon(data.category)}${CATEGORY_LABEL[data.category]}</span>
             <span>PP ${m.pp}/${m.maxPp}</span>
           </span>
-          <span class="move-power">${data.power ? `Pow ${data.power}` : "—"} · ${data.accuracy ? `Acc ${data.accuracy}` : "Acc —"}</span>
+          <span class="move-power">${data.power ? `Pow ${data.power}` : "—"} · ${data.accuracy ? `Acc ${data.accuracy}` : "Acc —"}${targetIcon(data.target, data)}</span>
         </button>`;
       }).join("");
       const menu = this.setMenu(`
@@ -588,12 +590,12 @@ export class BattleScreen {
       const info = menu.querySelector("#moveInfo");
       const showInfo = (index) => {
         const m = slotReq.moves[index];
-        const data = this.data.moves[m.id];
+        const data = { ...this.data.moves[m.id], ...(m.power != null ? { power: m.power } : {}) };
         info.innerHTML = `
-          <div class="move-info-head"><b>${data.name}</b> <span class="cat-pill ${data.category}">${CATEGORY_LABEL[data.category]}</span>
+          <div class="move-info-head"><b>${data.name}</b> <span class="cat-pill ${data.category}">${categoryIcon(data.category)}${CATEGORY_LABEL[data.category]}</span>
             <span class="move-info-stats">${moveStats(data, { withCategory: false })}</span></div>
           <div class="move-info-effect" title="${data.shortEffect}">${data.shortEffect || "No extra effect."}</div>
-          <div class="move-info-target">Hits: ${TARGET_LABEL[data.target] ?? data.target}</div>`;
+          <div class="move-info-target">${targetIcon(data.target, data)} Hits: ${TARGET_LABEL[data.target] ?? data.target}</div>`;
       };
       showInfo(slotReq.moves.findIndex((m) => !m.disabled) >= 0 ? slotReq.moves.findIndex((m) => !m.disabled) : 0);
       const onPoint = (ev) => {
@@ -720,7 +722,7 @@ export class BattleScreen {
         const SHORT = { atk: "Atk", def: "Def", spa: "SpA", spd: "SpD", spe: "Spe" };
         const stat = (k) => `<span class="${k === up ? "up" : k === down ? "down" : ""}" title="${STAT_NAMES[k]}"><small>${SHORT[k]}</small>${m.stats[k]}</span>`;
         const moves = m.moves.map((mv) => {
-          const info = this.data.moves[mv.id];
+          const info = mv.id === "hidden-power" && m.ivs ? { ...this.data.moves[mv.id], ...hiddenPowerOf(m.ivs) } : this.data.moves[mv.id];
           return `<div class="sum-move" style="--type: var(--t-${info.type})" title="${info.shortEffect ?? ""}">
             <b>${info.name}</b>
             <span>${info.type} · ${CATEGORY_LABEL[info.category]}</span>
