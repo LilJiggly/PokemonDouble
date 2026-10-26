@@ -83,14 +83,16 @@ export function startTitleBanner(container, data, leaders = null, playerBack = n
 // One scene. opts.terrain / opts.weather force a look (used by tools/scene-preview.html).
 // opts.trainer: show that trainer on the foe platform instead of two foe Pokémon.
 export function sceneHtml(pool, data, opts = {}) {
-  const mons = Array.from({ length: 4 }, () => pick(pool));
-  const level = () => 30 + Math.floor(Math.random() * 40);
+  // opts.mons: four fixed Pokémon (player 0, player 1, foe 0, foe 1) and no randomness, for side-by-side previews
+  const fixed = !!opts.mons;
+  const mons = opts.mons ?? Array.from({ length: 4 }, () => pick(pool));
+  const level = () => (fixed ? 50 : 30 + Math.floor(Math.random() * 40));
   const hpBox = (p, side, slot) => {
-    const pct = 0.15 + Math.random() * 0.85;
+    const pct = fixed ? 0.75 : 0.15 + Math.random() * 0.85;
     const maxHp = Math.floor(p.baseStats.hp * 2 * 0.6 + 60);
     const hp = Math.max(1, Math.round(maxHp * pct));
     const color = pct <= 0.2 ? "red" : pct <= 0.5 ? "yellow" : "";
-    const gender = p.genderRate === -1 ? "" : Math.random() < p.genderRate / 8
+    const gender = fixed || p.genderRate === -1 ? "" : Math.random() < p.genderRate / 8
       ? `<span class="gender F">♀</span>` : `<span class="gender M">♂</span>`;
     return `<div class="hpbox ${side} s${slot} visible">
       <div class="row"><span class="name">${p.name}${gender}</span><span class="level">Lv${level()}</span></div>
@@ -99,7 +101,7 @@ export function sceneHtml(pool, data, opts = {}) {
       <div class="hp-numbers">${hp}/${maxHp}</div>
     </div>`;
   };
-  const shiny = () => Math.random() < 1 / 32;
+  const shiny = () => !fixed && Math.random() < 1 / 32;
   const sprite = (p, side, slot) => {
     const s = p.sprites;
     const src = side === "player" ? (shiny() ? s.backShiny : s.back) : (shiny() ? s.frontShiny : s.front);
@@ -110,9 +112,9 @@ export function sceneHtml(pool, data, opts = {}) {
   const attacker = mons[Math.floor(Math.random() * 2)];
   const moves = attacker.learnset.levelUp.map(([, m]) => data.moves[m]).filter((m) => m && m.power >= 60);
   const move = moves.length ? pick(moves).name : "Tackle";
-  const text = pick(MESSAGES)(attacker.name, move);
-  const weather = opts.weather ?? (Math.random() < 0.35 ? pick(WEATHER) : "");
-  const terrain = opts.terrain ?? pick(TERRAINS);
+  const text = fixed ? `Go! ${attacker.name}!` : pick(MESSAGES)(attacker.name, move);
+  const weather = opts.weather ?? (!fixed && Math.random() < 0.35 ? pick(WEATHER) : "");
+  const terrain = opts.terrain ?? (fixed ? "normal" : pick(TERRAINS));
   const balls = (n, out = 0) => Array.from({ length: n }, (_, i) =>
     `<img src="images/ui/ball.png" alt="" class="${i >= n - out ? "out" : ""}">`).join("");
 

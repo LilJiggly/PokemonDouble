@@ -733,7 +733,7 @@ function opponentMon(run, ctx, species, level) {
 
 // Random team from the trainer's pool (§5 Team pools). The battle position picks the power
 // groups; a thin window widens one group down (never Group 0), then up, until there's enough choice.
-function poolTeam(run, ctx, entry, row, groups) {
+export function poolTeam(run, ctx, entry, row, groups) {
   const { dex, data } = ctx;
   const level = row.level;
   const top = groups.length - 1;
@@ -775,6 +775,17 @@ function poolTeam(run, ctx, entry, row, groups) {
     const [species] = options.splice(i, 1);
     if (rare(species)) legends++;
     team.push(opponentMon(run, ctx, species, level));
+  }
+  // A thin pool: let the same Pokémon show up twice (the least used ones first) instead of filling with others
+  if (team.length < row.teamSize && lines.size) {
+    const pickable = [...lines.values()].filter((k) => !rare(k));
+    const all = pickable.length ? pickable : [...lines.values()];
+    while (team.length < row.teamSize) {
+      const used = (k) => team.filter((m) => m.species === k).length;
+      const least = Math.min(...all.map(used));
+      const fresh = all.filter((k) => used(k) === least);
+      team.push(opponentMon(run, ctx, fresh[Math.floor(nextRandom(run) * fresh.length)], level));
+    }
   }
   if (team.length < row.teamSize) {
     const taken = new Set(team.map((m) => dex.lineOf[m.species]));

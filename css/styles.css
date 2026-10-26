@@ -1974,7 +1974,7 @@ the 24 px of
 
 .hub-main > section:last-child { grid-area: team;
   grid-row: 1 / 3;
-  height: 100%;
+  /* height: 100%; */
 }
 
 /* Next battle / Next up */
@@ -2401,6 +2401,7 @@ the 24 px of
 .case-tools { display: flex;
   align-items: center;
   gap: 8px;
+  margin-top: 1rem;
 }
 
 .case-count { margin-left: auto;
@@ -2718,7 +2719,7 @@ the 24 px of
 }
 
 .shop-panel .shop-item small { display: -webkit-box;
-  -webkit-line-clamp: 1;
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   white-space: normal;
@@ -4007,11 +4008,16 @@ img[src*="/sprites/"] { object-fit: contain;
 }
 
 .modal-foot { flex: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
   padding: 8px 18px 12px;
   border-top: 2px solid var(--border);
 }
 
-.modal-foot .btn { width: 100%;
+.modal-foot .btn { 
+  /* width: 100%; */
+  width: fit-content;
 }
 
 .modal-head h2 { line-height: 1.15;
@@ -4037,6 +4043,7 @@ img[src*="/sprites/"] { object-fit: contain;
   gap: 10px;
   text-align: left;
   font-size: 15px;
+  width: fit-content;
 }
 
 .modal .options .btn img { width: 64px;
@@ -5350,4 +5357,740 @@ img[src*="/sprites/"] { object-fit: contain;
 }
 
 .move-info { line-height: 1.2;
+}
+
+/* Challenge Gen progress: one pip per trainer (8 gyms, Elite Four, Champion, Final Rival) */
+.gen-choice { display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  max-width: 600px;
+  white-space: nowrap;
+}
+
+.gen-choice small { margin-left: auto;
+}
+
+.gen-progress { display: inline-flex;
+  gap: 3px;
+}
+
+.gen-progress i { width: 10px;
+  height: 14px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+.gen-progress i.gym { border-bottom: 3px solid #b8a038;
+}
+
+.gen-progress i.e4 { border-bottom: 3px solid #6890f0;
+}
+
+.gen-progress i.top { border-bottom: 3px solid #f85888;
+}
+
+.gen-progress i.done { background: var(--success);
+}
+
+/* New run: your loadout as cards */
+.setup-grid { display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.setup-card { display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  gap: 6px;
+  padding: 12px 16px;
+  min-width: 140px;
+  background: var(--surface);
+  border: 3px solid var(--border-strong);
+  border-radius: 14px;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.1s, border-color 0.1s;
+}
+
+.setup-card:hover { border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+.sc-label { font-size: var(--fs-sm);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+}
+
+.sc-body { display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--fs-md);
+}
+
+.sc-img { height: 48px;
+  width: auto;
+  image-rendering: pixelated;
+}
+
+.sc-sub { color: var(--text-soft);
+  font-size: var(--fs-sm);
+}
+
+.sc-go { margin-top: auto;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.sc-slots { display: grid;
+  grid-template-columns: repeat(4, 24px);
+  gap: 4px;
+}
+
+.sc-slots .badge-img { width: 24px;
+  height: 24px;
+}
+
+.sc-slots .empty { display: block;
+  width: 20px;
+  height: 20px;
+  margin: 2px;
+  border: 2px dashed #6d7ba0;
+  border-radius: 50%;
+}
+
+.setup-card.ghost { border-style: dashed;
+  opacity: 0.85;
+}
+
+.sc-hidden { padding: 0 8px;
+  background: #c0392b;
+  color: #fff;
+  border-radius: 8px;
+  font-size: 11px;
+  font-style: normal;
+  letter-spacing: 0.04em;
+}
+
+.start-btn { min-width: 240px;
+  padding: 16px 28px;
+  font-size: var(--fs-lg);
+}
+
+.editor-head { margin-bottom: 12px;
+}
+
+.gen-row { display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.gen-row small { margin-left: auto;
+}
+
+.pool-switch { padding: 8px 0;
+}
+
+.character.locked-debug { opacity: 0.5;
+  cursor: default;
+  border: 2px dashed var(--border-strong);
+}
+
+/* The cards only show the choice itself: progress, counts and the Change hint are in the windows */
+.setup-card .sc-sub, .setup-card .sc-go, .setup-card .gen-progress { display: none;
+}
+
+/* New run: the whole summary sits in one frame, centered on the page */
+.hub.setup-screen { align-self: center;
+  width: auto;
+  min-width: min(100%, 560px);
+  max-width: 1060px;
+  align-items: center;
+  gap: 24px;
+  padding: 32px 36px 36px;
+  background: var(--surface);
+  border: 4px solid var(--border-strong);
+  border-radius: 22px;
+  box-shadow: 0 8px 0 rgba(0, 0, 0, 0.25);
+  text-align: center;
+}
+
+.hub.setup-screen .setup-grid { justify-content: center;
+}
+
+.hub.setup-screen .setup-card { background: var(--surface-sunken);
+}
+
+.hub.setup-screen .row-buttons { justify-content: center;
+}
+
+/* New run cards: label on top, icon in the middle, the choice below */
+.hub.setup-screen .setup-card { align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  min-width: 130px;
+  min-height: 170px;
+  padding: 14px 14px 16px;
+  text-align: center;
+}
+
+.hub.setup-screen .sc-body { flex-direction: column;
+  justify-content: flex-start;
+  gap: 8px;
+  min-height: 0;
+}
+
+.hub.setup-screen .sc-img { height: 64px;
+}
+
+.sc-slots { display: grid;
+  grid-template-columns: repeat(4, 28px);
+  gap: 3px;
+}
+
+.sc-slot { display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  background: color-mix(in srgb, var(--zone) 25%, #232a3b);
+  border: 2px solid var(--zone);
+  border-radius: 8px;
+  box-sizing: border-box;
+}
+
+.sc-slot.empty { border-style: dashed;
+  opacity: 0.7;
+}
+
+.sc-slots .badge-img { width: 22px;
+  height: 22px;
+}
+
+.sc-starters { display: flex;
+  gap: 2px;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+.sc-starters img { width: 34px;
+  height: 34px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  transition: filter 0.15s, opacity 0.15s;
+}
+
+.sc-starters img.off { filter: grayscale(1) brightness(0.7);
+  opacity: 0.45;
+}
+
+.btn-ball { width: 22px;
+  height: 22px;
+  vertical-align: -5px;
+  image-rendering: pixelated;
+}
+
+/* Settings windows (trainer, challenge, pool, sprites): one note, a grid of option tiles, a footer button */
+.modal-backdrop.settings .modal { width: min(100%, 940px);
+}
+
+.modal-backdrop.settings .modal-body { gap: 18px;
+  padding: 18px 28px 22px;
+}
+
+.opt-note { margin: 0 0 16px;
+  color: var(--text-soft);
+}
+
+.opt-section { display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+
+.opt-section h3 { margin: 0;
+  font-size: var(--fs-sm);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+}
+
+.opt-grid { display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 14px;
+}
+
+.opt-tile { display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 14px 12px 12px;
+  background: var(--surface-sunken);
+  border: 3px solid var(--border-strong);
+  border-radius: 14px;
+  color: var(--text);
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.1s, border-color 0.1s;
+}
+
+.opt-tile:hover:not(.locked) { border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+.opt-tile.selected { background: color-mix(in srgb, var(--accent) 22%, var(--surface-sunken));
+  border-color: var(--accent);
+}
+
+.opt-tile.off { opacity: 0.55;
+}
+
+.opt-tile.off img { filter: grayscale(1);
+}
+
+.opt-tile.locked { opacity: 0.5;
+  border-style: dashed;
+  cursor: default;
+}
+
+.opt-tile img { max-height: 72px;
+  width: auto;
+  image-rendering: pixelated;
+}
+
+.opt-tile small { color: var(--text-soft);
+}
+
+/* Challenge tiles */
+.gen-tile { gap: 6px;
+  padding: 18px 14px;
+}
+
+.gen-no { font-size: var(--fs-lg);
+}
+
+.gen-bar { display: block;
+  width: 100%;
+  height: 8px;
+  margin: 6px 0 2px;
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.gen-bar i { display: block;
+  height: 100%;
+  background: var(--success);
+}
+
+/* Sprite tiles: the battle scene in each style */
+.sprite-grid { grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.sprite-tile { padding: 12px;
+}
+
+.sprite-tile .banner-frame { pointer-events: none;
+  border-width: 3px;
+  box-shadow: none;
+}
+
+/* Settings windows scroll when there is a lot to show (many unlocked trainers) */
+.modal-backdrop.settings .modal { max-height: min(92dvh, 760px);
+}
+
+.trainer-grid { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+}
+
+.perk-text { color: var(--accent);
+  line-height: 1.3;
+}
+
+.opt-tile.selected .perk-text { color: var(--text);
+}
+
+.gen-tile img { max-height: 64px;
+}
+
+/* The badge case window: the How it works button sits in the window's head */
+.window-head { display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.window-head h2 { margin: 0;
+}
+
+.case-window .badge-case { padding: 0;
+  background: none;
+  border: none;
+}
+
+/* Point at a badge in the case to see its stat boost at the strength it has in this zone */
+.slot-stat { position: absolute;
+  left: 50%;
+  bottom: -14px;
+  z-index: 5;
+  padding: 2px 10px;
+  background: #10131c;
+  color: var(--accent);
+  border: 2px solid var(--accent);
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translate(-50%, 4px);
+  pointer-events: none;
+  transition: opacity 0.12s, transform 0.12s;
+}
+
+.case-slot:hover .slot-stat { opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+/* The badge case drawn like a Trainer Card: a red card with a big yellow ring. Change the card colours with these variables. */
+.case-board { --card-bg: #d95f5f;
+  --card-bg2: #c94c4c;
+  --card-ring: #f0b25a;
+  --card-field: #b23f3f;
+  --card-pale: rgba(255, 255, 255, 0.28);
+  position: relative;
+  width: fit-content;
+  max-width: 100%;
+  padding: 12px 18px 18px;
+  background:
+    radial-gradient(circle at 17% 58%, var(--card-bg) 0 46px, var(--card-ring) 47px 94px, transparent 95px),
+    radial-gradient(circle at 17% 58%, transparent 0 128px, rgba(255, 255, 255, 0.07) 129px 134px, transparent 135px),
+    linear-gradient(180deg, var(--card-bg), var(--card-bg2));
+  border: 4px solid #f3c3c3;
+  border-radius: 14px;
+  box-shadow: 0 0 0 3px #8e3030, 0 6px 0 3px rgba(0, 0, 0, 0.25);
+  color: #fff;
+}
+
+.card-head { display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.card-title { color: #fff;
+  font-size: 18px;
+  letter-spacing: 0.06em;
+  text-shadow: 0 2px 0 rgba(120, 30, 30, 0.8);
+}
+
+.card-name { flex: 1;
+  min-width: 90px;
+  padding: 2px 12px;
+  background: var(--card-field);
+  border-radius: 10px;
+  color: #ffd9d9;
+  font-size: 14px;
+  font-weight: 800;
+  text-align: right;
+}
+
+.card-id { width: 55%;
+  margin-bottom: 8px;
+  padding: 3px 12px;
+  background: var(--card-pale);
+  border-radius: 10px;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.card-label { margin: 4px 0 6px;
+  color: #ffd3d3;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-shadow: 0 1px 0 rgba(120, 30, 30, 0.8);
+}
+
+.case-board .case-zone { background: rgba(70, 20, 20, 0.34);
+}
+
+.case-board .case-slot { background: radial-gradient(circle at 50% 50%, rgba(50, 15, 15, 0.55) 0 64%, rgba(50, 15, 15, 0.35) 66%);
+  border-color: rgba(255, 220, 220, 0.55);
+  color: #ffdede;
+}
+
+.case-board .case-slot.filled { background: radial-gradient(circle at 50% 50%, rgba(255, 245, 240, 0.35) 0 64%, rgba(255, 245, 240, 0.18) 66%);
+  border-color: rgba(255, 245, 240, 0.8);
+}
+
+.case-slot.locked { display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  border-style: solid;
+  border-color: rgba(0, 0, 0, 0.35);
+  background: rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+}
+
+.case-slot.locked .slot-lock { font-size: 22px;
+}
+
+.case-slot.locked small { font-size: 11px;
+  color: #ffd3d3;
+}
+
+.zone-boost { box-shadow: 0 0 0 2px rgba(70, 20, 20, 0.7);
+}
+
+/* Badge window: the numbers the zone made bigger, and the grey table of every zone level */
+.hl { padding: 0 4px;
+  background: rgba(248, 208, 48, 0.18);
+  border-radius: 4px;
+  color: var(--accent);
+  font-weight: 800;
+}
+
+.bd-table { width: 100%;
+  border-collapse: collapse;
+  color: #8e9ab4;
+}
+
+.bd-table th, .bd-table td { padding: 4px 10px;
+  text-align: left;
+  font-size: 13px;
+}
+
+.bd-table th { color: #6f7b96;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.bd-table tr + tr td { border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.bd-table tr.now td { color: var(--accent);
+  background: rgba(248, 208, 48, 0.08);
+}
+
+.bd-kind { display: block;
+  width: 100%;
+  margin-bottom: 2px;
+  color: var(--text-soft);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.bd-stat { flex-wrap: wrap;
+}
+
+.bd-calc, .bd-set { margin: 0;
+  color: var(--text-soft);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.bd-set { color: #8e9ab4;
+}
+
+/* The badge window: wider, two columns, the final number with its sum next to it, and ◀ ▶ through the badges */
+.modal-backdrop.badge-window .modal { width: min(100%, 860px);
+}
+
+.bd-cols { display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.bd-col { display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.bd-final { display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+}
+
+.bd-final b { font-size: 22px;
+}
+
+.bd-eq { color: var(--text-soft);
+  font-size: 13px;
+}
+
+.bd-switch { align-self: flex-start;
+}
+
+.badge-strip { display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 18px 0;
+}
+
+.strip-badge { display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  background: var(--surface-sunken);
+  border: 3px solid var(--border-strong);
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.strip-badge .badge-img { width: 32px;
+  height: 32px;
+}
+
+.strip-badge:hover { border-color: var(--accent);
+}
+
+.strip-badge.current { background: color-mix(in srgb, var(--accent) 22%, var(--surface-sunken));
+  border-color: var(--accent);
+}
+
+/* Footer actions on the right (the recruit window's Lock in) */
+.foot-spacer { flex: 1;
+}
+
+.foot-note { color: var(--text-soft);
+  font-size: var(--fs-sm);
+}
+
+/* Draft: how many picks you have */
+.pick-meter { display: flex;
+  width: fit-content;
+  max-width: 100%;
+  align-items: center;
+  gap: 12px;
+  margin-top: 6px;
+  padding: 6px 14px;
+  background: var(--surface-sunken);
+  border: 3px solid var(--accent);
+  border-radius: 12px;
+}
+
+.pm-count { font-weight: 700;
+}
+
+.pm-count b { color: var(--accent);
+  font-size: var(--fs-lg);
+}
+
+.pm-dots { display: inline-flex;
+  gap: 6px;
+}
+
+.pm-dots i { width: 16px;
+  height: 16px;
+  border: 3px solid var(--accent);
+  border-radius: 50%;
+}
+
+.pm-dots i.done { background: var(--accent);
+}
+
+/* Team card view: one Pokémon in the middle, picked from the strip above it */
+.focus-card { grid-template-columns: minmax(0, 1fr);
+  max-width: 620px;
+  margin: 0 auto;
+}
+
+.team-head ~ .mon-strip { max-width: 620px;
+  margin: 0 auto 10px;
+}
+
+.mon-card .move-card[data-slot] { cursor: grab;
+}
+
+.mon-card .move-card.drop-ok { outline: 3px dashed var(--accent);
+  outline-offset: 2px;
+}
+
+.mon-card .move-card.dragging { opacity: 0.45;
+}
+
+/* The Team card: abilities in their own column next to the name and nature */
+.mon-head.with-ability { grid-template-columns: 64px minmax(0, 1fr) minmax(150px, auto);
+  align-items: start;
+}
+
+.mon-head.with-ability .ability-list { align-self: center;
+  padding-left: 14px;
+  border-left: 2px solid rgba(0, 0, 0, 0.12);
+}
+
+/* Held item: always a visible slot (dashed when empty) */
+.item-slot { display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 170px;
+  padding: 5px 12px;
+  background: rgba(0, 0, 0, 0.05);
+  border: 2px solid var(--paper-edge);
+  border-radius: 10px;
+  color: var(--ink);
+}
+
+.item-slot.empty { background: none;
+  border-style: dashed;
+  border-color: #aab2c0;
+  color: var(--ink-soft);
+}
+
+.item-slot i { display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 2px dashed #aab2c0;
+  border-radius: 6px;
+  font-style: normal;
+  font-weight: 800;
+  line-height: 1;
+}
+
+/* The Physical / Special / Status pills are one size, whatever the word */
+.cat-pill, .move-card .cat-pill { width: 7.7em;
+  min-width: 0;
+  padding-left: 0;
+  padding-right: 0;
+  text-align: center;
+  letter-spacing: 0.02em;
+}
+
+.focus-card .mon-card { cursor: pointer;
+}
+
+.focus-card .mon-card .move-card, .focus-card .mon-card .item-slot { cursor: default;
+}
+
+.focus-card .mon-card .move-card[data-slot] { cursor: grab;
+}
+
+/* The badge case during a run: the card on the left, what the badges do on the right */
+.run-case { display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .run-case { grid-template-columns: minmax(0, 1fr);
+  }
 }

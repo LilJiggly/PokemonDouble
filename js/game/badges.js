@@ -7,9 +7,11 @@
 // during the run. Every badge is like a joker in Balatro: its own effect, nothing is repeated (EFFECTS below).
 //
 // Strength: a badge's strength is its gym number (1–8: the first gyms give weak effects, the last ones strong ones).
-// Zones: the 8 slots are split into random zones (groups of 1–3 touching slots, new ones for every run). Every zone
-// boosts the badges inside it: +3 strength in a zone of one slot, +2 for two, +1 for three. So where you put your badges
-// matters. Effect numbers per strength: see EFFECTS.
+// Zones: the 8 slots are split into 4 fixed zones, each with its own boost of +1 to +4 strength (★ to ★★★★):
+//   A A B B     A = ★ (2 slots)    B = ★★ (2 slots)
+//   C C C D     C = ★★★ (3 slots)  D = ★★★★ (1 slot)
+// A big zone fits more badges, a small one has a bigger boost, so where you put your badges matters.
+// Effect numbers per strength: see EFFECTS.
 // Set bonus: several badges of one generation anywhere in the case give your Pokémon a small stat bonus (§3k).
 // Badge ids look like "1-3" (Challenge Gen 1, gym 3).
 // =====================================================
@@ -19,9 +21,7 @@ import { readTable } from "./design-tables.js";
 export const CASE_SIZE = 8;
 export const CASE_COLUMNS = 4;
 export const MAX_STRENGTH = 10;
-// Strength a zone adds to every badge in it, by the number of slots in the zone
-export const ZONE_BOOST = { 1: 3, 2: 2, 3: 1 };
-export const zoneBoost = (size) => ZONE_BOOST[size] ?? 1;
+export const ZONE_COUNT = 4; // the case is split into this many zones, with a boost of +1 … +4 each
 
 // Badge names per Challenge Gen, in gym order (Unova = Black 2 / White 2)
 export const BADGE_NAMES = {
@@ -143,48 +143,28 @@ export const perkOfBadge = (rules, id) => (rules?.badges?.perks ?? DEFAULT_BADGE
 
 // --- The case: 8 slots in a 4 × 2 grid (null = empty) ------------------------------------------------
 
-// Random zones: the 4 × 2 case split into rectangles of 1–3 slots (one slot, two side by side, two on top of each other,
-// or three in a row), like the boxes in the sketch. rand() → [0, 1). Slots are numbered row by row: 0–3 on top, 4–7 below.
-const ZONE_SHAPES = [[1, 1], [1, 1], [1, 2], [1, 2], [2, 1], [1, 3]]; // [rows, columns], the common shapes twice
-export function randomZones(rand = Math.random) {
-  const rows = CASE_SIZE / CASE_COLUMNS;
-  const taken = new Set();
-  const zones = [];
-  for (let i = 0; i < CASE_SIZE; i++) {
-    if (taken.has(i)) continue;
-    const row = Math.floor(i / CASE_COLUMNS), col = i % CASE_COLUMNS;
-    const fits = ZONE_SHAPES.filter(([h, w]) => {
-      if (row + h > rows || col + w > CASE_COLUMNS) return false;
-      for (let r = 0; r < h; r++) for (let c = 0; c < w; c++) if (taken.has((row + r) * CASE_COLUMNS + col + c)) return false;
-      return true;
-    });
-    const [h, w] = fits[Math.floor(rand() * fits.length)];
-    const zone = [];
-    for (let r = 0; r < h; r++) for (let c = 0; c < w; c++) { const n = (row + r) * CASE_COLUMNS + col + c; taken.add(n); zone.push(n); }
-    zones.push(zone);
-  }
-  return zones;
-}
+// The zones of the case: slots are numbered row by row (0–3 on top, 4–7 below)
+export const CASE_ZONES = [
+  { slots: [0, 1], boost: 1 },
+  { slots: [2, 3], boost: 2 },
+  { slots: [4, 5, 6], boost: 3 },
+  { slots: [7], boost: 4 },
+];
+export const randomZones = () => CASE_ZONES.map((z) => ({ slots: [...z.slots], boost: z.boost })); // (the layout is fixed; kept under the old name)
 
-// Are these zones rectangles that cover the whole case? (older saves had pairs and odd shapes)
+// Are these the case's zones? (saves from when the zones were random get the fixed ones)
 export function validZones(zones) {
-  const flat = (zones ?? []).flat();
-  if (new Set(flat).size !== CASE_SIZE || flat.length !== CASE_SIZE) return false;
-  return zones.every((z) => {
-    const cols = new Set(z.map((n) => n % CASE_COLUMNS)), rows = new Set(z.map((n) => Math.floor(n / CASE_COLUMNS)));
-    return z.length === cols.size * rows.size && Math.max(...cols) - Math.min(...cols) + 1 === cols.size && Math.max(...rows) - Math.min(...rows) + 1 === rows.size;
-  });
+  return JSON.stringify(zones) === JSON.stringify(CASE_ZONES);
 }
-export const randomLinks = randomZones; // older name
 
 // Strength of the badge in each slot: its gym number plus the boost of the zone it sits in (max 10).
-// links = the zones: [[0, 1], [2], …]. → [{ id, slot, gen, gym, zone, boost, strength }] for the filled slots
+// links = the zones: [{ slots: [0, 1], boost: 2 }, …]. → [{ id, slot, gen, gym, zone, boost, strength }] for the filled slots
 export function caseStrengths(slots, links = []) {
   return slots.map((id, i) => {
     if (!id) return null;
     const { gen, order } = parseBadgeId(id);
-    const zone = links.findIndex((z) => z.includes(i));
-    const boost = zone === -1 ? 0 : zoneBoost(links[zone].length);
+    const zone = links.findIndex((z) => z.slots?.includes(i));
+    const boost = zone === -1 ? 0 : links[zone].boost;
     return { id, slot: i, gen, gym: order, zone, boost, strength: Math.min(MAX_STRENGTH, order + boost) };
   }).filter(Boolean);
 }
@@ -228,6 +208,7 @@ export function battleBonus(run, rules) {
   const set = setBonus(slots, rules).pct / 100;
   const stats = { atk: set, def: set, spa: set, spd: set, spe: set };
   const effects = {};
+  const names = {}; // effect id → the badge's name, for the messages in battle
   // Every badge raises its own stat, whether or not its effect is switched on
   for (const b of caseStrengths(slots, run.badges?.links ?? [])) {
     const stat = statOfBadge(rules, b.id);
@@ -235,9 +216,9 @@ export function battleBonus(run, rules) {
   }
   for (const [id, e] of Object.entries(activeEffects(run, rules))) {
     if (STAT_EFFECTS[id]) stats[STAT_EFFECTS[id]] += e.param;
-    else if (!RUN_EFFECTS.has(id)) effects[id] = e.param;
+    else if (!RUN_EFFECTS.has(id)) { effects[id] = e.param; const b = parseBadgeId(e.id); names[id] = badgeName(b.gen, b.order); }
   }
-  return Object.values(stats).some(Boolean) || Object.keys(effects).length ? { stats, effects } : null;
+  return Object.values(stats).some(Boolean) || Object.keys(effects).length ? { stats, effects, names } : null;
 }
 
 // --- In the meta save ---
@@ -253,13 +234,18 @@ export function unlockBadge(meta, gen, order) {
   return true;
 }
 
-// The badge case with only badges you own, always CASE_SIZE long (empty slots are null)
+// Slots open up as your badge collection grows: slot i (0–7) opens once you own this many badges (see §3k)
+export const SLOT_UNLOCKS = [0, 0, 0, 4, 8, 14, 22, 32];
+export const slotUnlocked = (meta, i) => (meta.badges?.length ?? 0) >= (SLOT_UNLOCKS[i] ?? Infinity);
+export const unlockedSlotCount = (meta) => SLOT_UNLOCKS.filter((n) => (meta.badges?.length ?? 0) >= n).length;
+
+// The badge case with only badges you own, always CASE_SIZE long (empty slots are null; locked slots stay empty)
 export function caseOf(meta) {
   const owned = ownedBadges(meta);
   const seen = new Set();
   return Array.from({ length: CASE_SIZE }, (_, i) => {
     const id = meta.badgeCase?.[i];
-    if (!id || !owned.has(id) || seen.has(id)) return null;
+    if (!id || !owned.has(id) || seen.has(id) || !slotUnlocked(meta, i)) return null;
     seen.add(id);
     return id;
   });
@@ -270,8 +256,8 @@ export function placeBadge(meta, id, slot = null) {
   const slots = caseOf(meta);
   if (!ownedBadges(meta).has(id)) return false;
   const from = slots.indexOf(id);
-  const to = slot ?? slots.findIndex((s) => s === null);
-  if (to === -1) return false;
+  const to = slot ?? slots.findIndex((s, i) => s === null && slotUnlocked(meta, i));
+  if (to === -1 || !slotUnlocked(meta, to)) return false;
   if (to === from) return true;
   if (from !== -1) slots[from] = slots[to]; // dragging between slots swaps them
   slots[to] = id;

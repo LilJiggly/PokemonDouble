@@ -123,7 +123,8 @@ export class Battle {
     // Rainmaker badge: rain starts every battle (the only weather badge, so they never clash)
     for (const side of st.sides) {
       const turns = this.bfx(side.index, "rain-start");
-      if (turns && this.setWeather("rain", null)) st.field.weatherTurns = turns;
+      if (turns && this.setWeather("rain", null)) { st.field.weatherTurns = turns; this.badgeNote(side.index, "rain-start", "rain starts to fall!"); }
+      if (this.bfx(side.index, "opener")) this.badgeNote(side.index, "opener", "your attacks hit harder this turn!");
     }
     st.turn = 1;
     st.phase = "choose";
@@ -412,6 +413,7 @@ export class Battle {
     if (v.charging) return { id: v.charging.move, target: v.charging.target };
     if (v.rampage) return { id: v.rampage.move };
     if (v.rollout) return { id: v.rollout.move, target: v.rollout.target };
+    if (v.bide) return { id: "bide" };
     return null;
   }
 
@@ -835,6 +837,18 @@ export class Battle {
   // The number of a gym badge effect on that side (0 when it isn't equipped; the player's side only)
   bfx(sideIndex, id) { return this.state.sides[sideIndex]?.badge?.effects?.[id] ?? 0; }
 
+  // A badge doing something you can see: "Rainbow Badge: …". Passive boosts stay silent; the effects that act on their own
+  // are announced the first time they happen in a battle (always: when they save a Pokémon or block a status).
+  badgeNote(sideIndex, id, text, { always = false } = {}) {
+    const b = this.state.sides[sideIndex]?.badge;
+    const name = b?.names?.[id];
+    if (!name) return;
+    b.shown ??= {};
+    if (b.shown[id] && !always) return;
+    b.shown[id] = true;
+    this.msg(`${name}: ${text}`);
+  }
+
   // Damage that isn't from a direct hit (weather, poison, recoil…)
   indirectDamage(mon, amount, text, { recoil = false } = {}) {
     if (mon.fainted || amount <= 0) return 0;
@@ -891,7 +905,7 @@ export class Battle {
         ? `${this.name(target, true)} is already ${STATUS_NAMES[target.status]}!` : "But it failed!");
     }
     const wardId = { par: "para-ward", psn: "poison-ward", tox: "poison-ward", brn: "burn-ward", slp: "sleep-ward" }[status];
-    if (wardId && this.bfx(target.side, wardId) && chance(this.state, this.bfx(target.side, wardId) * 100)) return fail(`${this.name(target, true)}'s badge protects it!`);
+    if (wardId && this.bfx(target.side, wardId) && chance(this.state, this.bfx(target.side, wardId) * 100)) { this.badgeNote(target.side, wardId, `${this.name(target, true)} is protected!`, { always: true }); return false; }
     const t = target.types;
     if (status === "brn" && t.includes("fire")) return fail(`It doesn't affect ${this.name(target)}...`);
     if ((status === "psn" || status === "tox") && (t.includes("poison") || t.includes("steel"))) return fail(`It doesn't affect ${this.name(target)}...`);
@@ -1866,9 +1880,15 @@ export class Battle {
       const tMove = t?.volatile.pendingMove && this.move(t.volatile.pendingMove);
       if (!act || !tMove || tMove.category === "status") { this.msg("But it failed!"); return; }
     }
+    // Bide: store energy for 2–3 turns, then hit back for twice the damage taken
+    if (key === "bide") {
+      if (!this.bideStep(user)) return;
+      targets = this.bideTargets(user);
+      if (!targets.length) { this.msg("But it failed!"); return; }
+    }
     const t0 = targets[0];
     if ((key === "dream-eater" && t0?.status !== "slp") || (key === "snore" && user.status !== "slp")
-      || (key === "spit-up" && !user.volatile.stockpile) || ["fling", "natural-gift", "bide"].includes(key)
+      || (key === "spit-up" && !user.volatile.stockpile) || ["fling", "natural-gift"].includes(key)
       || (key === "last-resort" && !this.lastResortReady(user))) {
       this.msg("But it failed!");
       return;
@@ -1982,11 +2002,13 @@ export class Battle {
           } else if (this.bfx(target.side, "second-wind") && !this.state.sides[target.side].windUsed && chance(st, this.bfx(target.side, "second-wind") * 100)) {
             this.state.sides[target.side].windUsed = true;
             dmg = target.hp - 1;
-            this.msg(`${this.name(target, true)} caught a second wind!`);
+            this.badgeNote(target.side, "second-wind", `${this.name(target, true)} caught a second wind!`, { always: true });
           }
         }
 
         const dealt = this.applyMoveDamage(target, dmg);
+        if (target.volatile.bide && dealt > 0) { target.volatile.bide.damage += dealt; target.volatile.bide.from = this.monKey(user); } // Bide stores it
+        if (dealt > 0 && !user.fainted && this.bfx(user.side, "vampire")) this.badgeNote(user.side, "vampire", "your Pokémon heal from the damage they deal.");
         if (dealt > 0 && !user.fainted && this.bfx(user.side, "vampire")) this.heal(user, Math.max(1, Math.floor(dealt * this.bfx(user.side, "vampire"))), `${this.name(user, true)} drained some HP!`);
         dealtToTarget += dealt;
         hitsLanded++;
@@ -2016,6 +2038,7 @@ export class Battle {
             this.indirectDamage(user, Math.floor(user.maxHp / 4), `${this.name(user, true)} was caught in the aftermath!`);
           }
           this.faint(target);
+          if (!user.fainted && this.bfx(user.side, "ko-heal")) this.badgeNote(user.side, "ko-heal", "a Pokémon that knocks out a foe recovers HP.");
           if (!user.fainted && this.bfx(user.side, "ko-heal")) this.heal(user, user.maxHp * this.bfx(user.side, "ko-heal"), `${this.name(user, true)} recovered from the spoils of war!`);
           if (user.ability === "moxie" && !user.fainted && !user.volatile.abilitySuppressed) this.boost(user, { atk: 1 }, user);
         } else {
@@ -2135,9 +2158,36 @@ export class Battle {
   }
 
   // Fixed damage moves. Returns a number, null (normal calc), or false (failed).
+  // One turn of Bide. Returns true on the turn it hits back (with damage stored)
+  bideStep(user) {
+    const v = user.volatile;
+    const name = this.name(user, true);
+    if (!v.bide) {
+      v.bide = { turns: randomInt(this.state, 2, 3), damage: 0, from: null };
+      this.msg(`${name} is storing energy!`);
+      return false;
+    }
+    v.bide.turns -= 1;
+    if (v.bide.turns > 0) { this.msg(`${name} is storing energy!`); return false; }
+    v.bideDamage = v.bide.damage;
+    v.bideFrom = v.bide.from;
+    delete v.bide;
+    this.msg(`${name} unleashed energy!`);
+    if (!v.bideDamage) { this.msg("But it failed!"); return false; }
+    return true;
+  }
+
+  // Bide hits whoever hurt the user last (or a foe, if they are gone)
+  bideTargets(user) {
+    const last = this.findMon(user.volatile.bideFrom);
+    if (last && !last.fainted && this.isActive(last) && last.side !== user.side) return [last];
+    return this.foesOf(user).slice(0, 1);
+  }
+
   fixedDamage(user, target, move) {
     const st = this.state;
     switch (move.key) {
+      case "bide": return Math.max(1, (user.volatile.bideDamage ?? 0) * 2);
       case "seismic-toss": case "night-shade": return user.level;
       case "dragon-rage": return 40;
       case "sonic-boom": return 20;
@@ -2180,6 +2230,7 @@ export class Battle {
     const st = this.state;
     const tab = this.ability(target);
     if (user.fainted) return;
+    if (this.bfx(target.side, "thorns")) this.badgeNote(target.side, "thorns", "foes that touch your Pokémon get hurt.");
     if (this.bfx(target.side, "thorns")) this.indirectDamage(user, Math.max(1, Math.floor(user.maxHp * this.bfx(target.side, "thorns"))), `${this.name(user, true)} was hurt by the spikes!`);
     if (user.fainted) return;
     if (tab === "static" && chance(st, 30)) this.trySetStatus(user, "par", target);
@@ -2412,6 +2463,7 @@ export class Battle {
       if (ab === "speed-boost" && v.activeTurns > 0) this.boost(m, { spe: 1 }, m);
       if (ab === "shed-skin" && m.status && chance(st, 30)) this.cureStatus(m);
       if (item === "leftovers") this.heal(m, m.maxHp / 16, `${this.name(m, true)} restored a little HP using its Leftovers!`);
+      if (this.bfx(m.side, "regen")) this.badgeNote(m.side, "regen", "your Pokémon regrow a little HP every turn.");
       if (this.bfx(m.side, "regen")) this.heal(m, m.maxHp * this.bfx(m.side, "regen"), `${this.name(m, true)} regrew a little HP!`);
       if (item === "black-sludge") {
         if (m.types.includes("poison")) this.heal(m, m.maxHp / 16, `${this.name(m, true)} restored a little HP using its Black Sludge!`);

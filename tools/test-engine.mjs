@@ -413,6 +413,24 @@ test("Type badges (Sunbringer, Sand Caller, Cold Snap) boost their types only", 
   assert(fire({ "fire-boost": 0.5 }) > plain * 1.3, "Fire moves hit harder");
   eq(fire({ "ice-boost": 0.5 }), plain, "other types are unchanged");
 });
+test("Badges announce what they do in battle: once for ongoing effects, every time for saves and blocks", () => {
+  const withNames = (effects, names) => Battle.create(data, { seed: 1, sides: [
+    { name: "P", isPlayer: true, team: [mon("geodude", ["splash", "splash"]), mon("magikarp", ["splash"])], badge: { stats: {}, effects, names } },
+    { name: "F", team: [mon("squirtle", ["tackle", "splash"]), mon("magikarp", ["splash"])] }] });
+  const rain = withNames({ "rain-start": 3 }, { "rain-start": "Cascade Badge" });
+  assert(rain.takeEvents().some((e) => /Cascade Badge: rain starts to fall/.test(e.text ?? "")), "Rainmaker says so at the start");
+  const regen = withNames({ regen: 0.05 }, { regen: "Rainbow Badge" });
+  regen.takeEvents();
+  at(regen, 0, 0).hp -= 40;
+  const first = text(round(regen, p1(1), p2(1)));
+  const second = text(round(regen, p1(1), p2(1)));
+  assert(/Rainbow Badge: your Pokémon regrow/.test(first), "announced the first time");
+  assert(!/Rainbow Badge/.test(second), "not again every turn");
+  const ward = withNames({ "para-ward": 1 }, { "para-ward": "Thunder Badge" });
+  ward.takeEvents();
+  assert(!ward.trySetStatus(at(ward, 0, 0), "par", at(ward, 1, 0), { fromMove: true }), "paralysis blocked");
+  assert(/Thunder Badge/.test(text(ward.takeEvents())), "the ward names the badge");
+});
 test("Gym badges: status wards, Regrowth, Vampire, Second Wind, Spikes", () => {
   const b = badgeBattle({ "sleep-ward": 1 });
   assert(!b.trySetStatus(at(b, 0, 0), "slp", at(b, 1, 0), { fromMove: true }), "sleep blocked");
@@ -578,6 +596,30 @@ test("Confusion lasts 1–4 attacks, hurts about half of them, and is gone after
   b.submitTurn([[{ slot: 0, type: "switch", teamIndex: 2 }, s1], [p2(0), s1]]);
   b.submitTurn([[{ slot: 0, type: "switch", teamIndex: 0 }, s1], [p2(0), s1]]);
   assert(!b.state.sides[0].team[0].volatile.confusion, "confusion is gone after switching out and in");
+});
+test("Bide stores energy for 2–3 turns, can't be interrupted, then hits back for double the damage", () => {
+  const b = duel("snorlax", ["bide", "splash"], "machamp", ["tackle", "splash"]);
+  const foeHp = () => at(b, 1, 0).hp;
+  const start = foeHp();
+  const log = [];
+  let hitBack = null;
+  for (let t = 0; t < 4 && !hitBack; t++) {
+    const mine = at(b, 0, 0).volatile.bide ? p1(0) : p1(0); // the first use picks Bide, later turns are forced
+    const ev = round(b, mine, p2(0));
+    log.push(text(ev));
+    if (ev.some((e) => e.t === "damage" && e.move === "bide")) hitBack = ev.find((e) => e.t === "damage" && e.move === "bide");
+  }
+  assert(/storing energy/.test(log[0]), "stores energy on the first turn");
+  assert(hitBack, `it hits back within 4 turns: ${log.join(" || ")}`);
+  assert(/unleashed energy/.test(log.join(" ")), "says so");
+  assert(start - foeHp() > 0, "the foe took damage");
+  assert(!at(b, 0, 0).volatile.bide, "Bide is over");
+});
+test("Bide fails when it took no damage", () => {
+  const b = duel("snorlax", ["bide", "splash"], "blissey", ["splash", "splash"]);
+  let out = "";
+  for (let t = 0; t < 4; t++) out += text(round(b, p1(0), p2(0)));
+  assert(/unleashed energy/.test(out) && /failed/i.test(out), `no damage taken: ${out}`);
 });
 test("Spite takes 4 PP off the foe's last move", () => {
   const b = duel("alakazam", ["spite", "splash"], "snorlax", ["tackle", "splash"]);

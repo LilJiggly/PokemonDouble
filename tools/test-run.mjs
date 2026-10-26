@@ -10,7 +10,7 @@ import { prepareData } from "../js/engine/data.js";
 import { parseRules } from "../js/game/rules.js";
 import { Pokedex } from "../js/game/pokedex.js";
 import * as Run from "../js/game/run.js";
-import { badgeStatBoost, statOfBadge, unlockBadge, placeBadge, removeBadge, caseOf, caseStrengths, randomZones, validZones, badgeName, setBonus, battleBonus, perkInfo, perkOfBadge, ALL_BADGES } from "../js/game/badges.js";
+import { SLOT_UNLOCKS, slotUnlocked, unlockedSlotCount, badgeStatBoost, statOfBadge, unlockBadge, placeBadge, removeBadge, caseOf, caseStrengths, randomZones, validZones, badgeName, setBonus, battleBonus, perkInfo, perkOfBadge, ALL_BADGES } from "../js/game/badges.js";
 import { emptyMeta, recordRun } from "../js/game/meta.js";
 import { grantUnlocks, isUnlocked, meetsRule, unlockText, nextHint, parseRule } from "../js/game/unlocks.js";
 import { levelUpMovesAt } from "../js/game/recruit.js";
@@ -74,7 +74,7 @@ test("Reroller (Gardenia's Forest Badge) gives +1 free reroll", () => {
   eq(offerFor(freshRun(["1-1"])).rerollsLeft, 1, "another leader's badge has another effect");
 });
 test("Swap (Tate & Liza's Mind Badge, gym 7 in a one-slot zone: strength 10) trades a Pokémon for a card without a pick, twice per recruit screen", () => {
-  const run = Run.newRun(ctx, { gen: 1, pools: [1, 2, 3, 4, 5], seed: 7, badges: ["3-7"], badgeLinks: [[0], [1, 2, 3, 4, 5, 6, 7]] });
+  const run = Run.newRun(ctx, { gen: 1, pools: [1, 2, 3, 4, 5], seed: 7, badges: ["3-7"], badgeLinks: [{ slots: [0], boost: 3 }, { slots: [1, 2, 3, 4, 5, 6, 7], boost: 1 }] });
   for (let i = 0; i < 3; i++) Run.pickRecruit(run, ctx, i);
   run.order = 1;
   run.offer = offerFor(run);
@@ -101,34 +101,26 @@ test("Haggler (Clay's Quake Badge) makes the shop cheaper (9% at gym 5)", () => 
 });
 
 console.log("Strength, set bonus and battle effects");
-test("Strength = gym number + the boost of its zone (+3 alone, +2 for two slots, +1 for three)", () => {
+test("Strength = gym number + the boost of its zone (+1 to +4)", () => {
   const st = (slots, zones) => Object.fromEntries(caseStrengths(slots, zones).map((b) => [b.id, b.strength]));
   const slots = ["1-1", "2-2", null, null, null, null, "1-8", "3-3"];
   eq(st(slots, [])["1-1"], 1, "no zones");
-  const s = st(slots, [[0, 1], [6], [7]]);
-  eq(s["1-1"], 3, "two-slot zone: +2");
+  const s = st(slots, [{ slots: [0, 1], boost: 2 }, { slots: [6], boost: 1 }, { slots: [7], boost: 4 }]);
+  eq(s["1-1"], 3, "a ★★ zone: +2");
   eq(s["2-2"], 4, "everyone in the zone gets it");
-  eq(s["1-8"], 10, "capped at 10");
-  eq(s["3-3"], 6, "one-slot zone: +3");
-  eq(st(["1-1", "1-2", "1-3", null, null, null, null, null], [[0, 1, 2]])["1-3"], 4, "three-slot zone: +1");
+  eq(s["1-8"], 9, "★ zone: 8 + 1");
+  eq(s["3-3"], 7, "★★★★ zone: 3 + 4");
+  eq(st(["1-8", null, null, null, null, null, null, null], [{ slots: [0], boost: 4 }])["1-8"], 10, "capped at 10");
 });
-test("Random zones cover the whole case with touching groups of 1–3 slots", () => {
-  const sizes = new Set();
-  for (let i = 0; i < 300; i++) {
-    const zones = randomZones();
-    const flat = zones.flat().sort((a, b) => a - b);
-    eq(flat.join(), "0,1,2,3,4,5,6,7", "every slot exactly once");
-    for (const z of zones) {
-      assert(z.length >= 1 && z.length <= 3, "zone size");
-      sizes.add(z.length);
-      // touching: every slot has a neighbour in the zone (left/right/up/down)
-      if (z.length > 1) assert(z.every((a) => z.some((b) => b !== a && ((Math.abs(a - b) === 1 && Math.floor(a / 4) === Math.floor(b / 4)) || Math.abs(a - b) === 4))), `zone ${z} touches`);
-    }
-  }
-  eq([...sizes].sort().join(), "1,2,3", "all sizes happen");
-  for (let i = 0; i < 100; i++) assert(validZones(randomZones()), "every zone is a rectangle");
-  assert(!validZones([[0, 1], [2, 3, 4], [5, 6, 7]]), "an L-shape is not valid");
-  assert(!validZones([[0, 5], [1, 2, 3, 4, 6, 7]]), "pairs that are not boxes are not valid");
+test("The case's zones are fixed: A A B B / C C C D with ★, ★★, ★★★ and ★★★★", () => {
+  const zones = randomZones();
+  eq(zones.map((z) => z.slots.join("")).join(" "), "01 23 456 7", "the slots of each zone");
+  eq(zones.map((z) => z.boost).join(), "1,2,3,4", "boosts ★ to ★★★★");
+  assert(validZones(zones), "valid");
+  assert(!validZones([{ slots: [0, 1], boost: 2 }, { slots: [2, 3], boost: 1 }, { slots: [4, 5, 6], boost: 3 }, { slots: [7], boost: 4 }]), "other layouts and older saves are replaced");
+  const st = Object.fromEntries(caseStrengths(["1-1", "1-1x", null, null, null, null, null, "1-8"].map((x) => (x === "1-1x" ? "1-2" : x)), zones).map((b) => [b.id, b.strength]));
+  eq(st["1-1"], 2, "gym 1 in the ★ zone");
+  eq(st["1-8"], 10, "gym 8 in the ★★★★ zone is capped at 10");
 });
 test("Effects scale with the gym: weak at the first gyms, strong at the last", () => {
   const early = perkInfo("sturdy-stone", 1).param, late = perkInfo("sturdy-stone", 8).param;
@@ -148,7 +140,7 @@ test("Set bonus: 3 / 5 / 8 badges from one generation, generations add up", () =
 });
 test("Badge effects and stats reach the battle, scaled by strength", () => {
   const slots = ["1-1", "1-2", "1-3", null, "2-5", null, null, null]; // sturdy-stone, rain-start, para-ward and Brawler
-  const b = battleBonus({ badges: { slots, links: [[0, 1]] } }, ctx.rules); // slots 0 and 1 are linked: +2 each
+  const b = battleBonus({ badges: { slots, links: [{ slots: [0, 1], boost: 2 }] } }, ctx.rules); // slots 0 and 1 share a ★★ zone: +2 each
   eq(Object.keys(b.effects).sort().join(), "para-ward,rain-start,sturdy-stone", "battle effects");
   eq(b.effects["sturdy-stone"], perkInfo("sturdy-stone", 3).param, "Boulder (gym 1) + link = strength 3");
   eq(b.stats.atk.toFixed(3), (0.02 + perkInfo("stat-atk", 5).param + badgeStatBoost(5)).toFixed(3), "set bonus (3 Kanto badges) + Brawler + the badge's own Attack boost (gym 5, not linked)");
@@ -248,6 +240,32 @@ test("Low-level Pokémon don't start with a heavy hitter (Sudowoodo's level-1 Wo
   assert(!at(30).includes("wood-hammer"), "not at 30 either");
   assert(at(55).some((m) => ["wood-hammer", "hammer-arm"].includes(m)), "late in the run it may use them");
   for (const m of at(12)) assert((data.moves[m].power ?? 0) <= 75, `${m} is within the cap`);
+});
+
+test("A thin pool repeats Pokémon instead of leaving the team short", () => {
+  const run = Run.newRun(ctx, { gen: 1, pools: [1, 2, 3, 4, 5], seed: 3 });
+  const row = { ...Run.rowFor(ctx, 1), teamSize: 4, level: 12, order: 1 };
+  const team = Run.poolTeam(run, { ...ctx, rules: { ...ctx.rules, minChoice: 0.1 } }, { id: "brock" }, row, [[], ["geodude", "onix"]]);
+  eq(team.length, 4, "a full team");
+  const species = team.map((m) => m.species);
+  assert(new Set(species).size <= 2, `only two species exist, so some repeat: ${species}`);
+  assert(species.filter((s) => s === "geodude").length >= 1 && species.filter((s) => s === "onix").length >= 1, "both are used before repeating");
+});
+
+test("Case slots open up as you own more badges", () => {
+  eq(SLOT_UNLOCKS.join(), "0,0,0,4,8,14,22,32", "thresholds");
+  const m = emptyMeta();
+  for (const id of ["1-1", "1-2", "1-3"]) unlockBadge(m, ...id.split("-").map(Number));
+  eq(unlockedSlotCount(m), 3, "three slots at the start");
+  assert(!slotUnlocked(m, 3), "slot 4 is locked with 3 badges");
+  assert(!placeBadge(m, "1-1", 3), "can't put a badge in a locked slot");
+  assert(placeBadge(m, "1-1"), "auto placement works");
+  eq(caseOf(m).indexOf("1-1"), 0, "…into the first open slot");
+  unlockBadge(m, 1, 4);
+  eq(unlockedSlotCount(m), 4, "the 4th badge opens slot 4");
+  assert(placeBadge(m, "1-4", 3), "now slot 4 takes a badge");
+  m.badgeCase = ["1-1", "1-2", "1-3", "1-4", null, null, null, "1-4"]; // a badge saved in a slot that is not open is ignored
+  eq(caseOf(m)[7], null, "locked slots stay empty");
 });
 
 console.log(`\n${passed} passed, ${failed} failed`);

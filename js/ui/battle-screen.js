@@ -121,7 +121,22 @@ export class BattleScreen {
         await this.play(events);
       }
     }
+    if (b.state.winner === PLAYER) await this.trainerDefeat();
     this.onEnd(b.state.winner);
+  }
+
+  // After you win: the trainer you beat shows up again for a few seconds
+  async trainerDefeat() {
+    if (!this.trainer?.sprites?.length) return;
+    const shown = document.createElement("div");
+    shown.className = "trainer-intro";
+    shown.innerHTML = this.trainer.sprites.map((src) => `<img src="${src}" alt="" onerror="this.remove()">`).join("");
+    this.scene.appendChild(shown);
+    shown.querySelectorAll("img").forEach((img) => alignSprite(img));
+    await sleep(this.speed === "fast" ? 1300 : 2800);
+    shown.classList.add("leave");
+    await sleep(this.speed === "fast" ? 250 : 450);
+    shown.remove();
   }
 
   // ===============================

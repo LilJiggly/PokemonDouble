@@ -7,6 +7,7 @@
 //  • Stay on this screen: after any reload (Live Server, F5) you
 //    come back to the same screen and scroll position.
 //  • Freeze: pauses animations and the title banner.
+//  • Show locked and hidden choices: the New run screen shows the cards and trainers that the progressive reveal hides.
 //  • Screens: jump to any screen. These are previews built from a
 //    fixed test run: they never touch your real save, Trainer
 //    Points or Hall of Fame.
@@ -39,7 +40,7 @@ export class DevTools {
   constructor(ui, ctx) {
     this.ui = ui;
     this.ctx = ctx;
-    this.opts = { live: true, stay: true, freeze: false, ...JSON.parse(read(localStorage, OPTS_KEY) ?? "{}") };
+    this.opts = { live: true, stay: true, freeze: false, reveal: false, ...JSON.parse(read(localStorage, OPTS_KEY) ?? "{}") };
     this.enabled = read(localStorage, OPTS_KEY) !== null; // the panel was opened before
     this.cssText = null;
     window.addEventListener("keydown", (e) => this.onKey(e));
@@ -88,6 +89,7 @@ export class DevTools {
       <label><input type="checkbox" data-opt="live" ${this.opts.live ? "checked" : ""}> Live CSS <small data-dev="css-status"></small></label>
       <label><input type="checkbox" data-opt="stay" ${this.opts.stay ? "checked" : ""}> Stay on this screen after a reload</label>
       <label><input type="checkbox" data-opt="freeze" ${this.opts.freeze ? "checked" : ""}> Freeze animations</label>
+      <label title="New run screen: show the cards and trainers that are still hidden or locked for you"><input type="checkbox" data-opt="reveal" ${this.opts.reveal ? "checked" : ""}> Show locked and hidden choices</label>
       <section><h4>Screens <small>(previews, nothing is saved)</small></h4>
         <div class="dev-group"><span>Menus</span>${MENUS.map(([id, label]) => `<button data-screen="${id}">${label}</button>`).join("")}</div>
         <div class="dev-group"><span>Run</span>${RUN_SCREENS.map(([id, label]) => `<button data-screen="${id}">${label}</button>`).join("")}</div>
@@ -121,6 +123,7 @@ export class DevTools {
     this.opts[opt] = e.target.checked;
     this.saveOpts();
     if (opt === "freeze") this.applyFreeze();
+    if (opt === "reveal") this.ui.refreshView?.();
     if (opt === "live") { if (this.opts.live) this.startLiveCss(); else this.stopLiveCss(); }
     if (opt === "stay" && !this.opts.stay) { try { sessionStorage.removeItem(VIEW_KEY); } catch { /* ignore */ } }
   }
