@@ -27,7 +27,7 @@
 //   Full team: dragon        win a battle with a team of six Pokémon of that type
 //   Win all gens             reach the Hall of Fame in every Challenge Gen (1–5)
 //   Fast win: 60             reach the Hall of Fame within 60 minutes of play time
-//   Team: a, b, c            win a battle with all of those exact species on the team together
+//   Obtain: a, b, c          have every one of those exact species on your team at some point of one run
 //   Friendship: 5            recruit 5 different Pokémon that evolved by friendship (Crobat, Blissey, Lucario…)
 // Progress comes from the meta save (see progress.js). Trainers are granted by grantUnlocks(): at most
 // 2 per run, so unlocking feels like an event.
@@ -69,7 +69,7 @@ const CLAUSES = [
   [/^win all gens$/i, () => ({ kind: "winAll", n: 5 })],
   [/^fast win:?\s*(\d+)$/i, (m) => ({ kind: "fast", n: +m[1] })],
   [/^friendship:?\s*(\d+)$/i, (m) => ({ kind: "friendly", n: +m[1] })],
-  [/^team:?\s*([\w, -]+)$/i, (m) => { const arg = m[1].split(",").map((x) => x.trim().toLowerCase()).filter(Boolean); return { kind: "team", n: arg.length, arg }; }],
+  [/^obtain:?\s*([\w, -]+)$/i, (m) => { const arg = m[1].split(",").map((x) => x.trim().toLowerCase()).filter(Boolean); return { kind: "obtain", n: arg.length, arg }; }],
 ];
 
 // Species that evolve by friendship (set at start up from the Pokédex): recruiting them counts for "Friendship: N"
@@ -135,7 +135,7 @@ export function clauseProgress(meta, c) {
     case "fullTeam": return { have: meta.fullTeam?.[c.arg] ? 1 : 0, need: 1 };
     case "winAll": return { have: [1, 2, 3, 4, 5].filter((g) => count(meta.winGens, g) > 0).length, need: 5 };
     case "fast": return { have: (meta.fastestWin ?? Infinity) <= c.n * 60000 ? 1 : 0, need: 1 };
-    case "team": return { have: Math.min(c.n, meta.teamBest?.[c.arg.join(",")] ?? 0), need: c.n };
+    case "obtain": return { have: (meta.obtainBest?.[c.arg.join(",")] ?? []).length, need: c.n };
     case "friendly": return { have: (meta.species ?? []).filter((k) => friendshipSpecies.has(k)).length, need: c.n };
     default: return { have: 1, need: 1 };
   }
@@ -207,7 +207,7 @@ export function clauseText(c) {
     case "fullTeam": return `Win a battle with 6 ${nice(c.arg)}-types`;
     case "winAll": return "Win every generation";
     case "fast": return `Win a run in ${c.n} minutes`;
-    case "team": return `Win a battle with all ${c.n} of these Pokémon`;
+    case "obtain": return `Have all ${c.n} of these in one run`;
     case "friendly": return `Recruit ${c.n} friendship evolutions`;
     default: return "";
   }

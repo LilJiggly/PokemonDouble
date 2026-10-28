@@ -63,6 +63,7 @@ export function newRun(ctx, { gen, pools, seed = Math.floor(Math.random() * 2 **
     rng: seed >>> 0,
     settings: { gen, pools: [...pools].sort(), dupes }, // dupes: the dupes clause (a line you had before, even a fallen or released one, doesn't come back as a recruit)
     lines: [], // evolution lines of every Pokémon you recruited this run
+    seenSpecies: [], // every species that was on your team at some point of this run (for the Obtain unlocks)
     perks: { scout: 0, dice: 0, allowance: 0, bag: 0, gift: 0, hidden: 0, shiny: 0, ...perks },
     money: 0,
     tms: [],
@@ -315,6 +316,7 @@ export function pickRecruit(run, ctx, optionIndex, replaceUid = null) {
   run.team.push(mon);
   noteRecruited(run, ctx, mon.species, offer.starter);
   (run.lines ??= []).push(ctx.dex.lineOf[mon.species]);
+  (run.seenSpecies ??= []).push(mon.species);
   if (offer.picksLeft <= 0) finishOffer(run, ctx);
   return { ok: true };
 }
@@ -335,6 +337,7 @@ export function swapForRecruit(run, ctx, optionIndex, uid) {
   run.team.splice(idx, 0, { ...structuredClone(option.spec), uid: run.nextUid++ });
   noteRecruited(run, ctx, option.spec.species, false);
   (run.lines ??= []).push(ctx.dex.lineOf[option.spec.species]);
+  (run.seenSpecies ??= []).push(option.spec.species);
   return { ok: true };
 }
 

@@ -18,7 +18,7 @@ const CHANGED_KEY = "pd.localChanged"; // when this device last saved something
 
 export const LEADERBOARDS = [
   { id: "wins", label: "Champion wins", field: "wins" },
-  { id: "best", label: "Furthest run", field: "best", suffix: " of 14" },
+  { id: "fastest", label: "Fastest win", field: "fastestWin", ascending: true, format: (sec) => `${Math.floor(sec / 3600)}:${String(Math.floor((sec % 3600) / 60)).padStart(2, "0")}:${String(sec % 60).padStart(2, "0")}` },
   { id: "clean", label: "Flawless wins", field: "cleanWins" },
   { id: "trainers", label: "Trainers unlocked", field: "trainers" },
   { id: "badges", label: "Badges", field: "badges", suffix: " of 40" },
@@ -91,6 +91,7 @@ function publicLine(meta, hof) {
   return {
     name: publicName(meta), wins: meta?.wins ?? 0, best: meta?.best ?? 0, cleanWins: meta?.cleanWins ?? 0,
     trainers: extraStats(meta).trainers ?? 1, badges: meta?.badges?.length ?? 0, used: usedFrom(hof), updatedAt: Date.now(),
+    ...(meta?.fastestWin > 0 ? { fastestWin: Math.max(60, Math.round(meta.fastestWin / 1000)) } : {}), // seconds of the fastest win (timed runs only)
   };
 }
 
@@ -212,7 +213,7 @@ export async function allPlayers(count = 300) {
 
 export async function topPlayers(board, count = 20) {
   await load();
-  const q = fb.query(fb.collection(fb.db, "players"), fb.orderBy(board.field, "desc"), fb.limit(count));
+  const q = fb.query(fb.collection(fb.db, "players"), fb.orderBy(board.field, board.ascending ? "asc" : "desc"), fb.limit(count));
   const snap = await fb.getDocs(q);
   return snap.docs.map((d) => ({ uid: d.id, ...d.data() })).filter((p) => (p[board.field] ?? 0) > 0);
 }

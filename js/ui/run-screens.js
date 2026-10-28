@@ -250,7 +250,7 @@ export class RunUI {
       <div class="offer-head"><h1>Leaderboards</h1><button class="btn" data-act="title">◀ Title</button></div>
       <div class="tabs board-tabs">${[{ id: "ranks", label: "Ranks" }, ...LEADERBOARDS, { id: "pokemon", label: "Most used" }].map((b) => `<button class="tab ${b.id === boardId ? "active" : ""}" data-act="board" data-board="${b.id}">${b.label}</button>`).join("")}</div>
       ${boardId === "pokemon" ? `<p class="rank-note">The Pokémon that were in the most winning Hall of Fame teams, across all players.</p>` : ""}
-      ${boardId === "ranks" ? `<p class="rank-note">Everyone starts at Z. Beat runs to climb towards A: points for your furthest run, every Champion win and every flawless win.</p>` : ""}
+      ${boardId === "ranks" ? `<p class="rank-note">Everyone starts at Z. Climb towards A: points for your furthest run, every Champion win and flawless win, every badge and every trainer you unlock.</p>` : ""}
       <section class="card-panel"><ol class="board-list" data-board-list><li class="empty-note">Loading…</li></ol></section>`;
     this.hub.onclick = (e) => {
       const el = e.target.closest("[data-act]");
@@ -263,11 +263,22 @@ export class RunUI {
       const box = this.hub.querySelector("[data-board-list]");
       if (!box) return;
       const totals = {};
-      for (const p of players ?? []) for (const [k, n] of Object.entries(p.used ?? {})) if (this.ctx.data.pokemonByKey[k]) totals[k] = (totals[k] ?? 0) + n;
+      const users = {}; // species → who used it, and how many times
+      for (const p of players ?? []) {
+        for (const [k, n] of Object.entries(p.used ?? {})) {
+          if (!this.ctx.data.pokemonByKey[k]) continue;
+          totals[k] = (totals[k] ?? 0) + n;
+          (users[k] ??= []).push({ name: p.name ?? "Trainer", n });
+        }
+      }
+      const pills = (k) => {
+        const list = users[k].sort((a, b) => b.n - a.n || a.name.localeCompare(b.name));
+        return `<span class="user-pills">${list.slice(0, 6).map((u) => `<span class="user-pill">${escapeHtml(u.name)}${u.n > 1 ? ` x ${u.n}` : ""}</span>`).join("")}${list.length > 6 ? `<span class="user-pill more">+${list.length - 6} more</span>` : ""}</span>`;
+      };
       const top = Object.entries(totals).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 20);
       box.innerHTML = players === null ? `<li class="empty-note">Could not load the leaderboard.</li>`
         : top.length ? top.map(([k, n], i) => { const mon = this.ctx.data.pokemonByKey[k];
-          return `<li><span class="rank">${i + 1}</span><img class="board-mon" src="${mon.sprites.front}" alt=""><span class="who">${escapeHtml(mon.name)}</span><b>${n}<small> ${n === 1 ? "win" : "wins"}</small></b></li>`; }).join("")
+          return `<li><span class="rank">${i + 1}</span><img class="board-mon" src="${mon.sprites.front}" alt=""><span class="who">${escapeHtml(mon.name)}${pills(k)}</span><b>${n}<small> ${n === 1 ? "win" : "wins"}</small></b></li>`; }).join("")
         : `<li class="empty-note">No champion teams yet. Win a run to start the list!</li>`;
       return;
     }
@@ -279,7 +290,7 @@ export class RunUI {
       if (!box) return;
       const myId = cloudState().user?.uid;
       box.innerHTML = top === null ? `<li class="empty-note">Could not load the leaderboard.</li>`
-        : top.length ? top.map((p, i) => `<li class="${p.uid === myId ? "me" : ""}"><span class="rank">${i + 1}</span><span class="who">${escapeHtml(p.name ?? "Trainer")}</span><b>${p[board.field]}${board.suffix ?? ""}</b></li>`).join("")
+        : top.length ? top.map((p, i) => `<li class="${p.uid === myId ? "me" : ""}"><span class="rank">${i + 1}</span><span class="who">${escapeHtml(p.name ?? "Trainer")}</span><b>${board.format ? board.format(p[board.field]) : p[board.field]}${board.suffix ?? ""}</b></li>`).join("")
         : `<li class="empty-note">Nobody on this board yet. Win a run to be first!</li>`;
       return;
     }
@@ -444,13 +455,14 @@ export class RunUI {
   }
 
   // The trainer picker: unlocked trainers by generation, and a hint about the next one
-  // "Team: a, b, c" unlocks: the Pokémon you need, with the ones you have had together so far
+  // "Obtain: a, b, c" unlocks (Cynthia): the Pokémon you need, the ones you had in your best run lit up
   requiredTeam(rule, meta) {
-    const c = rule?.alts.flat().find((x) => x.kind === "team");
+    const c = rule?.alts.flat().find((x) => x.kind === "obtain");
     if (!c) return "";
-    const best = Math.min(c.n, meta.teamBest?.[c.arg.join(",")] ?? 0);
-    return `<span class="req-team">${c.arg.map((k) => { const p = this.ctx.data.pokemonByKey[k]; return p ? `<img src="${p.sprites.front}" alt="${p.name}" title="${p.name}">` : ""; }).join("")}</span>
-      <small class="how-unlocked">Best so far: ${best} of ${c.n} at once</small>`;
+    const have = new Set(meta.obtainBest?.[c.arg.join(",")] ?? []); // from your best run so far
+    const got = have.size;
+    return `<span class="req-team">${c.arg.map((k) => { const p = this.ctx.data.pokemonByKey[k]; return p ? `<img class="${have.has(k) ? "got" : ""}" src="${p.sprites.front}" alt="${p.name}" title="${p.name}${have.has(k) ? " (obtained)" : ""}">` : ""; }).join("")}</span>
+      <small class="how-unlocked">Best run so far: ${got} of ${c.n}</small>`;
   }
 
   async characterDialog(meta) {

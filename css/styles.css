@@ -5904,7 +5904,7 @@ img[src*="/sprites/"] { object-fit: contain;
 }
 
 .board-list .who { display: flex;
-  flex-direction: column;
+  /* flex-direction: column; */
   gap: 4px;
 }
 
@@ -5982,4 +5982,21 @@ img[src*="/sprites/"] { object-fit: contain;
 .req-team img { width: 36px;
   height: 36px;
   object-fit: contain;
+  filter: brightness(0) opacity(0.45);
+}
+
+.req-team img.got { filter: none;
+}
+
+.user-pills { display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.user-pill { padding: 1px 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  color: var(--text-soft);
+  font-size: 11px;
+  font-weight: 400;
 }

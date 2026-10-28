@@ -33,24 +33,30 @@ function mergeStats(meta, run) {
   run.stats = emptyRunStats();
 }
 
+// "Obtain: a, b, c" unlocks (Cynthia): the most of those species you had on your team during one run (at any time, not at once)
+function noteObtained(meta, run, ctx) {
+  const seen = new Set([...(run.seenSpecies ?? []), ...run.team.map((m) => m.species)]);
+  for (const rule of Object.values(ctx.rules?.characterUnlocks ?? {})) {
+    for (const alt of rule.alts) for (const c of alt) {
+      if (c.kind !== "obtain") continue;
+      const key = c.arg.join(",");
+      const got = c.arg.filter((k) => seen.has(k));
+      (meta.obtainBest ??= {});
+      if (got.length > (meta.obtainBest[key]?.length ?? 0)) meta.obtainBest[key] = got;
+    }
+  }
+}
+
 // After a battle was won: lines and types on the team, quick wins, clean runs, starter sets
 export function noteBattleWon(meta, run, ctx, { turns = null } = {}) {
   const order = run.lastBattle?.order ?? run.order;
   meta.lineGym ??= {};
   meta.typeGym ??= {};
   meta.starters ??= {};
+  noteObtained(meta, run, ctx);
   const roots = new Set(run.team.map((m) => rootOf(ctx, m.species)));
   for (const root of roots) raise(meta.lineGym, root, order);
   for (const type of new Set(run.team.flatMap((m) => typesOf(ctx, m)))) raise(meta.typeGym, type, order);
-  // "Team: a, b, c" unlocks (Cynthia): the most of those species you had on the team at once in a won battle
-  const have = new Set(run.team.map((m) => m.species));
-  for (const rule of Object.values(ctx.rules?.characterUnlocks ?? {})) {
-    for (const alt of rule.alts) for (const c of alt) {
-      if (c.kind !== "team") continue;
-      const key = c.arg.join(",");
-      (meta.teamBest ??= {})[key] = Math.max(meta.teamBest[key] ?? 0, c.arg.filter((k) => have.has(k)).length);
-    }
-  }
   if (run.team.length === 6) {
     meta.fullTeam ??= {};
     for (const type of typesOf(ctx, run.team[0])) if (run.team.every((m) => typesOf(ctx, m).includes(type))) meta.fullTeam[type] = true;
@@ -65,6 +71,7 @@ export function noteBattleWon(meta, run, ctx, { turns = null } = {}) {
 
 // At the end of a run (won or lost)
 export function noteRunEnd(meta, run, ctx) {
+  noteObtained(meta, run, ctx);
   mergeStats(meta, run);
   if (run.screen !== "won") return;
   meta.lineWins ??= {};

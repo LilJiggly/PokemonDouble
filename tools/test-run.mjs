@@ -277,7 +277,7 @@ test("Case slots open up as you own more badges", () => {
 test("Ranks: everyone starts at Z and climbs; saves combine without losing progress", () => {
   eq(rankOf(rankScore({})).letter, "Z", "new players are Z");
   assert(rankOf(rankScore({ best: 14, wins: 1 })).letter < "Z", "a first win climbs");
-  eq(rankOf(rankScore({ best: 14, wins: 30, cleanWins: 20 })).letter, "A", "a long career reaches A");
+  eq(rankOf(rankScore({ best: 14, wins: 40, cleanWins: 30, badges: 40, trainers: 37 })).letter, "A", "a long career reaches A");
   const m = mergeSaves({ meta: { runs: 2, wins: 1, best: 9, badges: ["1-1"], upgrades: { scout: 1 } }, hof: [], run: null },
     { meta: { runs: 4, wins: 2, best: 14, badges: ["1-2"], upgrades: { scout: 2 } }, hof: [], run: null });
   eq(m.meta.runs, 6, "runs add up");
@@ -357,20 +357,24 @@ test("New unlock clauses: full team, every generation, fast win, friendship evol
   assert(foeIvs.size > 5, "foe IVs vary");
 });
 
-test("Cynthia: her Platinum team can all be recruited before the end of a run, and the unlock counts them", () => {
+test("Cynthia: her six Platinum Pokémon can all be recruited before the end of a run; having all six in one run unlocks her", () => {
   const team = ["garchomp", "spiritomb", "roserade", "togekiss", "lucario", "milotic"];
   const rule = unlockRules.cynthia;
-  assert(rule && rule.alts[0][0].kind === "team", "rule parsed");
+  assert(rule && rule.alts[0][0].kind === "obtain", "rule parsed");
   const lastLevel = Run.levelFor(ctx, 13);
   for (const k of team) assert(ctx.dex.highestLegalStages(ctx.dex.lineOf[k], lastLevel, () => true).includes(k), `${k} is recruitable by level ${lastLevel}`);
   const m = emptyMeta();
-  const run = { team: team.slice(0, 4).map((species) => ({ species })), fallen: [], lastBattle: { order: 5 }, order: 5, stats: { species: [], items: 0, berries: 0, picks: [] } };
+  const run = { team: [{ species: "garchomp" }], seenSpecies: ["garchomp", "spiritomb", "roserade", "pikachu"], fallen: [], lastBattle: { order: 3 }, order: 3, stats: { species: [], items: 0, berries: 0, picks: [] } };
   noteBattleWon(m, run, ctx);
-  eq(m.teamBest[team.join(",")], 4, "four of six at once so far");
+  eq(m.obtainBest[team.join(",")].length, 3, "three of the six in this run (released and fallen ones count)");
   assert(!meetsRule(m, rule), "not yet");
-  run.team = team.map((species) => ({ species }));
-  noteBattleWon(m, run, ctx);
-  assert(meetsRule(m, rule), "all six together unlock Cynthia");
+  const m2 = emptyMeta();
+  noteBattleWon(m2, { ...run, team: [{ species: "lucario" }], seenSpecies: ["garchomp", "spiritomb", "roserade", "togekiss", "milotic"] }, ctx);
+  assert(meetsRule(m2, rule), "all six at some point of one run (not at once) unlock Cynthia");
+  const m3 = emptyMeta();
+  noteBattleWon(m3, { ...run, seenSpecies: ["garchomp", "spiritomb"] }, ctx);
+  noteBattleWon(m3, { ...run, seenSpecies: ["roserade", "togekiss"], team: [] }, ctx);
+  assert(!meetsRule(m3, rule), "pieces from different runs don't add up");
 });
 
 test("Hilda, Bianca and Riley perks", () => {
