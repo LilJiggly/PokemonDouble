@@ -200,6 +200,14 @@
   "back": "images/trainers/back/riley.png"
  },
  {
+  "id": "cynthia",
+  "name": "Cynthia",
+  "game": "Platinum",
+  "gen": 4,
+  "front": "images/trainers/cynthia.png",
+  "back": "images/trainers/back/cynthia.png"
+ },
+ {
   "id": "hilbert",
   "name": "Hilbert",
   "game": "Black / White",

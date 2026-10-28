@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="460" height="250" viewBox="0 0 460 250">
+  <defs>
+    <linearGradient id="linear-gradient-1" x1="10" y1="10" x2="10" y2="240" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#d95f5f"/>
+      <stop offset="1" stop-color="#c94c4c"/>
+    </linearGradient>
+    <clipPath id="clip-path-1">
+      <path d="M22 10 L438 10 C444.627 10 450 15.373 450 22 L450 228 C450 234.627 444.627 240 438 240 L22 240 C15.373 240 10 234.627 10 228 L10 22 C10 15.373 15.373 10 22 10 Z"/>
+    </clipPath>
+  </defs>
+  <title>trainer-card.svg</title>
+  <g id="Layer_1" data-name="Layer 1">
+    <path id="shadow" d="M21 9 L439 9 C448.941 9 457 17.059 457 27 L457 229 C457 238.941 448.941 247 439 247 L21 247 C11.059 247 3 238.941 3 229 L3 27 C3 17.059 11.059 9 21 9 Z" fill="#000000" fill-opacity="0.25"/>
+    <path id="outline" d="M21 3 L439 3 C448.941 3 457 11.059 457 21 L457 229 C457 238.941 448.941 247 439 247 L21 247 C11.059 247 3 238.941 3 229 L3 21 C3 11.059 11.059 3 21 3 Z" fill="#8e3030"/>
+    <path id="frame" d="M22 6 L438 6 C446.837 6 454 13.163 454 22 L454 228 C454 236.837 446.837 244 438 244 L22 244 C13.163 244 6 236.837 6 228 L6 22 C6 13.163 13.163 6 22 6 Z" fill="#f3c3c3"/>
+    <path id="face" d="M22 10 L438 10 C444.627 10 450 15.373 450 22 L450 228 C450 234.627 444.627 240 438 240 L22 240 C15.373 240 10 234.627 10 228 L10 22 C10 15.373 15.373 10 22 10 Z" fill="url(#linear-gradient-1)"/>
+    <g clip-path="url(#clip-path-1)">
+      <g>
+        <path d="M348.5 22 C415.603 22 470 76.397 470 143.5 C470 210.603 415.603 265 348.5 265 C281.397 265 227 210.603 227 143.5 C227 76.397 281.397 22 348.5 22 Z M464.679 143.5 C464.679 79.336 412.664 27.321 348.5 27.321 C284.336 27.321 232.321 79.336 232.321 143.5 C232.321 207.664 284.336 259.679 348.5 259.679 C412.664 259.679 464.679 207.664 464.679 143.5 Z" fill="#ffffff" opacity="0.07"/>
+      </g>
+      <path d="M348.5 60.135 C394.541 60.135 431.865 97.459 431.865 143.5 C431.865 161.397 426.225 177.977 416.626 191.559 L385.587 160.519 C387.968 155.339 389.296 149.575 389.296 143.5 C389.296 143.066 389.289 142.633 389.275 142.203 L389.275 142.202 C388.59 120.272 370.597 102.704 348.5 102.704 C342.425 102.704 336.661 104.032 331.481 106.413 L300.441 75.374 C314.023 65.775 330.603 60.135 348.5 60.135 Z M365.519 180.587 L396.559 211.626 C382.977 221.225 366.397 226.865 348.5 226.865 C302.459 226.865 265.135 189.541 265.135 143.5 C265.135 125.603 270.775 109.023 280.374 95.441 L311.413 126.481 C309.032 131.661 307.704 137.425 307.704 143.5 C307.704 166.031 325.969 184.296 348.5 184.296 C354.575 184.296 360.339 182.968 365.519 180.587 Z" fill="#f0b25a"/>
+      <path d="M348.5 122.215 C360.255 122.215 369.785 131.745 369.785 143.5 C369.785 155.255 360.255 164.785 348.5 164.785 C336.745 164.785 327.215 155.255 327.215 143.5 C327.215 131.745 336.745 122.215 348.5 122.215 Z" fill="#f0b25a"/>
+      <path d="M132.603 255.595 L-6.6 116.392" fill="none" stroke="#ffffff" stroke-width="10" stroke-miterlimit="10" opacity="0.07"/>
+      <path d="M118.752 264.73 L-20.451 125.527" fill="none" stroke="#ffffff" stroke-width="10" stroke-miterlimit="10" opacity="0.07"/>
+      <path d="M104.902 273.865 L-34.301 134.662" fill="none" stroke="#ffffff" stroke-width="10" stroke-miterlimit="10" opacity="0.07"/>
+      <path d="M91.051 283 L-48.152 143.796" fill="none" stroke="#ffffff" stroke-width="10" stroke-miterlimit="10" opacity="0.07"/>
+    </g>
+    <g id="fields">
+      <path d="M251.821 22 L425.172 22 C430.048 22 434 26.925 434 33 L434 33 C434 39.075 430.048 44 425.172 44 L251.821 44 C246.945 44 242.993 39.075 242.993 33 L242.993 33 C242.993 26.925 246.945 22 251.821 22 Z" fill="#b23f3f"/>
+      <path d="M32.306 54 L221.694 54 C226.281 54 230 58.477 230 64 L230 64 C230 69.523 226.281 74 221.694 74 L32.306 74 C27.719 74 24 69.523 24 64 L24 64 C24 58.477 27.719 54 32.306 54 Z" fill="#ffffff" fill-opacity="0.28"/>
+    </g>
+    <g id="labels">
+      <text transform="matrix(1 0 0 1 26 40)" x="0" y="0" xml:space="preserve" font-family="Arial" font-size="18" font-weight="bold" fill="#ffffff" letter-spacing="1"><tspan x="0" y="0">TRAINER&apos;S CARD</tspan></text>
+      <text transform="matrix(1 0 0 1 426 38)" x="0" y="0" xml:space="preserve" font-family="Arial" font-size="13" font-weight="bold" fill="#ffd9d9" text-anchor="end"><tspan x="0" y="0">NAME</tspan></text>
+      <text transform="matrix(1 0 0 1 26 96)" x="0" y="0" xml:space="preserve" font-family="Arial" font-size="12" font-weight="bold" fill="#ffd3d3" letter-spacing="1.5"><tspan x="0" y="0">BADGES</tspan></text>
+    </g>
+  </g>
+</svg>

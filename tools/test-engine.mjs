@@ -621,6 +621,16 @@ test("Bide fails when it took no damage", () => {
   for (let t = 0; t < 4; t++) out += text(round(b, p1(0), p2(0)));
   assert(/unleashed energy/.test(out) && /failed/i.test(out), `no damage taken: ${out}`);
 });
+test("Falling asleep ends a Petal Dance lock, so the Pokémon can switch or choose again", () => {
+  const b = duel("venusaur", ["petal-dance", "splash"], "gengar", ["hypnosis", "splash"], { seed: 3 });
+  round(b, p1(0), p2(1)); // Petal Dance starts, the foe waits
+  assert(at(b, 0, 0).volatile.rampage, "locked into Petal Dance");
+  assert(b.getRequest(0).slots[0].forced, "no choice while locked");
+  b.trySetStatus(at(b, 0, 0), "slp", at(b, 1, 0), { fromMove: true });
+  assert(!at(b, 0, 0).volatile.rampage, "the lock ended when it fell asleep");
+  const slot = b.getRequest(0).slots[0];
+  assert(!slot.forced && slot.canSwitch, "it can choose a move or switch again");
+});
 test("Spite takes 4 PP off the foe's last move", () => {
   const b = duel("alakazam", ["spite", "splash"], "snorlax", ["tackle", "splash"]);
   round(b, p1(1), p2(0));
@@ -783,6 +793,14 @@ test("Dragon Tail drags the target out; Volt Switch switches the user out", () =
   round(v, p1(0), p2(0));
   eq(v.state.sides[0].active[0], 2, "Pikachu came in");
 });
+test("U-turn / Volt Switch bring in the chosen Pokémon, not just the first on the bench", () => {
+  const b = Battle.create(data, { seed: 1, sides: [
+    { name: "P", isPlayer: true, team: [mon("jolteon", ["volt-switch", "splash"]), mon("magikarp", ["splash"]), mon("pikachu", ["ember"]), mon("snorlax", ["splash"])] },
+    { name: "F", team: [mon("snorlax", ["splash", "splash"]), mon("magikarp", ["splash"])] }] });
+  b.takeEvents();
+  round(b, { ...p1(0), pivot: 3 }, p2(0));
+  eq(b.state.sides[0].active[0], 3, "Snorlax came in");
+});
 test("Echoed Voice gets stronger every turn; Round doubles when used twice in a turn", () => {
   const b = duel("alakazam", ["echoed-voice", "splash"], "snorlax", ["splash", "splash"]);
   const first = (() => { const h = at(b, 1, 0).hp; round(b, p1(0), p2(0)); return h - at(b, 1, 0).hp; })();
@@ -943,6 +961,30 @@ test("Quash makes the target move last; Reflect Type copies the target's types",
   const r = duel("alakazam", ["reflect-type", "splash"], "magmar", ["splash", "splash"]);
   round(r, p1(0), p2(0));
   eq(at(r, 0, 0).types.join(), "fire", "types copied");
+});
+
+test("AI doesn't keep using Ground moves on Flying types, or a second Future Sight on the same slot", () => {
+  const b = fight([mon("pidgeot", ["splash"]), mon("pidgeot", ["splash"])], [mon("dugtrio", ["mud-slap", "tackle"]), mon("magikarp", ["splash"])]);
+  const id = (c) => b.getRequest(1).slots[0].moves[c.move].id;
+  eq(id(chooseTurn(b, 1)[0]), "tackle", "Tackle instead of Mud-Slap on two Flying types");
+  const f = fight([mon("snorlax", ["splash"]), mon("magikarp", ["splash"])], [mon("alakazam", ["future-sight", "tackle"]), mon("magikarp", ["splash"])]);
+  four(f, move(0, 0), move(1, 0), atMine(0, 0, 0), move(1, 0));
+  assert(f.state.sides[0].future?.[0], "a Future Sight is coming at slot 0");
+  for (let seed = 1; seed <= 20; seed++) {
+    f.state.rng = undefined;
+    const pick = chooseTurn(f, 1)[0];
+    const used = f.getRequest(1).slots[0].moves[pick.move].id;
+    assert(!(used === "future-sight" && pick.target?.slot === 0), "no second Future Sight on the same slot");
+  }
+});
+test("Illusion: Zoroark looks like the last Pokémon in the team until it is hit", () => {
+  const b = fight([mon("snorlax", ["tackle"]), mon("magikarp", ["splash"])], [mon("zoroark", ["splash"], { ability: "illusion" }), mon("magikarp", ["splash"]), mon("charmander", ["ember"])]);
+  const z = at(b, 1, 0);
+  eq(z.volatile.illusion?.species, "charmander", "disguised as the last Pokémon");
+  assert(b.name(z).includes("Charmander"), "messages use the fake name");
+  const ev = b.submitTurn([[move(0, 0, { side: 1, slot: 0 }), move(1, 0)], [move(0, 0), move(1, 0)]]);
+  assert(!z.volatile.illusion, "the disguise is gone after a hit");
+  assert(ev.some((e) => e.t === "illusionBreak" && /Zoroark's Illusion wore off/.test(e.text)), "break message");
 });
 
 console.log(`\n${passed} passed, ${failed} failed`);

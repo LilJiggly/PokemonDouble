@@ -159,14 +159,20 @@ export function validZones(zones) {
 
 // Strength of the badge in each slot: its gym number plus the boost of the zone it sits in (max 10).
 // links = the zones: [{ slots: [0, 1], boost: 2 }, …]. → [{ id, slot, gen, gym, zone, boost, strength }] for the filled slots
-export function caseStrengths(slots, links = []) {
-  return slots.map((id, i) => {
+// weak: a trainer perk (Riley) that adds this much strength to the weakest badge in the case
+export function caseStrengths(slots, links = [], weak = 0) {
+  const list = slots.map((id, i) => {
     if (!id) return null;
     const { gen, order } = parseBadgeId(id);
     const zone = links.findIndex((z) => z.slots?.includes(i));
     const boost = zone === -1 ? 0 : links[zone].boost;
     return { id, slot: i, gen, gym: order, zone, boost, strength: Math.min(MAX_STRENGTH, order + boost) };
   }).filter(Boolean);
+  if (weak > 0 && list.length) {
+    const lowest = list.reduce((a, b) => (b.strength < a.strength ? b : a));
+    lowest.strength = Math.min(MAX_STRENGTH, lowest.strength + weak);
+  }
+  return list;
 }
 
 // Set bonus: badges from one generation. Each generation with enough badges adds its best tier. → { pct, parts }
@@ -188,7 +194,7 @@ export function setBonus(ids, rules) {
 export function activeEffects(run, rules) {
   const out = {};
   const off = new Set(run.badges?.off ?? []); // effects you switched off in the badge case
-  for (const b of caseStrengths(run.badges?.slots ?? run.badges?.equipped ?? [], run.badges?.links ?? [])) {
+  for (const b of caseStrengths(run.badges?.slots ?? run.badges?.equipped ?? [], run.badges?.links ?? [], run.charFx?.["weak-badge"] ?? 0)) {
     if (off.has(b.id)) continue;
     const perk = perkOfBadge(rules, b.id);
     if (perk && EFFECTS[perk]) out[perk] = { strength: b.strength, param: EFFECTS[perk].param(b.strength), id: b.id };
@@ -210,7 +216,7 @@ export function battleBonus(run, rules) {
   const effects = {};
   const names = {}; // effect id → the badge's name, for the messages in battle
   // Every badge raises its own stat, whether or not its effect is switched on
-  for (const b of caseStrengths(slots, run.badges?.links ?? [])) {
+  for (const b of caseStrengths(slots, run.badges?.links ?? [], run.charFx?.["weak-badge"] ?? 0)) {
     const stat = statOfBadge(rules, b.id);
     if (stat) stats[stat] += badgeStatBoost(b.strength);
   }

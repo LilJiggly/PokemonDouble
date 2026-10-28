@@ -25,6 +25,7 @@ export const spriteKey = (img) => (img.getAttribute("src") ?? "").replace(/^(\.\
 
 const boxes = new Map(); // src → { left, right, top, bottom, width, height }
 const HOVER_PERCENT = 5;
+const GEN4_BACK_DROP = 7; // sprite px: Gen 4 back sprites stand a little lower, so their feet reach the textbox instead of floating above it
 const BASE_SIZE = 80; // Gen 4 sprites
 const CHARACTER_HEIGHT = 74; // visible height every player character is scaled to (Lucas ≈ 67 px, Gen 5 sprites ≈ 110 px)
 
@@ -84,6 +85,7 @@ export function alignSprite(img, { hover = false } = {}) {
     // Everything below is in sprite px: image top-left sits on the frame's top-left corner
     let dx = BASE_SIZE / 2 - ((box.left + box.right) / 2) * k;
     let dy = BASE_SIZE - box.bottom * k;
+    if (img.classList.contains("player") && !gen5Back && !character && src.includes("/back")) dy += GEN4_BACK_DROP;
     if (gen5Back) dy += settings.backSink * (box.bottom - box.top) * k;
     if (hover) dy -= BASE_SIZE * HOVER_PERCENT / 100;
     const nudge = offsets[spriteKey(img)];

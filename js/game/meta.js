@@ -22,8 +22,13 @@ export function loadMeta(storage = globalThis.localStorage) {
   }
 }
 
+// The browser build registers a listener (cloud save) that hears about every save
+let saveListener = null;
+export function onSave(fn) { saveListener = fn; }
+export function noteSave() { saveListener?.(); }
 export function saveMeta(meta, storage = globalThis.localStorage) {
   try { storage.setItem(META_KEY, JSON.stringify(meta)); } catch { /* storage blocked */ }
+  saveListener?.();
 }
 
 export function upgradeLevel(meta, id) {

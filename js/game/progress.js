@@ -42,6 +42,19 @@ export function noteBattleWon(meta, run, ctx, { turns = null } = {}) {
   const roots = new Set(run.team.map((m) => rootOf(ctx, m.species)));
   for (const root of roots) raise(meta.lineGym, root, order);
   for (const type of new Set(run.team.flatMap((m) => typesOf(ctx, m)))) raise(meta.typeGym, type, order);
+  // "Team: a, b, c" unlocks (Cynthia): the most of those species you had on the team at once in a won battle
+  const have = new Set(run.team.map((m) => m.species));
+  for (const rule of Object.values(ctx.rules?.characterUnlocks ?? {})) {
+    for (const alt of rule.alts) for (const c of alt) {
+      if (c.kind !== "team") continue;
+      const key = c.arg.join(",");
+      (meta.teamBest ??= {})[key] = Math.max(meta.teamBest[key] ?? 0, c.arg.filter((k) => have.has(k)).length);
+    }
+  }
+  if (run.team.length === 6) {
+    meta.fullTeam ??= {};
+    for (const type of typesOf(ctx, run.team[0])) if (run.team.every((m) => typesOf(ctx, m).includes(type))) meta.fullTeam[type] = true;
+  }
   if (order >= 1 && order <= 8 && turns !== null && turns <= 4) meta.quickWins = (meta.quickWins ?? 0) + 1;
   if (!run.fallen.length) meta.cleanGym = Math.max(meta.cleanGym ?? 0, order);
   for (const [region, lines] of Object.entries(STARTER_LINES)) {
@@ -61,6 +74,7 @@ export function noteRunEnd(meta, run, ctx) {
   const types = new Set(run.team.flatMap((m) => typesOf(ctx, m)));
   for (const type of types) bump(meta.typeWins, type);
   if (types.size >= 6) meta.diverseWins = (meta.diverseWins ?? 0) + 1;
+  if (run.playMs > 0) meta.fastestWin = Math.min(meta.fastestWin ?? Infinity, run.playMs);
   if (!run.fallen.length) {
     meta.cleanWins = (meta.cleanWins ?? 0) + 1;
     bump(meta.cleanWinGens, run.settings.gen);

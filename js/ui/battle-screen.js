@@ -63,7 +63,9 @@ export class BattleScreen {
     this.textbox = document.getElementById("textbox");
     this.textEl = document.getElementById("text");
     this.turnBadge = document.getElementById("turnBadge");
+    this.logLines = []; // everything said in this battle, for the Log button: { turn, text }
     // Reflect, Light Screen, Tailwind and Safeguard stay visible at the top while they are up
+    this.scene.querySelectorAll(".cond-tags").forEach((el) => el.remove()); // tags of the previous battle
     this.condTags = document.createElement("div");
     this.condTags.className = "cond-tags";
     this.scene.appendChild(this.condTags);
@@ -222,10 +224,11 @@ export class BattleScreen {
       for (const slot of [0, 1]) {
         const mon = this.battle.monAt(side.index, slot);
         if (mon && !mon.fainted) {
-          this.placeMon(side.index, slot, mon.teamIndex, mon.hp, mon.maxHp);
+          this.placeMon(side.index, slot, mon.teamIndex, mon.hp, mon.maxHp, mon.volatile?.illusion ?? null);
           this.view[posKey(side.index, slot)].status = mon.status;
           const away = { air: "away-air", underground: "away-ground", underwater: "away-water", vanished: "away-ghost" }[mon.volatile?.charging?.invulnerable];
           if (away) this.sprite(side.index, slot).classList.add(away); // resumed in the middle of a Fly / Dig
+          if (mon.volatile?.substitute) { const img = this.sprite(side.index, slot); img.src = this.dollUrl(side.index); alignSprite(img); } // resumed behind a Substitute
           this.drawHpbox(side.index, slot);
         }
       }
@@ -236,21 +239,30 @@ export class BattleScreen {
 
   monData(side, teamIndex) { return this.battle.state.sides[side].team[teamIndex]; }
 
-  spriteUrl(mon, side) {
-    const species = this.data.pokemonByKey[mon.species];
-    const s = species.sprites;
-    if (side === PLAYER) return mon.shiny ? s.backShiny : s.back;
-    return mon.shiny ? s.frontShiny : s.front;
+  // The Substitute doll, in the sprite style that is picked (front for the foe, back for your side)
+  dollUrl(side) {
+    const mode = this.data.spriteMode;
+    const dir = mode === "gen5-ani" ? "gen5-ani" : mode === "gen4" ? "gen4" : "gen5";
+    return `images/sprites/${dir}/${side === PLAYER ? "back" : "front"}/substitute.${mode === "gen5-ani" ? "gif" : "png"}`;
   }
 
-  placeMon(side, slot, teamIndex, hp, maxHp) {
+  spriteUrl(mon, side) {
+    const shown = mon.shown ?? mon; // Illusion: the sprite of the Pokémon it pretends to be
+    const species = this.data.pokemonByKey[shown.species];
+    const s = species.sprites;
+    if (side === PLAYER) return shown.shiny ? s.backShiny : s.back;
+    return shown.shiny ? s.frontShiny : s.front;
+  }
+
+  // shown: { species, name, shiny } when an Illusion disguise is up
+  placeMon(side, slot, teamIndex, hp, maxHp, shown = null) {
     const mon = this.monData(side, teamIndex);
-    this.view[posKey(side, slot)] = { teamIndex, hp, maxHp, status: mon.status };
+    this.view[posKey(side, slot)] = { teamIndex, hp, maxHp, status: mon.status, shown };
     const img = this.sprite(side, slot);
     img.className = `sprite ${side === PLAYER ? "player" : "foe"} s${slot} visible`;
-    img.src = this.spriteUrl(mon, side);
-    img.alt = mon.name;
-    const species = this.data.pokemonByKey[mon.species];
+    img.src = this.spriteUrl({ ...mon, shown }, side);
+    img.alt = (shown ?? mon).name;
+    const species = this.data.pokemonByKey[(shown ?? mon).species];
     alignSprite(img, { hover: hovers(species) });
     this.drawHpbox(side, slot);
     this.hpbox(side, slot).classList.add("visible");
@@ -264,7 +276,7 @@ export class BattleScreen {
     const gender = mon.gender ? `<span class="gender ${mon.gender}">${mon.gender === "M" ? "♂" : "♀"}</span>` : "";
     box.innerHTML = `
       <div class="row">
-        <span class="name">${mon.name}${gender}</span>
+        <span class="name">${(v.shown ?? mon).name}${gender}</span>
         <span class="level">Lv${mon.level}</span>
       </div>
       <div class="bar-row">
@@ -353,6 +365,7 @@ export class BattleScreen {
   // Type out a message; click / Enter skips ahead
   say(text) {
     if (!text) return Promise.resolve();
+    this.logLines.push({ turn: this.battle.state.turn, text });
     const { char, hold } = TEXT_SPEED[this.speed];
     return new Promise((resolve) => {
       let i = 0;
@@ -400,7 +413,7 @@ export class BattleScreen {
         this.renderConds();
         return e.text ? this.say(e.text) : undefined;
       case "switch":
-        this.placeMon(e.side, e.slot, e.teamIndex, e.hp, e.maxHp);
+        this.placeMon(e.side, e.slot, e.teamIndex, e.hp, e.maxHp, e.disguised ? { species: e.species, name: e.name, shiny: e.shiny } : null);
         await this.animateSprite(e.side, e.slot, "enter", 450);
         return this.say(e.text);
       case "swapPlaces": {
@@ -426,6 +439,30 @@ export class BattleScreen {
         img.src = e.side === PLAYER ? (e.shiny ? sprites.backShiny : sprites.back) : (e.shiny ? sprites.frontShiny : sprites.front);
         alignSprite(img, { hover: hovers(this.data.pokemonByKey[e.species]) });
         return this.say(e.text);
+      }
+      case "illusionBreak": {
+        // The disguise drops: the real Pokémon, its name and its sprite
+        const img = this.sprite(e.side, e.slot);
+        const v = this.view[posKey(e.side, e.slot)];
+        if (img && v) {
+          const mon = this.monData(e.side, v.teamIndex);
+          v.shown = null;
+          img.src = this.spriteUrl(mon, e.side);
+          alignSprite(img, { hover: hovers(this.data.pokemonByKey[mon.species]) });
+          this.drawHpbox(e.side, e.slot);
+        }
+        return e.text ? this.say(e.text) : undefined;
+      }
+      case "doll": {
+        // Substitute: the Pokémon steps aside and a doll stands in its place until it breaks
+        const img = this.sprite(e.side, e.slot);
+        const v = this.view[posKey(e.side, e.slot)];
+        if (!img || !v) return;
+        const mon = this.monData(e.side, v.teamIndex);
+        img.src = e.on ? this.dollUrl(e.side) : this.spriteUrl(mon, e.side);
+        alignSprite(img, { hover: e.on ? false : hovers(this.data.pokemonByKey[mon.species]) });
+        if (e.on) this.animateSprite(e.side, e.slot, "enter", 450);
+        return;
       }
       case "switchOut":
         await this.say(e.text);
@@ -503,7 +540,32 @@ export class BattleScreen {
   }
 
   showWaiting() {
-    this.setMenu(`<div class="panel result"></div>`);
+    const menu = this.setMenu(`<div class="panel result"><button class="btn small log-btn" data-cmd="log">Log</button></div>`);
+    menu.onclick = (ev) => { if (ev.target.closest("[data-cmd=log]")) this.showLog(); };
+  }
+
+  // Everything that was said so far, in a window with a fixed height that scrolls (the newest line at the bottom)
+  showLog() {
+    if (document.querySelector(".battle-log")) return;
+    const byTurn = [];
+    for (const l of this.logLines) {
+      if (!byTurn.length || byTurn[byTurn.length - 1].turn !== l.turn) byTurn.push({ turn: l.turn, lines: [] });
+      byTurn[byTurn.length - 1].lines.push(l.text);
+    }
+    const esc = (t) => String(t).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+    const backdrop = document.createElement("div");
+    backdrop.className = "modal-backdrop battle-log";
+    backdrop.innerHTML = `<div class="modal" role="dialog" aria-label="Battle log">
+      <div class="modal-head"><h2>Battle log</h2></div>
+      <div class="modal-body log-body">${byTurn.length ? byTurn.map((g) => `<h3>Turn ${g.turn}</h3>${g.lines.map((t) => `<p>${esc(t)}</p>`).join("")}`).join("") : `<p class="empty-note">Nothing yet.</p>`}</div>
+      <div class="modal-foot"><button class="btn" data-close>Close</button></div></div>`;
+    const close = () => { backdrop.remove(); document.removeEventListener("keydown", onKey); };
+    const onKey = (e) => { if (e.key === "Escape") close(); };
+    backdrop.onclick = (e) => { if (e.target === backdrop || e.target.closest("[data-close]")) close(); };
+    document.addEventListener("keydown", onKey);
+    document.body.appendChild(backdrop);
+    const body = backdrop.querySelector(".log-body");
+    body.scrollTop = body.scrollHeight;
   }
 
   // Ask each of the player's active Pokémon what to do (with Back between them)
@@ -549,18 +611,20 @@ export class BattleScreen {
         <div class="menu-footer">
           <button class="btn" data-cmd="back" ${canGoBack ? "" : "disabled"}>◀ Back</button>
           <button class="btn" data-cmd="speed">Text: ${this.speed === "fast" ? "Fast" : "Normal"}</button>
+          <button class="btn" data-cmd="log">Log</button>
         </div>`);
       menu.onclick = async (ev) => {
         const cmd = ev.target.closest("button")?.dataset.cmd;
         if (!cmd) return;
         if (cmd === "back") resolve("back");
+        if (cmd === "log") { this.showLog(); return; }
         if (cmd === "speed") {
           this.speed = this.speed === "fast" ? "normal" : "fast";
           localStorage.setItem("pd.textSpeed", this.speed);
           resolve(await this.commandMenu(slotReq, canGoBack, takenSwitches, reserved));
         }
         if (cmd === "fight") {
-          const r = await this.moveMenu(slotReq, mon);
+          const r = await this.moveMenu(slotReq, mon, takenSwitches);
           resolve(r === "back" ? await this.commandMenu(slotReq, canGoBack, takenSwitches, reserved) : r);
         }
         if (cmd === "bag") {
@@ -578,7 +642,7 @@ export class BattleScreen {
     });
   }
 
-  moveMenu(slotReq, mon) {
+  moveMenu(slotReq, mon, takenSwitches) {
     return new Promise((resolve) => {
       if (slotReq.struggle) {
         resolve({ slot: slotReq.slot, type: "move", move: 0 });
@@ -592,7 +656,7 @@ export class BattleScreen {
           <span class="move-name">${m.name}</span>
           <span class="move-meta">
             <span class="type-pill">${m.type}</span>
-            <span class="cat-pill ${data.category}">${categoryIcon(data.category)}${CATEGORY_LABEL[data.category]}</span>
+            <span class="cat-pill ${data.category}">${categoryIcon(data.category)}</span>
             <span>PP ${m.pp}/${m.maxPp}</span>
           </span>
           <span class="move-power">${data.power ? `Pow ${data.power}` : "—"} · ${data.accuracy ? `Acc ${data.accuracy}` : "Acc —"}${targetIcon(data.target, data)}</span>
@@ -607,7 +671,7 @@ export class BattleScreen {
         const m = slotReq.moves[index];
         const data = { ...this.data.moves[m.id], ...(m.power != null ? { power: m.power } : {}) };
         info.innerHTML = `
-          <div class="move-info-head"><b>${data.name}</b> <span class="cat-pill ${data.category}">${categoryIcon(data.category)}${CATEGORY_LABEL[data.category]}</span>
+          <div class="move-info-head"><b>${data.name}</b> <span class="cat-pill ${data.category}">${categoryIcon(data.category)}</span>
             <span class="move-info-stats">${moveStats(data, { withCategory: false })}</span></div>
           <div class="move-info-effect" title="${data.shortEffect}">${data.shortEffect || "No extra effect."}</div>
           <div class="move-info-target">${targetIcon(data.target, data)} Hits: ${TARGET_LABEL[data.target] ?? data.target}</div>`;
@@ -627,10 +691,21 @@ export class BattleScreen {
         const move = slotReq.moves[index];
         const self = this.battle.monAt(PLAYER, slotReq.slot);
         const targets = this.battle.targetOptions(self, move.id);
-        if (!targets.length) { resolve({ slot: slotReq.slot, type: "move", move: index }); return; }
-        if (targets.length === 1) { resolve({ slot: slotReq.slot, type: "move", move: index, target: targets[0] }); return; }
-        const target = await this.targetMenu(move, targets);
-        resolve(target === null ? await this.moveMenu(slotReq, mon) : { slot: slotReq.slot, type: "move", move: index, target });
+        // Pivot moves: the player picks who comes in
+        const benchOptions = ["u-turn", "volt-switch", "baton-pass"].includes(move.id)
+          ? slotReq.switchOptions.filter((t) => !(takenSwitches ?? []).includes(t)) : [];
+        const choice = { slot: slotReq.slot, type: "move", move: index };
+        if (targets.length > 1) {
+          const target = await this.targetMenu(move, targets);
+          if (target === null) { resolve(await this.moveMenu(slotReq, mon, takenSwitches)); return; }
+          choice.target = target;
+        } else if (targets.length === 1) choice.target = targets[0];
+        if (benchOptions.length > 1) {
+          const pivot = await this.partyMenu({ title: "Who comes in?", options: benchOptions, canCancel: true });
+          if (pivot === null) { resolve(await this.moveMenu(slotReq, mon, takenSwitches)); return; }
+          choice.pivot = pivot;
+        }
+        resolve(choice);
       };
       menu.querySelector(".move-btn:not(:disabled)")?.focus();
     });

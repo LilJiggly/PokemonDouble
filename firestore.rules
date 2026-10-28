@@ -1,0 +1,25 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Your private save: only you can read or write it
+    match /users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Your public leaderboard line: everyone can read, only you can write it
+    match /players/{uid} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['name', 'wins', 'best', 'cleanWins', 'trainers', 'badges', 'used', 'updatedAt'])
+        && request.resource.data.name is string && request.resource.data.name.size() <= 20
+        && request.resource.data.wins is int && request.resource.data.wins >= 0 && request.resource.data.wins <= 10000
+        && request.resource.data.best is int && request.resource.data.best >= 0 && request.resource.data.best <= 14
+        && request.resource.data.cleanWins is int && request.resource.data.cleanWins >= 0
+        && request.resource.data.cleanWins <= request.resource.data.wins
+        && request.resource.data.trainers is int && request.resource.data.trainers >= 0 && request.resource.data.trainers <= 60
+        && request.resource.data.badges is int && request.resource.data.badges >= 0 && request.resource.data.badges <= 40
+        && request.resource.data.used is map && request.resource.data.used.size() <= 700;
+    }
+  }
+}

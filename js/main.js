@@ -7,11 +7,13 @@
 
 import { loadData } from "./engine/data.js";
 import { setCharacters } from "./game/characters.js";
-import { loadMeta } from "./game/meta.js";
+import { loadMeta, onSave } from "./game/meta.js";
+import { initCloud, noteLocalSave } from "./game/cloud.js";
 import { applySpriteMode } from "./game/sprite-mode.js";
 import { watchSpriteFit } from "./ui/sprite-fit.js";
 import { setSpriteOffsets } from "./ui/sprite-align.js";
 import { parseRules } from "./game/rules.js";
+import { setFriendshipSpecies } from "./game/unlocks.js";
 import { Pokedex } from "./game/pokedex.js";
 import { RunUI } from "./ui/run-screens.js";
 import { DevTools } from "./ui/dev-tools.js";
@@ -42,8 +44,11 @@ async function boot() {
     tms,
     leaders: Object.fromEntries(leaderFiles.map((f) => [f.gen, f])),
   };
+  setFriendshipSpecies(Object.entries(ctx.dex.evolvesFrom).filter(([, e]) => e.method.kind === "friendship").map(([k]) => k));
   // The debug panel (press L) can bring you back to the screen you were on
   new DevTools(new RunUI(ctx), ctx).boot();
+  onSave(noteLocalSave); // cloud save: copies every save to Firestore when signed in (see js/firebase-config.js)
+  initCloud();
 }
 
 boot().catch((err) => {

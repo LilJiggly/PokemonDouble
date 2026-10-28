@@ -115,8 +115,7 @@ export class Battle {
       healthy.forEach((m, slot) => {
         side.active[slot] = m.teamIndex;
         this.onEnterField(m);
-        this.log({ t: "switch", ...this.ref(m), species: m.species, name: m.name, hp: m.hp, maxHp: m.maxHp,
-          text: side.isPlayer ? `Go! ${m.name}!` : `${side.name} sent out ${m.name}!` });
+        this.sendOutLog(m);
       });
     }
     for (const m of this.bySpeed(this.activeMons())) this.runSwitchInAbility(m);
@@ -188,7 +187,8 @@ export class Battle {
 
   // "Larvitar" for the player, "the foe's Larvitar" for the opponent
   name(mon, start = false) {
-    const n = this.state.sides[mon.side].isPlayer ? mon.name : `the foe's ${mon.name}`;
+    const shown = mon.volatile?.illusion?.name ?? mon.name; // Illusion: the Pokémon it pretends to be
+    const n = this.state.sides[mon.side].isPlayer ? shown : `the foe's ${shown}`;
     return start ? capitalize(n) : n;
   }
 
@@ -549,7 +549,7 @@ export class Battle {
     }
     // Prankster: status moves go first
     const prank = mon.ability === "prankster" && !mon.volatile.abilitySuppressed && this.move(moveId).category === "status" ? 1 : 0;
-    return { type: "move", mon, slot, moveId, target: choice.target ?? null, priority: this.move(moveId).priority + prank };
+    return { type: "move", mon, slot, moveId, target: choice.target ?? null, pivot: choice.pivot ?? null, priority: this.move(moveId).priority + prank };
   }
 
   // After the turn: who needs replacing?
@@ -648,7 +648,7 @@ export class Battle {
     const active = this.isActive(target);
     let did = false;
     if (effect.heal && target.hp < target.maxHp) {
-      const amount = effect.heal === "full" ? target.maxHp : effect.heal;
+      const amount = effect.heal === "full" ? target.maxHp : effect.heal + this.bfx(sideIndex, "potion"); // trainer perk (Cheryl)
       const healed = Math.min(amount, target.maxHp - target.hp);
       target.hp += healed;
       this.log({ t: "heal", ...this.ref(target), hp: target.hp, maxHp: target.maxHp, amount: healed, bench: !active,
@@ -742,8 +742,7 @@ export class Battle {
       side.healingWish = false;
       this.msg(`The healing wish came true for ${this.name(mon)}!`);
     }
-    this.log({ t: "switch", ...this.ref(mon), species: mon.species, name: mon.name, hp: mon.hp, maxHp: mon.maxHp,
-      text: side.isPlayer ? `Go! ${mon.name}!` : `${side.name} sent out ${mon.name}!` });
+    this.sendOutLog(mon);
     return mon;
   }
 
@@ -828,6 +827,25 @@ export class Battle {
   // ===============================
 
   // Damage from a move hit. Returns damage dealt.
+  // "Go! X!" (with the Illusion disguise when it has one: Zoroark looks like the last Pokémon in the team that is still standing)
+  sendOutLog(mon) {
+    const side = this.state.sides[mon.side];
+    if (mon.ability === "illusion") {
+      const fake = [...side.team].reverse().find((m) => m !== mon && !m.fainted);
+      if (fake) mon.volatile.illusion = { species: fake.species, name: fake.name, shiny: fake.shiny };
+    }
+    const shown = mon.volatile.illusion ?? mon;
+    this.log({ t: "switch", ...this.ref(mon), species: shown.species, name: shown.name, shiny: shown.shiny, disguised: !!mon.volatile.illusion, hp: mon.hp, maxHp: mon.maxHp,
+      text: side.isPlayer ? `Go! ${shown.name}!` : `${side.name} sent out ${shown.name}!` });
+  }
+
+  // Illusion ends when its owner is hit by a move
+  breakIllusion(mon) {
+    if (!mon.volatile?.illusion) return;
+    delete mon.volatile.illusion;
+    this.log({ t: "illusionBreak", ...this.ref(mon), species: mon.species, name: mon.name, text: `${mon.name}'s Illusion wore off!` });
+  }
+
   applyMoveDamage(target, amount) {
     amount = Math.max(0, Math.min(amount, target.hp));
     target.hp -= amount;
@@ -872,6 +890,7 @@ export class Battle {
   faint(mon) {
     if (mon.fainted) return;
     this.state.sides[mon.side].lastFaintTurn = this.state.turn;
+    if (mon.volatile?.illusion) { delete mon.volatile.illusion; this.log({ t: "illusionBreak", ...this.ref(mon), species: mon.species, name: mon.name, text: "" }); }
     mon.hp = 0;
     mon.fainted = true;
     this.log({ t: "faint", ...this.ref(mon), text: `${this.name(mon, true)} fainted!` });
@@ -924,6 +943,8 @@ export class Battle {
     if (blocked) return fail(`${this.name(target, true)}'s ${this.data.abilities[ab].name} prevents it!`);
 
     target.status = status;
+    // Falling asleep or freezing ends a rampage (Petal Dance, Outrage…) or Rollout right away, so you get to choose again
+    if (status === "slp" || status === "frz") { delete target.volatile.rampage; delete target.volatile.rollout; }
     if (status === "slp") {
       target.statusTurns = randomInt(this.state, 2, 4); // can't move for 1–3 turns (Gen 5 rule)
       if (ab === "early-bird") target.statusTurns = Math.max(2, Math.ceil(target.statusTurns / 2)); // still loses its next turn
@@ -1159,6 +1180,7 @@ export class Battle {
     if (user.volatile.helpingHand) p *= 1.5;
     if (TYPE_BOOST_ITEMS[item] === type) p *= 1.2;
     for (const [id, types] of Object.entries(TYPE_BOOST_BADGES)) if (types.includes(type)) p *= 1 + this.bfx(user.side, id); // Sunbringer, Sand Caller, Cold Snap badges
+    p *= 1 + this.bfx(user.side, `power-${type}`); // trainer perks (Chili, Cilan, Cress): +5% for one type
     if (item === "muscle-band" && move.category === "physical") p *= 1.1;
     if (item === "wise-glasses" && move.category === "special") p *= 1.1;
     if (item === "adamant-orb" && user.species === "dialga" && (type === "dragon" || type === "steel")) p *= 1.2;
@@ -1306,7 +1328,9 @@ export class Battle {
       if (v.rampage) delete v.rampage;
       return;
     }
+    user.volatile.pivotTo = action.pivot ?? null;
     this.useMove(user, action.moveId, action.target, { fromChoice: !action.forced });
+    if (user.volatile) delete user.volatile.pivotTo;
   }
 
   // Sleep, freeze, flinch, confusion, paralysis… Returns false if the Pokémon can't act.
@@ -1847,7 +1871,7 @@ export class Battle {
     if (user.ability === "hustle" && move.category === "physical") a *= 0.8;
     const item = this.item(user);
     if (item === "wide-lens") a *= 1.1;
-    a *= 1 + this.bfx(user.side, "accuracy") - this.bfx(target.side, "dodge");
+    a *= 1 + this.bfx(user.side, "accuracy") - this.bfx(target.side, "dodge") + this.bfx(user.side, `acc-${this.moveType(user, move)}`); // trainer perk (Buck): Fighting moves
     if (item === "zoom-lens" && target.volatile.moved) a *= 1.2;
     if (tab === "sand-veil" && w === "sand") a *= 0.8;
     if (tab === "snow-cloak" && w === "hail") a *= 0.8;
@@ -1978,6 +2002,7 @@ export class Battle {
           this.log({ t: "substitute", ...this.ref(target), text: "The substitute took damage for it!" });
           if (target.volatile.substitute <= 0) {
             delete target.volatile.substitute;
+            this.log({ t: "doll", ...this.ref(target), on: false, text: "" });
             this.msg(`${this.name(target, true)}'s substitute faded!`);
           }
           dealtToTarget += taken;
@@ -2012,6 +2037,7 @@ export class Battle {
         if (dealt > 0 && !user.fainted && this.bfx(user.side, "vampire")) this.heal(user, Math.max(1, Math.floor(dealt * this.bfx(user.side, "vampire"))), `${this.name(user, true)} drained some HP!`);
         dealtToTarget += dealt;
         hitsLanded++;
+        if (dealt > 0 && target.hp > 0) this.breakIllusion(target);
         target.volatile.hurtThisTurn = true;
         target.volatile.lastHitType = type;
         target.volatile.lastDamage = { amount: dealt, category: move.category, by: this.monKey(user), side: user.side, slot: this.slotOf(user) };
@@ -2377,7 +2403,8 @@ export class Battle {
   autoSwitch(user, { batonPass = false } = {}) {
     const bench = this.bench(user.side);
     if (!bench.length) return false;
-    return this.doSwitch(user.side, this.slotOf(user), bench[0].teamIndex, { batonPass });
+    const wanted = bench.find((m) => m.teamIndex === user.volatile?.pivotTo);
+    return this.doSwitch(user.side, this.slotOf(user), (wanted ?? bench[0]).teamIndex, { batonPass });
   }
 
   // ===============================
@@ -2687,6 +2714,7 @@ const STATUS_MOVES = {
     user.hp -= cost;
     user.volatile.substitute = cost;
     this.log({ t: "damage", ...this.ref(user), hp: user.hp, maxHp: user.maxHp, amount: cost, indirect: true, text: `${this.name(user, true)} made a substitute!` });
+    this.log({ t: "doll", ...this.ref(user), on: true, text: "" });
   },
   taunt(user, move, targets) {
     const t = targets[0];

@@ -24,6 +24,11 @@
 //   Quick wins: 3            win gym battles in 4 turns or fewer, 3 times
 //   Berries: 30 / Items: 25  give 30 berries / 25 held items to your Pokémon in total
 //   Diverse win              reach the Hall of Fame with six different types on the team
+//   Full team: dragon        win a battle with a team of six Pokémon of that type
+//   Win all gens             reach the Hall of Fame in every Challenge Gen (1–5)
+//   Fast win: 60             reach the Hall of Fame within 60 minutes of play time
+//   Team: a, b, c            win a battle with all of those exact species on the team together
+//   Friendship: 5            recruit 5 different Pokémon that evolved by friendship (Crobat, Blissey, Lucario…)
 // Progress comes from the meta save (see progress.js). Trainers are granted by grantUnlocks(): at most
 // 2 per run, so unlocking feels like an event.
 // =====================================================
@@ -33,6 +38,9 @@ import { readTable } from "./design-tables.js";
 const clean = (s) => String(s ?? "").replace(/[`*_]/g, "").trim();
 
 export const MAX_UNLOCKS_PER_RUN = 2;
+
+// Trainers whose unlock stays secret in the picker until you have them (everyone else shows how to unlock them)
+export const HIDDEN_TRAINERS = new Set(["lance", "steven", "red-e", "silver"]);
 
 // One clause of a rule → { kind, n, arg }
 const CLAUSES = [
@@ -57,7 +65,16 @@ const CLAUSES = [
   [/^berries:?\s*(\d+)$/i, (m) => ({ kind: "berries", n: +m[1] })],
   [/^items:?\s*(\d+)$/i, (m) => ({ kind: "items", n: +m[1] })],
   [/^diverse win$/i, () => ({ kind: "diverse", n: 1 })],
+  [/^full team:?\s*(\w+)$/i, (m) => ({ kind: "fullTeam", n: 1, arg: m[1].toLowerCase() })],
+  [/^win all gens$/i, () => ({ kind: "winAll", n: 5 })],
+  [/^fast win:?\s*(\d+)$/i, (m) => ({ kind: "fast", n: +m[1] })],
+  [/^friendship:?\s*(\d+)$/i, (m) => ({ kind: "friendly", n: +m[1] })],
+  [/^team:?\s*([\w, -]+)$/i, (m) => { const arg = m[1].split(",").map((x) => x.trim().toLowerCase()).filter(Boolean); return { kind: "team", n: arg.length, arg }; }],
 ];
+
+// Species that evolve by friendship (set at start up from the Pokédex): recruiting them counts for "Friendship: N"
+let friendshipSpecies = new Set();
+export function setFriendshipSpecies(list) { friendshipSpecies = new Set(list); }
 
 export function parseClause(text) {
   const t = clean(text);
@@ -115,6 +132,11 @@ export function clauseProgress(meta, c) {
     case "berries": return { have: meta.berries ?? 0, need: c.n };
     case "items": return { have: meta.items ?? 0, need: c.n };
     case "diverse": return { have: meta.diverseWins ?? 0, need: 1 };
+    case "fullTeam": return { have: meta.fullTeam?.[c.arg] ? 1 : 0, need: 1 };
+    case "winAll": return { have: [1, 2, 3, 4, 5].filter((g) => count(meta.winGens, g) > 0).length, need: 5 };
+    case "fast": return { have: (meta.fastestWin ?? Infinity) <= c.n * 60000 ? 1 : 0, need: 1 };
+    case "team": return { have: Math.min(c.n, meta.teamBest?.[c.arg.join(",")] ?? 0), need: c.n };
+    case "friendly": return { have: (meta.species ?? []).filter((k) => friendshipSpecies.has(k)).length, need: c.n };
     default: return { have: 1, need: 1 };
   }
 }
@@ -163,25 +185,30 @@ const nice = (s) => String(s ?? "").replace(/-/g, " ").replace(/^./, (x) => x.to
 export function clauseText(c) {
   switch (c.kind) {
     case "runs": return `Finish ${c.n} runs`;
-    case "wins": return c.n === 1 ? "Reach the Hall of Fame" : `Reach the Hall of Fame ${c.n} times`;
-    case "winGen": return `Reach the Hall of Fame in Gen ${c.n}`;
+    case "wins": return c.n === 1 ? "Win a run" : `Win ${c.n} runs`;
+    case "winGen": return `Win Gen ${c.n}`;
     case "beat": return `Beat battle #${c.n}`;
     case "tp": return `Earn ${c.n} Trainer Points`;
-    case "lineWin": return `Win a run with a ${nice(c.arg)} line Pokémon`;
-    case "lineGym": return `Beat battle #${c.n} with a ${nice(c.arg)} line Pokémon`;
-    case "linePicks": return `Pick ${nice(c.arg)} at the starter draft ${c.n} times`;
-    case "starters": return `Have all three ${nice(c.arg)} starter lines on one team`;
-    case "typeWin": return `Win a run with a ${nice(c.arg)}-type Pokémon`;
-    case "typeGym": return `Beat battle #${c.n} with a ${nice(c.arg)}-type Pokémon`;
+    case "lineWin": return `Win with a ${nice(c.arg)} line Pokémon`;
+    case "lineGym": return `Beat battle #${c.n} with a ${nice(c.arg)} line`;
+    case "linePicks": return `Draft ${nice(c.arg)} ${c.n} times`;
+    case "starters": return `All 3 ${nice(c.arg)} starters on one team`;
+    case "typeWin": return `Win with a ${nice(c.arg)}-type`;
+    case "typeGym": return `Beat battle #${c.n} with a ${nice(c.arg)}-type`;
     case "species": return `Recruit ${c.n} different Pokémon`;
     case "badges": return `Own ${c.n} badges`;
-    case "cleanWin": return "Win a run without losing a Pokémon";
-    case "cleanWinGen": return `Win Gen ${c.arg} without losing a Pokémon`;
-    case "cleanGym": return `Beat battle #${c.n} without losing a Pokémon`;
-    case "quick": return `Win ${c.n} gym battles in 4 turns or fewer`;
-    case "berries": return `Give ${c.n} berries to your Pokémon`;
-    case "items": return `Give ${c.n} held items to your Pokémon`;
-    case "diverse": return "Win a run with six different types on the team";
+    case "cleanWin": return "Win without losing a Pokémon";
+    case "cleanWinGen": return `Win Gen ${c.arg} with no losses`;
+    case "cleanGym": return `Beat battle #${c.n} with no losses`;
+    case "quick": return `Win ${c.n} gyms in 4 turns or less`;
+    case "berries": return `Give out ${c.n} berries`;
+    case "items": return `Give out ${c.n} held items`;
+    case "diverse": return "Win with 6 different types";
+    case "fullTeam": return `Win a battle with 6 ${nice(c.arg)}-types`;
+    case "winAll": return "Win every generation";
+    case "fast": return `Win a run in ${c.n} minutes`;
+    case "team": return `Win a battle with all ${c.n} of these Pokémon`;
+    case "friendly": return `Recruit ${c.n} friendship evolutions`;
     default: return "";
   }
 }

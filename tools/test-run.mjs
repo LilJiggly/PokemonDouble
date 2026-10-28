@@ -10,11 +10,15 @@ import { prepareData } from "../js/engine/data.js";
 import { parseRules } from "../js/game/rules.js";
 import { Pokedex } from "../js/game/pokedex.js";
 import * as Run from "../js/game/run.js";
+import { Battle } from "../js/engine/battle.js";
+import { ITEMS, pocketOf } from "../js/game/item-catalog.js";
 import { SLOT_UNLOCKS, slotUnlocked, unlockedSlotCount, badgeStatBoost, statOfBadge, unlockBadge, placeBadge, removeBadge, caseOf, caseStrengths, randomZones, validZones, badgeName, setBonus, battleBonus, perkInfo, perkOfBadge, ALL_BADGES } from "../js/game/badges.js";
 import { emptyMeta, recordRun } from "../js/game/meta.js";
-import { grantUnlocks, isUnlocked, meetsRule, unlockText, nextHint, parseRule } from "../js/game/unlocks.js";
+import { grantUnlocks, isUnlocked, meetsRule, unlockText, nextHint, parseRule, setFriendshipSpecies } from "../js/game/unlocks.js";
 import { levelUpMovesAt } from "../js/game/recruit.js";
 import { noteBattleWon } from "../js/game/progress.js";
+import { rankOf, rankScore } from "../js/game/ranks.js";
+import { mergeSaves } from "../js/game/cloud.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const readJson = async (p) => JSON.parse(await fs.readFile(path.join(ROOT, p), "utf8"));
@@ -162,8 +166,9 @@ const CHARS = (await readJson("data/characters.json")).map((c) => ({ id: c.id, n
 const unlockRules = ctx.rules.characterUnlocks;
 test("Rules parse: Start, or / and, line and starter clauses", () => {
   assert(unlockRules.ethan.start && !unlockRules.wally.start, "start flags");
-  eq(unlockRules.wally.alts.length, 3, "Wally has three ways");
-  eq(unlockRules["red-e"].alts[0].length, 2, "Red (Battle Frontier) needs both");
+  const sample = { alts: parseRule("Wins: 3 and Starters: kanto or Line picks 3: ralts") };
+  eq(sample.alts.length, 2, "'or' makes two ways");
+  eq(sample.alts[0].length, 2, "'and' needs both");
   assert(unlockText(unlockRules.wally).includes("Ralts"), "readable text");
   eq(parseRule("Line gym 4: ralts")[0][0].n, 4, "gym number");
 });
@@ -174,12 +179,13 @@ test("Conditions use the right counters", () => {
   assert(meetsRule(m, unlockRules.wally), "a Ralts-line win unlocks Wally");
   const m2 = emptyMeta();
   m2.picks = { ralts: 3 };
-  assert(meetsRule(m2, unlockRules.wally), "picking Ralts 3 times also does");
+  const sample = { alts: parseRule("Wins: 3 and Starters: kanto or Line picks 3: ralts") };
+  assert(meetsRule(m2, sample), "picking Ralts 3 times is the second way");
   const m3 = emptyMeta();
   m3.wins = 3;
-  assert(!meetsRule(m3, unlockRules["red-e"]), "needs the Kanto starters as well");
+  assert(!meetsRule(m3, sample), "needs the Kanto starters as well");
   m3.starters = { kanto: true };
-  assert(meetsRule(m3, unlockRules["red-e"]), "both clauses met");
+  assert(meetsRule(m3, sample), "both clauses met");
 });
 test("At most 2 trainers are granted at a time; the rest wait", () => {
   const m = emptyMeta();
@@ -266,6 +272,131 @@ test("Case slots open up as you own more badges", () => {
   assert(placeBadge(m, "1-4", 3), "now slot 4 takes a badge");
   m.badgeCase = ["1-1", "1-2", "1-3", "1-4", null, null, null, "1-4"]; // a badge saved in a slot that is not open is ignored
   eq(caseOf(m)[7], null, "locked slots stay empty");
+});
+
+test("Ranks: everyone starts at Z and climbs; saves combine without losing progress", () => {
+  eq(rankOf(rankScore({})).letter, "Z", "new players are Z");
+  assert(rankOf(rankScore({ best: 14, wins: 1 })).letter < "Z", "a first win climbs");
+  eq(rankOf(rankScore({ best: 14, wins: 30, cleanWins: 20 })).letter, "A", "a long career reaches A");
+  const m = mergeSaves({ meta: { runs: 2, wins: 1, best: 9, badges: ["1-1"], upgrades: { scout: 1 } }, hof: [], run: null },
+    { meta: { runs: 4, wins: 2, best: 14, badges: ["1-2"], upgrades: { scout: 2 } }, hof: [], run: null });
+  eq(m.meta.runs, 6, "runs add up");
+  eq(m.meta.best, 14, "best keeps the higher");
+  eq(m.meta.badges.length, 2, "badges are joined");
+  eq(m.meta.upgrades.scout, 2, "upgrades keep the higher level");
+});
+
+test("Trainer perks: start items, extra cards, shop discounts, shiny odds, battle effects", () => {
+  const mk = (character, seed = 11) => Run.newRun(ctx, { gen: 1, pools: [1, 2, 3, 4, 5], seed, character });
+  const base = mk("lucas");
+  eq(mk("red-e").perks.gift, 1, "Red (Battle Frontier): one extra item pick");
+  eq(mk("steven").bag["metal-coat"], 1, "Steven: Metal Coat");
+  eq(mk("hilbert").offer.options.length, base.offer.options.length + 1, "Hilbert: one extra starter card");
+  eq(mk("red-gb").offer.options.length, base.offer.options.length + 1, "Red (R/B): one extra Kanto starter card");
+  eq(mk("mira").perks.scout, 1, "Mira: one extra recruit card");
+  eq(mk("hugh").charFx.prize, 10, "Hugh: +10% prize money");
+  eq(mk("dawn").perks.dice, 1, "Dawn: one extra reroll");
+  eq(mk("red-e").charFx.stat.all, 5, "Red (Battle Frontier): +5% to all stats");
+  eq(mk("barry").bag["quick-claw"], 1, "Barry: Quick Claw");
+  eq(mk("chili").charFx.power.fire, 5, "Chili: Fire moves 5% harder");
+  const may = mk("may-rs");
+  const berry = Object.keys(ITEMS).find((id) => pocketOf(id) === "berries");
+  assert(may.charFx.discount.berry === 50 && berry, "May (R/S): berries half price");
+  // In battle: Fire moves hit harder with the perk, Potions heal more
+  const fx = { stats: {}, names: {}, effects: { "power-fire": 0.05, potion: 20 } };
+  const mkBattle = (badge) => Battle.create(ctx.data, { seed: 3, sides: [{ name: "P", isPlayer: true, team: [{ species: "charizard", level: 50, nature: "hardy", moves: ["flamethrower"] }, { species: "magikarp", level: 50, nature: "hardy", moves: ["splash"] }], badge, bag: { potion: { name: "Potion", count: 1, effect: { heal: 20 } } } }, { name: "F", team: [{ species: "snorlax", level: 50, nature: "hardy", moves: ["splash"] }, { species: "magikarp", level: 50, nature: "hardy", moves: ["splash"] }] }] });
+  const dmgOf = (b) => b.calcDamage(b.monAt(0, 0), b.monAt(1, 0), ctx.data.moves.flamethrower, { type: "fire", crit: false, spread: false, roll: 100 });
+  assert(dmgOf(mkBattle(fx)) > dmgOf(mkBattle(null)), "Fire hits harder with the perk");
+});
+
+test("Dupes clause: a fallen line doesn't come back as a recruit, unless the clause is off", () => {
+  const seen = (dupes) => {
+    let hits = 0;
+    for (let seed = 1; seed <= 60; seed++) {
+      const run = Run.newRun(ctx, { gen: 1, pools: [1, 2, 3, 4, 5], seed, dupes });
+      run.fallen.push({ species: "volcarona", name: "Volcarona", level: 20, order: 1, opponent: "x" });
+      run.lines.push(ctx.dex.lineOf.volcarona);
+      const offer = Run.makeRecruitOffer(run, ctx, { count: 12, picks: 1, odds: ctx.rules.progression[1].odds, level: 30 });
+      if (offer.options.some((o) => ctx.dex.lineOf[o.spec.species] === ctx.dex.lineOf.volcarona)) hits++;
+    }
+    return hits;
+  };
+  eq(seen(true), 0, "never offered with the clause");
+  assert(seen(false) > 0, "offered when the clause is off");
+});
+
+test("New unlock clauses: full team, every generation, fast win, friendship evolutions; foes have random IVs", () => {
+  const m = emptyMeta();
+  const full = parseRule("Full team: dragon");
+  assert(!meetsRule(m, { alts: full }), "locked at first");
+  m.fullTeam = { dragon: true };
+  assert(meetsRule(m, { alts: full }), "a team of six Dragon-types");
+  const all = { alts: parseRule("Win all gens") };
+  m.winGens = { 1: 1, 2: 1, 3: 1, 4: 1 };
+  assert(!meetsRule(m, all), "four generations are not enough");
+  m.winGens[5] = 1;
+  assert(meetsRule(m, all), "every generation");
+  const fast = { alts: parseRule("Fast win: 60") };
+  m.fastestWin = 61 * 60000;
+  assert(!meetsRule(m, fast), "61 minutes is too slow");
+  m.fastestWin = 59 * 60000;
+  assert(meetsRule(m, fast), "under an hour");
+  setFriendshipSpecies(["crobat", "blissey", "lucario"]);
+  const fr = { alts: parseRule("Friendship: 2") };
+  m.species = ["crobat", "pikachu"];
+  assert(!meetsRule(m, fr), "one friendship evolution");
+  m.species.push("lucario");
+  assert(meetsRule(m, fr), "two friendship evolutions");
+  const foeIvs = new Set();
+  for (let seed = 1; seed <= 12; seed++) {
+    const r = Run.newRun(ctx, { gen: 1, pools: [1, 2, 3, 4, 5], seed });
+    r.order = 1;
+    r.opponent = r.nextOpponent;
+    for (const mon of Run.opponentTeam(r, ctx).team) foeIvs.add(JSON.stringify(mon.ivs));
+  }
+  assert(foeIvs.size > 5, "foe IVs vary");
+});
+
+test("Cynthia: her Platinum team can all be recruited before the end of a run, and the unlock counts them", () => {
+  const team = ["garchomp", "spiritomb", "roserade", "togekiss", "lucario", "milotic"];
+  const rule = unlockRules.cynthia;
+  assert(rule && rule.alts[0][0].kind === "team", "rule parsed");
+  const lastLevel = Run.levelFor(ctx, 13);
+  for (const k of team) assert(ctx.dex.highestLegalStages(ctx.dex.lineOf[k], lastLevel, () => true).includes(k), `${k} is recruitable by level ${lastLevel}`);
+  const m = emptyMeta();
+  const run = { team: team.slice(0, 4).map((species) => ({ species })), fallen: [], lastBattle: { order: 5 }, order: 5, stats: { species: [], items: 0, berries: 0, picks: [] } };
+  noteBattleWon(m, run, ctx);
+  eq(m.teamBest[team.join(",")], 4, "four of six at once so far");
+  assert(!meetsRule(m, rule), "not yet");
+  run.team = team.map((species) => ({ species }));
+  noteBattleWon(m, run, ctx);
+  assert(meetsRule(m, rule), "all six together unlock Cynthia");
+});
+
+test("Hilda, Bianca and Riley perks", () => {
+  const afterFirstBattle = (character, seed) => {
+    const r = Run.newRun(ctx, { gen: 1, pools: [1, 2, 3, 4, 5], seed, character });
+    Run.pickRecruit(r, ctx, 0);
+    while (r.offer?.kind === "recruit" && r.offer.picksLeft > 0) Run.pickRecruit(r, ctx, r.offer.options.findIndex((o) => !o.taken));
+    r.order = 1;
+    r.opponent = r.nextOpponent;
+    Run.startBattle(r, ctx);
+    r.battle.winner = 0;
+    Run.finishBattle(r, ctx);
+    return r;
+  };
+  const base = afterFirstBattle("lucas", 21);
+  const bianca = afterFirstBattle("bianca", 21);
+  const hilda = afterFirstBattle("hilda", 21);
+  eq(base.screen, "recruit", "a recruit screen follows battle 1");
+  eq(bianca.offer.rerollsLeft, base.offer.rerollsLeft + 1, "Bianca: one more free reroll");
+  eq(hilda.offer.options.length, base.offer.options.length + 1, "Hilda: one more card");
+  assert(hilda.offer.options.at(-1).tier === "rare", "…and it is Rare");
+  const slots = ["1-1", "1-5", null, null, null, null, null, null];
+  const plain = caseStrengths(slots, []);
+  const riley = caseStrengths(slots, [], 1);
+  eq(riley.find((b) => b.id === "1-1").strength, plain.find((b) => b.id === "1-1").strength + 1, "Riley: the weakest badge gets +1");
+  eq(riley.find((b) => b.id === "1-5").strength, plain.find((b) => b.id === "1-5").strength, "…and only that one");
 });
 
 console.log(`\n${passed} passed, ${failed} failed`);

@@ -58,6 +58,8 @@ const CHARACTERS = [
   C("chili", "Chili", "Black 2 / White 2", 5, "B2W2_Chili_Back.png", "chili"),
   C("cilan", "Cilan", "Black 2 / White 2", 5, "B2W2_Cilan_Back.png", "cilan"),
   C("cress", "Cress", "Black 2 / White 2", 5, "B2W2_Cress_Back.png", "cress"),
+  // Cynthia has no back sprite in the games: her front sprite (images/trainers/cynthia.png) is copied to back/cynthia.png by hand
+  C("cynthia", "Cynthia", "Platinum", 4, null, "cynthia"),
 ];
 
 // Back sprite files in sprites.html → full-size image link (thumbnail links point at the original)
@@ -85,7 +87,7 @@ let bytes = 0, backs = 0, fronts = 0, extra = 0;
 const problems = [];
 const out = [];
 for (const c of CHARACTERS) {
-  const url = linkFor(c.back);
+  const url = c.back ? linkFor(c.back) : null;
   const backDest = path.join(TRAINERS, "back", `${c.id}.png`);
   try {
     if (!url && !(await exists(backDest))) throw new Error(`no link for ${c.back}`);

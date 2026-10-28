@@ -138,6 +138,13 @@ function scoreOptions(battle, mon, slotReq, earlier, focusTarget) {
         damaging = true;
         if (t && t.side === mon.side) continue; // don't attack the partner
         score = damageScore(battle, mon, move, t);
+        // Future Sight / Doom Desire fail on a slot that already has one coming (from before, or from the partner this turn)
+        if (["future-sight", "doom-desire"].includes(move.key) && t) {
+          const slot = battle.slotOf(t);
+          const coming = battle.state.sides[t.side].future?.[slot];
+          const partnerAims = earlier.some((c) => c.target && c.target.side === t.side && c.target.slot === slot && ["future-sight", "doom-desire"].includes(ally?.moves[c.move]?.id));
+          if (coming || partnerAims) score = -100;
+        }
         if (t && focusTarget && focusTarget.side === t.side && focusTarget.slot === battle.slotOf(t)) score *= 1.15;
       } else {
         score = statusScore(battle, mon, move, t, ally, allyChoice);
@@ -203,8 +210,10 @@ function damageScore(battle, user, move, chosen) {
         : battle.foesOf(user);
   const spread = targets.length > 1 && move.target !== "random-opponent";
   let score = 0;
+  let hitsFoe = false; // does the move do anything to an opponent?
   for (const t of targets) {
     const dmg = estimateDamage(battle, user, move, t, spread);
+    if (t.side !== user.side && dmg > 0) hitsFoe = true;
     const pct = Math.min(dmg, t.hp) / t.maxHp;
     let s = pct * 100;
     if (dmg >= t.hp) s += 40;
@@ -216,6 +225,7 @@ function damageScore(battle, user, move, chosen) {
     score += move.target === "random-opponent" ? s / targets.length : s;
   }
   score *= acc;
+  if (!hitsFoe && !["future-sight", "doom-desire"].includes(move.key)) score = Math.min(score, -40); // immune foes (Flying vs Ground…): don't keep trying it
   if (move.key === "self-destruct" || move.key === "explosion") score -= 60 * (user.hp / user.maxHp);
   if (move.key === "fake-out") score = user.volatile.activeTurns > 0 ? -100 : score + 40;
   if (move.key === "last-resort" && !battle.lastResortReady(user)) score = -100; // it would just fail

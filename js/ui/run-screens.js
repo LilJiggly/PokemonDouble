@@ -12,18 +12,40 @@ import { startTitleBanner } from "./title-banner.js";
 import { terrainFor } from "./terrain.js";
 import { CHARACTERS, GEN_LABELS, characterById } from "../game/characters.js";
 import { SPRITE_MODES, applySpriteMode } from "../game/sprite-mode.js";
-import { isUnlocked, unlockText, unlockedIds, grantUnlocks, nextHint as nextUnlockHint, MAX_UNLOCKS_PER_RUN } from "../game/unlocks.js";
+import { isUnlocked, HIDDEN_TRAINERS, unlockText, unlockedIds, grantUnlocks, nextHint as nextUnlockHint, MAX_UNLOCKS_PER_RUN } from "../game/unlocks.js";
 import { noteBattleWon } from "../game/progress.js";
 import { sceneHtml, alignScene } from "./title-banner.js";
 import { CASE_SIZE, badgeId, badgeImage, badgeName, caseOf, caseStrengths, ownedBadges, randomZones, validZones, SLOT_UNLOCKS, slotUnlocked, unlockedSlotCount, statOfBadge, badgeStatBoost, STAT_NAME, parseBadgeId, perkInfo, perkOfBadge, perkParam, placeBadge, removeBadge, setBonus, unlockBadge } from "../game/badges.js";
 import { targetIcon, categoryIcon } from "./target-icon.js";
+import { rankScore, rankOf } from "../game/ranks.js";
 import { VERSION } from "../version.js";
 import * as Run from "../game/run.js";
-import { loadMeta, saveMeta, buyUpgrade, canBuyUpgrade, upgradeLevel, perksFromMeta, trainerPointsFor, recordRun } from "../game/meta.js";
+import { loadMeta, saveMeta, buyUpgrade, canBuyUpgrade, upgradeLevel, perksFromMeta, trainerPointsFor, recordRun, noteSave } from "../game/meta.js";
+import { cloudAvailable, state as cloudState, onCloudChange, signIn, signOutUser, allPlayers, topPlayers, LEADERBOARDS, publicName, cleanUsername, setSyncChooser, setPublicStats } from "../game/cloud.js";
 import { ITEMS, POCKETS, pocketOf, itemInfo, itemSprite } from "../game/item-catalog.js";
 import { itemLabel } from "../game/pokedex.js";
 import { calcStats, DEFAULT_IVS, DEFAULT_EVS, hiddenPowerOf } from "../engine/pokemon.js";
 import { NATURES, STAT_NAMES } from "../engine/constants.js";
+
+// The Trainer Card artwork (images/ui/trainer-card-480x340.svg) inlined so its colours follow the CSS variables on .case-board
+const CARD_COLORS = ["red", "blue", "green", "purple", "gold", "silver", "bronze", "black"];
+let cardArtId = 0;
+function cardArt() {
+  const n = ++cardArtId;
+  return `<svg class="card-art" viewBox="0 0 480 340" aria-hidden="true">
+    <defs>
+      <linearGradient id="card-g${n}" x1="10" y1="10" x2="10" y2="330" gradientUnits="userSpaceOnUse"><stop offset="0" class="c-bg"/><stop offset="1" class="c-bg2"/></linearGradient>
+      <clipPath id="card-c${n}"><path d="M22 10 L458 10 C464.627 10 470 15.373 470 22 L470 318 C470 324.627 464.627 330 458 330 L22 330 C15.373 330 10 324.627 10 318 L10 22 C10 15.373 15.373 10 22 10 Z"/></clipPath>
+    </defs>
+    <path d="M21 9 L459 9 C468.941 9 477 17.059 477 27 L477 319 C477 328.941 468.941 337 459 337 L21 337 C11.059 337 3 328.941 3 319 L3 27 C3 17.059 11.059 9 21 9 Z" fill="#000" fill-opacity="0.25"/>
+    <path class="c-edge" d="M21 3 L459 3 C468.941 3 477 11.059 477 21 L477 319 C477 328.941 468.941 337 459 337 L21 337 C11.059 337 3 328.941 3 319 L3 21 C3 11.059 11.059 3 21 3 Z"/>
+    <path class="c-frame" d="M22 6 L458 6 C466.837 6 474 13.163 474 22 L474 318 C474 326.837 466.837 334 458 334 L22 334 C13.163 334 6 326.837 6 318 L6 22 C6 13.163 13.163 6 22 6 Z"/>
+    <path d="M22 10 L458 10 C464.627 10 470 15.373 470 22 L470 318 C470 324.627 464.627 330 458 330 L22 330 C15.373 330 10 324.627 10 318 L10 22 C10 15.373 15.373 10 22 10 Z" fill="url(#card-g${n})"/>
+    <g clip-path="url(#card-c${n})"><path d="M368.5 67 C435.603 67 490 121.397 490 188.5 C490 255.603 435.603 310 368.5 310 C301.397 310 247 255.603 247 188.5 C247 121.397 301.397 67 368.5 67 Z M484.679 188.5 C484.679 124.336 432.664 72.321 368.5 72.321 C304.336 72.321 252.321 124.336 252.321 188.5 C252.321 252.664 304.336 304.679 368.5 304.679 C432.664 304.679 484.679 252.664 484.679 188.5 Z" fill="#ffffff" opacity="0.07"/> <path d="M368.5 105.135 C414.541 105.135 451.865 142.459 451.865 188.5 C451.865 206.397 446.225 222.977 436.626 236.559 L405.587 205.519 C407.968 200.339 409.296 194.575 409.296 188.5 C409.296 188.066 409.289 187.633 409.275 187.203 L409.275 187.202 C408.59 165.272 390.597 147.704 368.5 147.704 C362.425 147.704 356.661 149.032 351.481 151.413 L320.441 120.374 C334.023 110.775 350.603 105.135 368.5 105.135 Z M385.519 225.587 L416.559 256.626 C402.977 266.225 386.397 271.865 368.5 271.865 C322.459 271.865 285.135 234.541 285.135 188.5 C285.135 170.603 290.775 154.023 300.374 140.441 L331.413 171.481 C329.032 176.661 327.704 182.425 327.704 188.5 C327.704 211.031 345.969 229.296 368.5 229.296 C374.575 229.296 380.339 227.968 385.519 225.587 Z" class="c-ring"/> <path d="M368.5 167.215 C380.255 167.215 389.785 176.745 389.785 188.5 C389.785 200.255 380.255 209.785 368.5 209.785 C356.745 209.785 347.215 200.255 347.215 188.5 C347.215 176.745 356.745 167.215 368.5 167.215 Z" class="c-ring"/> <path d="M-24.136 172.928 L-17.064 165.856 L182.139 365.059 L175.067 372.131 Z" fill="#ffffff" opacity="0.07"/> <path d="M-37.987 182.063 L-30.915 174.991 L168.288 374.194 L161.216 381.266 Z" fill="#ffffff" opacity="0.07"/> <path d="M-51.837 191.198 L-44.765 184.126 L154.438 383.329 L147.366 390.401 Z" fill="#ffffff" opacity="0.07"/> <path d="M-65.688 200.332 L-58.616 193.26 L140.587 392.464 L133.515 399.536 Z" fill="#ffffff" opacity="0.07"/></g>
+    <path class="c-field" d="M271.821 22 L445.172 22 C450.048 22 454 26.925 454 33 L454 33 C454 39.075 450.048 44 445.172 44 L271.821 44 C266.945 44 262.993 39.075 262.993 33 L262.993 33 C262.993 26.925 266.945 22 271.821 22 Z"/>
+    <path d="M32.306 54 L221.694 54 C226.281 54 230 58.477 230 64 L230 64 C230 69.523 226.281 74 221.694 74 L32.306 74 C27.719 74 24 69.523 24 64 L24 64 C24 58.477 27.719 54 32.306 54 Z" fill="#fff" fill-opacity="0.28"/>
+  </svg>`;
+}
 
 const RUN_KEY = "pd.run";
 const HOF_KEY = "pd.hallOfFame";
@@ -35,10 +57,12 @@ const DETAIL_TABS = [
 ];
 const STOP_LABELS = ["1", "2", "3", "4", "5", "6", "7", "8", "E1", "E2", "E3", "E4", "C", "R"];
 
+const escapeHtml = (t) => String(t).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+
 const store = {
   get(key) { try { return JSON.parse(localStorage.getItem(key)); } catch { return null; } },
-  set(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* storage blocked/full */ } },
-  remove(key) { try { localStorage.removeItem(key); } catch { /* ignore */ } },
+  set(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* storage blocked/full */ } noteSave(); },
+  remove(key) { try { localStorage.removeItem(key); } catch { /* ignore */ } noteSave(); },
 };
 
 // The most iconic Pokémon of each generation (the box art legends), and the starter trios
@@ -48,6 +72,12 @@ const STARTER_TRIOS = [["bulbasaur", "charmander", "squirtle"], ["chikorita", "c
 export class RunUI {
   constructor(ctx) {
     this.ctx = ctx;
+    // Play time of the run in progress (the Fast win unlock): counts while the page is open and visible
+    setInterval(() => {
+      if (this.run && !this.preview && document.visibilityState === "visible" && !["won", "over"].includes(this.run.screen)) this.run.playMs = (this.run.playMs ?? 0) + 5000;
+    }, 5000);
+    setSyncChooser((cloud, local) => this.syncChoice(cloud, local));
+    setPublicStats((meta) => ({ trainers: CHARACTERS.filter((c) => isUnlocked(meta, ctx.rules.characterUnlocks?.[c.id])).length }));
     this.hub = document.getElementById("hub");
     this.app = document.getElementById("app");
     this.run = null;
@@ -69,6 +99,7 @@ export class RunUI {
   openView(name) {
     if (name === "setup") this.renderSetup();
     else if (name === "upgrades") this.renderUpgrades();
+    else if (name === "leaderboards" && cloudAvailable()) this.renderLeaderboards();
     else if (name === "hof") this.renderHallOfFame();
     else this.start();
   }
@@ -146,14 +177,15 @@ export class RunUI {
     this.hub.innerHTML = `
       <div class="logo">Pokémon Double</div>
       <div class="title-banner" aria-hidden="true"></div>
-      <p>Draft a team, then beat the gyms, the Elite Four, the Champion and your Rival.<br>
-      Fainted Pokémon are gone for good.</p>
+      <p class="title-blurb">Hone your skills in this Pokémon double battle roguelike. Draft a team and beat the gyms, the Elite Four and your Rival.</p>
       <div class="menu-list">
         ${savedRun ? `<button class="btn primary" data-act="continue">Continue run</button>` : ""}
         <button class="btn ${savedRun ? "" : "primary"}" data-act="new">New run</button>
         <button class="btn" data-act="upgrades">Trainer Upgrades <span class="tp-pill">${meta.tp} TP</span></button>
-        <button class="btn" data-act="hof" ${hof.length ? "" : "disabled"}>Hall of Fame (${hof.length})</button>
+        <button class="btn" data-act="hof" ${hof.length ? "" : "disabled"}>Hall of Fame</button>
+        ${cloudAvailable() ? `<button class="btn" data-act="leaderboards">Leaderboards</button>` : ""}
       </div>
+      ${cloudAvailable() ? `<div class="account" data-account>${this.accountHtml()}</div>` : ""}
       ${savedRun ? `<p class="empty-note">Saved run: Gen ${savedRun.settings.gen}, next battle #${savedRun.order}, ${savedRun.team.length} Pokémon. Starting a new run replaces it.</p>` : ""}
       <p class="credits">Fan project, not for sale. Pokémon © Nintendo / Creatures / Game Freak / The Pokémon Company.<br>
         Pokémon &amp; item sprites and data: PokeAPI. Trainer sprites: Pokémon Showdown and its sprite artists.
@@ -161,13 +193,108 @@ export class RunUI {
       <p class="version-tag">v${VERSION}</p>`;
     startTitleBanner(this.hub.querySelector(".title-banner"), this.ctx.data, this.ctx.leaders,
       () => characterById(loadMeta().character).back);
-    this.hub.onclick = (e) => {
+    this.stopAccountWatch?.();
+    if (cloudAvailable()) this.stopAccountWatch = onCloudChange(() => {
+      const box = this.hub.querySelector("[data-account]");
+      if (box) box.innerHTML = this.accountHtml(); else this.stopAccountWatch?.();
+    });
+    this.hub.onclick = async (e) => {
       const act = e.target.closest("[data-act]")?.dataset.act;
+      if (act === "sign-in") { try { await signIn(); } catch (err) { if (err?.code !== "auth/popup-closed-by-user") alert(`Could not sign in: ${err.message}`); } return; }
+      if (act === "sign-out") { await signOutUser(); return; }
+      if (act === "username") {
+        const m = loadMeta();
+        const raw = prompt("Your name on the leaderboards (up to 16 characters). Leave empty to use your Google first name.", m.username ?? publicName(m));
+        if (raw !== null) { m.username = cleanUsername(raw); saveMeta(m); const box = this.hub.querySelector("[data-account]"); if (box) box.innerHTML = this.accountHtml(); }
+        return;
+      }
+      if (act === "leaderboards") { this.renderLeaderboards(); return; }
       if (act === "continue") { this.run = savedRun; this.render(); }
       if (act === "new") this.renderSetup();
       if (act === "hof") this.renderHallOfFame();
       if (act === "upgrades") this.renderUpgrades();
     };
+  }
+
+  // First login on a device that already has progress: use the online save, keep this device, or combine them
+  syncChoice(cloud, local) {
+    return this.modal({
+      title: "Your progress",
+      variant: "settings",
+      body: `<p class="opt-note">This account already has a save, and this device has one too. What should happen?</p>
+        <div class="opt-grid sync-grid">
+          <button class="opt-tile" data-result='"merge"'><b>Combine both</b><small>Adds up runs, wins and TP, keeps the higher upgrade levels and joins badges, unlocks and the Hall of Fame.</small><em>Online: ${cloud}<br>This device: ${local}</em></button>
+          <button class="opt-tile" data-result='"cloud"'><b>Use the online save</b><small>Replaces what is on this device.</small><em>${cloud}</em></button>
+          <button class="opt-tile" data-result='"local"'><b>Keep this device</b><small>Replaces the online save.</small><em>${local}</em></button>
+        </div>`,
+      options: [],
+      cancel: "",
+    }).then((r) => r ?? "local");
+  }
+
+  // Google login and cloud save status, under the title menu
+  accountHtml() {
+    const c = cloudState();
+    if (!c.user) return `<button class="btn small" data-act="sign-in">Sign in with Google</button>`;
+    const dot = { syncing: "Saving…", synced: "Saved", error: "Offline", idle: "" }[c.status];
+    return `<span class="account-who">${escapeHtml(publicName(loadMeta()))}${dot ? `<small>${dot}</small>` : ""}</span>
+      <button class="link-btn" data-act="username">Change name</button><button class="link-btn" data-act="sign-out">Sign out</button>`;
+  }
+
+  // Tabs: Ranks (everyone, a letter from Z up to A, see ranks.js) and one top 20 per number
+  async renderLeaderboards(boardId = "ranks") {
+    this.trackView("leaderboards");
+    this.showHub();
+    this.hub.className = "hub";
+    this.hub.innerHTML = `
+      <div class="offer-head"><h1>Leaderboards</h1><button class="btn" data-act="title">◀ Title</button></div>
+      <div class="tabs board-tabs">${[{ id: "ranks", label: "Ranks" }, ...LEADERBOARDS, { id: "pokemon", label: "Most used" }].map((b) => `<button class="tab ${b.id === boardId ? "active" : ""}" data-act="board" data-board="${b.id}">${b.label}</button>`).join("")}</div>
+      ${boardId === "pokemon" ? `<p class="rank-note">The Pokémon that were in the most winning Hall of Fame teams, across all players.</p>` : ""}
+      ${boardId === "ranks" ? `<p class="rank-note">Everyone starts at Z. Beat runs to climb towards A: points for your furthest run, every Champion win and every flawless win.</p>` : ""}
+      <section class="card-panel"><ol class="board-list" data-board-list><li class="empty-note">Loading…</li></ol></section>`;
+    this.hub.onclick = (e) => {
+      const el = e.target.closest("[data-act]");
+      if (el?.dataset.act === "title") this.start();
+      if (el?.dataset.act === "board") this.renderLeaderboards(el.dataset.board);
+    };
+    if (boardId === "pokemon") {
+      let players;
+      try { players = await allPlayers(); } catch (err) { console.error(err); players = null; }
+      const box = this.hub.querySelector("[data-board-list]");
+      if (!box) return;
+      const totals = {};
+      for (const p of players ?? []) for (const [k, n] of Object.entries(p.used ?? {})) if (this.ctx.data.pokemonByKey[k]) totals[k] = (totals[k] ?? 0) + n;
+      const top = Object.entries(totals).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 20);
+      box.innerHTML = players === null ? `<li class="empty-note">Could not load the leaderboard.</li>`
+        : top.length ? top.map(([k, n], i) => { const mon = this.ctx.data.pokemonByKey[k];
+          return `<li><span class="rank">${i + 1}</span><img class="board-mon" src="${mon.sprites.front}" alt=""><span class="who">${escapeHtml(mon.name)}</span><b>${n}<small> ${n === 1 ? "win" : "wins"}</small></b></li>`; }).join("")
+        : `<li class="empty-note">No champion teams yet. Win a run to start the list!</li>`;
+      return;
+    }
+    if (boardId !== "ranks") {
+      const board = LEADERBOARDS.find((b) => b.id === boardId) ?? LEADERBOARDS[0];
+      let top;
+      try { top = await topPlayers(board); } catch (err) { console.error(err); top = null; }
+      const box = this.hub.querySelector("[data-board-list]");
+      if (!box) return;
+      const myId = cloudState().user?.uid;
+      box.innerHTML = top === null ? `<li class="empty-note">Could not load the leaderboard.</li>`
+        : top.length ? top.map((p, i) => `<li class="${p.uid === myId ? "me" : ""}"><span class="rank">${i + 1}</span><span class="who">${escapeHtml(p.name ?? "Trainer")}</span><b>${p[board.field]}${board.suffix ?? ""}</b></li>`).join("")
+        : `<li class="empty-note">Nobody on this board yet. Win a run to be first!</li>`;
+      return;
+    }
+    let rows;
+    try { rows = (await allPlayers()).map((p) => ({ ...p, score: rankScore(p) })).sort((a, b) => b.score - a.score || (b.wins ?? 0) - (a.wins ?? 0) || String(a.name).localeCompare(String(b.name))); } catch (err) { console.error(err); rows = null; }
+    const list = this.hub.querySelector("[data-board-list]");
+    if (!list) return; // left the screen meanwhile
+    const me = cloudState().user?.uid;
+    list.innerHTML = rows === null ? `<li class="empty-note">Could not load the ranks.</li>`
+      : rows.length ? rows.map((p, i) => {
+        const r = rankOf(p.score);
+        const bar = r.next ? `<span class="rank-bar" title="${r.next - p.score} points to the next letter"><i style="width:${Math.round((p.score - r.from) / (r.next - r.from) * 100)}%"></i></span>` : `<span class="rank-bar top"><i style="width:100%"></i></span>`;
+        return `<li class="${p.uid === me ? "me" : ""}"><span class="rank">${i + 1}</span><span class="rank-letter">${r.letter}</span><span class="who">${escapeHtml(p.name ?? "Trainer")}${bar}</span><b>${p.score}<small> pts</small></b></li>`;
+      }).join("")
+      : `<li class="empty-note">Nobody here yet. Win a run to be first!</li>`;
   }
 
   renderUpgrades() {
@@ -301,7 +428,7 @@ export class RunUI {
         if (id) { m.sprites = id; saveMeta(m); applySpriteMode(this.ctx.data, id); this.renderSetup(); }
       }
       if (act === "go") {
-        this.run = Run.newRun(this.ctx, { gen: m.setup.gen, pools: m.setup.pools, perks: perksFromMeta(m), character: m.character, badges: caseOf(m), badgeLinks: m.badgeLinks, badgeOff: m.badgeOff ?? [] });
+        this.run = Run.newRun(this.ctx, { gen: m.setup.gen, pools: m.setup.pools, perks: perksFromMeta(m), character: m.character, dupes: m.setup.dupes !== false, badges: caseOf(m), badgeLinks: m.badgeLinks, badgeOff: m.badgeOff ?? [] });
         saveMeta(m);
         this.render();
       }
@@ -317,20 +444,50 @@ export class RunUI {
   }
 
   // The trainer picker: unlocked trainers by generation, and a hint about the next one
+  // "Team: a, b, c" unlocks: the Pokémon you need, with the ones you have had together so far
+  requiredTeam(rule, meta) {
+    const c = rule?.alts.flat().find((x) => x.kind === "team");
+    if (!c) return "";
+    const best = Math.min(c.n, meta.teamBest?.[c.arg.join(",")] ?? 0);
+    return `<span class="req-team">${c.arg.map((k) => { const p = this.ctx.data.pokemonByKey[k]; return p ? `<img src="${p.sprites.front}" alt="${p.name}" title="${p.name}">` : ""; }).join("")}</span>
+      <small class="how-unlocked">Best so far: ${best} of ${c.n} at once</small>`;
+  }
+
   async characterDialog(meta) {
     const unlocks = this.ctx.rules.characterUnlocks ?? {};
     const reveal = this.revealAll();
     const locked = (c) => !isUnlocked(meta, unlocks[c.id]);
-    const hint = nextUnlockHint(meta, unlocks, CHARACTERS);
-    const hiddenCount = CHARACTERS.filter(locked).length;
-    const group = (g) => CHARACTERS.filter((c) => c.gen === g && (!locked(c) || reveal));
-    const body = `<p class="opt-note">Your trainer is just for looks.</p>
+    const secret = (c) => locked(c) && HIDDEN_TRAINERS.has(c.id) && !reveal;
+    const secretCount = CHARACTERS.filter(secret).length;
+    const group = (g) => CHARACTERS.filter((c) => c.gen === g);
+    const how = (c) => (unlocks[c.id] && !unlocks[c.id].start ? `<small class="how-unlocked">Unlocked: ${unlockText(unlocks[c.id])}</small>` : "");
+    const tile = (c) => secret(c)
+      ? `<div class="opt-tile locked secret" title="A secret trainer"><img src="${c.front}" alt=""><b>🔒 ???</b><small>A secret trainer. Keep playing to find out.</small></div>`
+      : locked(c)
+        ? `<div class="opt-tile locked" title="Locked: ${unlockText(unlocks[c.id])}"><img src="${c.front}" alt=""><b>🔒 ${c.name}</b><small>${unlockText(unlocks[c.id])}</small>${this.requiredTeam(unlocks[c.id], meta)}</div>`
+        : `<button class="opt-tile ${c.id === meta.character ? "selected" : ""}" data-result='${JSON.stringify(c.id)}'><img src="${c.front}" alt=""><b>${c.name}</b><small class="perk-text">${this.perkText(c.id)}</small>${how(c)}</button>`;
+    let showLocked = true;
+    try { showLocked = localStorage.getItem("pd.showLocked") !== "0"; } catch { /* ignore */ }
+    const body = `<div class="note-row"><p class="opt-note">Your trainer is just for looks. Locked trainers show how to unlock them${secretCount ? `; ${secretCount} secret one${secretCount === 1 ? "" : "s"} stay${secretCount === 1 ? "s" : ""} hidden` : ""}.</p>
+      <label class="switch-row">Show locked<span class="switch"><input type="checkbox" data-locked-toggle ${showLocked ? "checked" : ""}><span class="track-dot"></span></span></label></div>
+      <div data-trainer-list class="${showLocked ? "" : "hide-locked"}">
       ${[1, 2, 3, 4, 5].filter((g) => group(g).length).map((g) => `<section class="opt-section"><h3>${GEN_LABELS[g]}</h3>
-        <div class="opt-grid trainer-grid">${group(g).map((c) => locked(c)
-          ? `<div class="opt-tile locked" title="Locked: ${unlockText(unlocks[c.id])}"><img src="${c.front}" alt=""><b>🔒 ${c.name}</b><small>${unlockText(unlocks[c.id])}</small></div>`
-          : `<button class="opt-tile ${c.id === meta.character ? "selected" : ""}" data-result='${JSON.stringify(c.id)}'><img src="${c.front}" alt=""><b>${c.name}</b><small class="perk-text">${this.perkText(c.id)}</small></button>`).join("")}</div></section>`).join("")}
-      ${hint ? `<p class="opt-note next-unlock">🔒 ${hiddenCount} more trainer${hiddenCount === 1 ? "" : "s"} to unlock. ${hint.ready ? "One is ready: it joins after your next battle or run." : `Hint: <b>${hint.character.name}</b>. ${unlockText(unlocks[hint.character.id])}.`}</p>` : ""}`;
-    return this.modal({ title: "Trainer", variant: "settings", body, options: [], cancel: "Close" });
+        <div class="opt-grid trainer-grid">${group(g).map(tile).join("")}</div></section>`).join("")}</div>`;
+    return this.modal({
+      title: "Trainer", variant: "settings", body, options: [], cancel: "Close",
+      onOpen: (dialog) => {
+        const apply = (on) => {
+          dialog.querySelector("[data-trainer-list]").classList.toggle("hide-locked", !on);
+          dialog.querySelectorAll(".opt-section").forEach((sec) => { sec.hidden = !on && !sec.querySelector(".opt-tile:not(.locked)"); });
+        };
+        apply(showLocked);
+        dialog.addEventListener("change", (e) => {
+          if (!e.target.matches("[data-locked-toggle]")) return;
+          try { localStorage.setItem("pd.showLocked", e.target.checked ? "1" : "0"); } catch { /* ignore */ }
+          apply(e.target.checked);
+        });
+      },
+    });
   }
 
   // The Challenge Gen picker: one tile per generation with a progress bar
@@ -362,23 +519,35 @@ export class RunUI {
     await this.modal({
       title: "Pokémon Pool",
       variant: "settings",
-      body: `<p class="opt-note">Tap to include a generation. Recruits come from the highlighted ones.</p>
-        <div class="opt-grid" data-pool>${[1, 2, 3, 4, 5].map(tile).join("")}</div>`,
+      body: `<div class="note-row"><p class="opt-note">Tap to include a generation. Recruits come from the highlighted ones.</p></div>
+        <div class="opt-grid" data-pool>${[1, 2, 3, 4, 5].map(tile).join("")}</div>
+        <label class="dupes-row"><span class="switch"><input type="checkbox" data-dupes ${meta.setup.dupes !== false ? "checked" : ""}><span class="track-dot"></span></span>
+          <span><b>Dupes clause</b><small>A Pokémon line you had before, even a fallen one, won't be offered as a recruit again.</small></span></label>`,
       options: [],
       cancel: "Done",
-      onOpen: (dialog) => dialog.addEventListener("click", (e) => {
-        const t = e.target.closest("[data-gen]");
-        if (!t) return;
-        const g = Number(t.dataset.gen);
-        const on = new Set(meta.setup.pools);
-        if (on.has(g)) { if (on.size > 1) on.delete(g); } else on.add(g); // at least one
-        meta.setup.pools = [...on].sort();
-        const m = loadMeta();
-        m.setup ??= { gen: meta.setup.gen, pools: [] };
-        m.setup.pools = meta.setup.pools;
-        saveMeta(m);
-        dialog.querySelector("[data-pool]").innerHTML = [1, 2, 3, 4, 5].map(tile).join("");
-      }),
+      onOpen: (dialog) => {
+        dialog.addEventListener("change", (e) => {
+          if (!e.target.matches("[data-dupes]")) return;
+          const m = loadMeta();
+          m.setup ??= { gen: meta.setup.gen, pools: [...meta.setup.pools] };
+          m.setup.dupes = e.target.checked;
+          meta.setup.dupes = e.target.checked;
+          saveMeta(m);
+        });
+        dialog.addEventListener("click", (e) => {
+          const t = e.target.closest("[data-gen]");
+          if (!t) return;
+          const g = Number(t.dataset.gen);
+          const on = new Set(meta.setup.pools);
+          if (on.has(g)) { if (on.size > 1) on.delete(g); } else on.add(g); // at least one
+          meta.setup.pools = [...on].sort();
+          const m = loadMeta();
+          m.setup ??= { gen: meta.setup.gen, pools: [] };
+          m.setup.pools = meta.setup.pools;
+          saveMeta(m);
+          dialog.querySelector("[data-pool]").innerHTML = [1, 2, 3, 4, 5].map(tile).join("");
+        });
+      },
     });
   }
 
@@ -422,6 +591,13 @@ export class RunUI {
     root.addEventListener("click", async (e) => {
       const act = e.target.closest("[data-act]")?.dataset.act;
       if (act === "case-help") { await this.caseHelp(); return; }
+      if (act === "card-color") {
+        const m = loadMeta();
+        m.cardColor = e.target.closest("[data-color]").dataset.color;
+        saveMeta(m);
+        redrawCase();
+        return;
+      }
       if (act === "perks") { await this.perksDialog(); redrawCase(); return; }
       if (act === "shelf-tab") {
         this.shelfGen = Number(e.target.closest("[data-gen]").dataset.gen);
@@ -597,7 +773,7 @@ export class RunUI {
     return `
       <div class="move-card ${compact ? "compact" : ""} ${fresh ? "is-new" : ""}" ${slotAttrs} ${key ? `data-key="${key}"` : ""} data-type="${m.type}" style="--type: var(--t-${m.type})" title="${m.name} · ${moveStats(m)}\n${desc}">
         <div class="mc-name">${m.name}${fresh ? ` <em class="new-tag">New</em>` : ""}</div>
-        <div class="mc-tags"><span class="mc-type">${m.type}</span><span class="cat-pill ${m.category}">${categoryIcon(m.category)}${CATEGORY_LABEL[m.category]}</span>${targetIcon(m.target, m)}</div>
+        <div class="mc-tags"><span class="mc-type">${m.type}</span><span class="cat-pill ${m.category}">${categoryIcon(m.category)}</span>${targetIcon(m.target, m)}</div>
         <div class="mc-stats">
           <span><small>Pow</small>${m.power ?? "—"}</span>
           <span><small>Acc</small>${m.accuracy ?? "—"}</span>
@@ -802,6 +978,7 @@ export class RunUI {
           <span class="name">${this.monName(m)}</span>
           <span>${this.typeBadges(m.species)}</span>
           <span class="detail">Lv ${m.level} · ${nature}</span>
+          ${run.charFx?.["iv-rating"] && m.ivs ? `<span class="detail iv-rating" title="How close its hidden stat boosts (IVs) are to perfect">IVs ${Math.round(Object.values(m.ivs).reduce((a, b) => a + b, 0) / 186 * 100)}%</span>` : ""}
           ${o.taken ? "" : `<span class="open-hint">Tap for details</span>`}
         </button>`;
     }).join("");
@@ -1038,19 +1215,20 @@ export class RunUI {
       <div class="reward-row">
         <span class="reward">💰 ₽${r.money.toLocaleString()}${r.flawless ? ` <small>(flawless bonus)</small>` : ""}</span>
         ${r.interest ? `<span class="reward">💰 +₽${r.interest.toLocaleString()} <small>(Interest)</small></span>` : ""}
-        ${r.tm ? `<span class="reward">💿 ${Run.tmLabel(this.ctx, r.tm)}</span>` : ""}
-        ${(r.extraTms ?? []).map((t) => `<span class="reward">💿 ${Run.tmLabel(this.ctx, t)} <small>(TM Master)</small></span>`).join("")}
       </div>
       ${r.badge ? this.badgeNotice(r.badge, r.badgeNew) : ""}
-      ${r.tm ? this.moveGrid([r.tm]) : ""}
+      ${r.tm ? this.tmNotice(r.tm) : ""}
+      ${(r.extraTms ?? []).map((t) => this.tmNotice(t, "TM Master")).join("")}
     </section>`;
   }
 
   fallenNotice() {
+    const saved = this.run.lastBattle?.revived ?? [];
+    const savedNote = saved.length ? `<section class="card-panel"><h3>Saved by your trainer's perk</h3><p>${saved.join(", ")} fell but pulled through.</p></section>` : "";
     const fallen = this.run.lastBattle?.fallen ?? [];
-    if (!fallen.length || this.run.screen === "draft") return "";
+    if (!fallen.length || this.run.screen === "draft") return savedNote;
     return `<section class="card-panel"><h3>Fallen in battle</h3>
-      <div class="fallen-list">${fallen.map((f) => `<div class="mon"><img src="${this.sprite(f)}" alt="">${f.name}</div>`).join("")}</div></section>`;
+      <div class="fallen-list">${fallen.map((f) => `<div class="mon"><img src="${this.sprite(f)}" alt="">${f.name}</div>`).join("")}</div></section>${savedNote}`;
   }
 
   // A team member on the recruit and item screens: tap it for its details
@@ -1337,6 +1515,15 @@ export class RunUI {
       ${this.badgeImg(id, owned ? "" : "locked")}<span>${owned ? `${name} ✓` : `${name}`}</span></div>`;
   }
 
+  // The TM a gym leader gives: a quiet line like the badge notice (teach it from the TM list)
+  tmNotice(id, extra = "") {
+    const m = this.ctx.data.moves[id];
+    if (!m) return "";
+    return `<div class="badge-notice tm-notice"><span class="tm-disc" aria-hidden="true">💿</span>
+      <div><b>${Run.tmLabel(this.ctx, id)}${extra ? ` <em>(${extra})</em>` : ""}</b>
+      <small>${m.type[0].toUpperCase()}${m.type.slice(1)} · ${CATEGORY_LABEL[m.category]} · ${m.power ? `Pow ${m.power}` : "no power"} · ${m.accuracy ? `Acc ${m.accuracy}` : "never misses"}. ${m.shortEffect ? `${m.shortEffect} ` : ""}Teach it from your TM list.</small></div></div>`;
+  }
+
   // The badge you just won (new ones are saved to your collection for every later run). What it does is shown in the badge case.
   badgeNotice(badge, isNew) {
     const id = badgeId(badge.gen, badge.order);
@@ -1346,8 +1533,8 @@ export class RunUI {
   }
 
   // The case as 8 slots (4 × 2), drawn as separate coloured boxes: the boost zones. Every badge in a box is stronger (★).
-  caseGrid(slots, zones = [], { editable = false, owned = Infinity, name = "" } = {}) {
-    const strengths = Object.fromEntries(caseStrengths(slots, zones).map((b) => [b.slot, b]));
+  caseGrid(slots, zones = [], { editable = false, owned = Infinity, name = "", color = "red", weak = 0 } = {}) {
+    const strengths = Object.fromEntries(caseStrengths(slots, zones, weak).map((b) => [b.slot, b]));
     const COLS = 4;
     // Old saves can have pairs that aren't boxes: show those slots on their own
     const shown = validZones(zones) ? zones : slots.map((_, i) => ({ slots: [i], boost: 0 }));
@@ -1366,8 +1553,9 @@ export class RunUI {
         ${id && editable ? `<button class="case-x" data-act="case-remove" data-slot="${i}" title="Take it out of the case" aria-label="Take it out of the case">×</button>` : ""}</div>`;
     };
     const open = SLOT_UNLOCKS.filter((n) => n <= owned).length;
-    return `<div class="case-board">
-      <div class="card-head"><b class="card-title">TRAINER'S CARD</b><span class="card-name">${name}</span></div>
+    return `<div class="case-board card-${color}">
+      ${cardArt()}
+      <b class="card-title">TRAINER'S CARD</b><span class="card-name">${name}</span>
       <div class="card-id">${open} of ${CASE_SIZE} slots open</div>
       <div class="card-label">BADGES</div>
       <div class="case-slots" role="group" aria-label="Badge case">${shown.map((z, k) => {
@@ -1383,8 +1571,8 @@ export class RunUI {
 
   // What a badge case gives: one chip per badge effect (at its strength), and the set bonus per generation
   // off: ids of badges whose effect is switched off. editable: show an on / off switch on every effect (New run screen)
-  perkChips(slots, links = [], { off = [], editable = false } = {}) {
-    const worn = caseStrengths(slots, links);
+  perkChips(slots, links = [], { off = [], editable = false, weak = 0 } = {}) {
+    const worn = caseStrengths(slots, links, weak);
     if (!worn.length) return `<p class="empty-note">${editable ? "Nothing yet: drag a badge into the case to see what it does." : "No badges equipped this run."}</p>`;
     const set = setBonus(slots, this.ctx.rules);
     return `<div class="perk-chips">${worn.map((b) => {
@@ -1411,8 +1599,8 @@ export class RunUI {
       variant: "settings",
       body: `<p class="opt-note">Locked in for this run.</p>
         <div class="run-case">
-          ${this.caseGrid(slots, run.badges?.links ?? [], { name: characterById(run.character ?? loadMeta().character).name })}
-          ${this.perkChips(slots, run.badges?.links ?? [], { off: run.badges?.off ?? [] })}
+          ${this.caseGrid(slots, run.badges?.links ?? [], { name: characterById(run.character ?? loadMeta().character).name, color: loadMeta().cardColor, weak: run.charFx?.["weak-badge"] ?? 0 })}
+          ${this.perkChips(slots, run.badges?.links ?? [], { off: run.badges?.off ?? [], weak: run.charFx?.["weak-badge"] ?? 0 })}
         </div>`,
       cancel: "Close",
     });
@@ -1444,14 +1632,15 @@ export class RunUI {
             : `<button class="badge-tile locked" data-act="badge-open" data-badge="${id}">${this.badgeImg(id, "locked")}<i class="lock">🔒</i></button>`;
         }).join("")}</div></div>`;
     };
-    return `<p class="case-intro">Drag badges in, or tap one for details. The case locks when the run starts.</p>
+    return `<p class="opt-note">Drag a badge into a slot, or tap it for details.<br>The case locks when the run starts.</p>
       <div class="case-layout">
         <div class="case-left">
-          ${this.caseGrid(slots, links, { editable: true, owned: owned.size, name: characterById(meta.character).name })}
-          <div class="case-tools"><button class="btn small" data-act="case-auto">✨ Auto-fill</button>
+          ${this.caseGrid(slots, links, { editable: true, owned: owned.size, name: characterById(meta.character).name, color: meta.cardColor })}
+          <div class="case-tools"><button class="btn small" data-act="case-auto">Auto-fill</button>
             <button class="btn small" data-act="case-clear" ${slots.some(Boolean) ? "" : "disabled"}>Clear</button>
-            <button class="btn small" data-act="perks">Perks (${slots.filter(Boolean).length})</button>
-            <span class="case-count">${slots.filter(Boolean).length}/${CASE_SIZE} in the case</span></div>
+            <button class="btn small" data-act="perks">Perks (${slots.filter(Boolean).length}/${CASE_SIZE})</button>
+            <div class="card-colors" role="group" aria-label="Card colour">${CARD_COLORS.map((c) => `<button class="card-dot card-${c} ${c === (meta.cardColor ?? "red") ? "on" : ""}" data-act="card-color" data-color="${c}" title="${c[0].toUpperCase()}${c.slice(1)}" aria-label="${c} card"></button>`).join("")}</div>
+</div>
         </div>
         <div class="case-main">
           <div class="tabs shelf-tabs" role="tablist" aria-label="Badge generations">${[1, 2, 3, 4, 5].map((g) => {
@@ -1672,7 +1861,7 @@ export class RunUI {
   // category + "50 pow · 100%" + the target icon, for a move row
   mvStats(id, mon = null) {
     const m = this.moveData(id, mon);
-    return `<span class="mv-stats"><span class="mv-line"><span class="cat-pill ${m.category}">${categoryIcon(m.category)}${CATEGORY_LABEL[m.category]}</span>${m.power ? `<b>${m.power}</b> pow · ` : ""}${m.accuracy ? `${m.accuracy}%` : "—"}</span>${targetIcon(m.target, m)}</span>`;
+    return `<span class="mv-stats"><span class="mv-line"><span class="cat-pill ${m.category}">${categoryIcon(m.category)}</span>${m.power ? `<b>${m.power}</b> pow · ` : ""}${m.accuracy ? `${m.accuracy}%` : "—"}</span>${targetIcon(m.target, m)}</span>`;
   }
 
   // Every move a Pokémon can learn right now (TMs you own first, then missed level-up moves) as tappable rows.

@@ -305,50 +305,51 @@ Trainers unlock through **themes**: you do something that fits them and they joi
 - `Type win: T`: reach the Hall of Fame with a T-type Pokémon on the team. `Type gym N: T`: have a T-type on the team when you beat battle #N.
 - `Species: N`: recruit N different species in total. `Badges: N`: own N badges.
 - `Clean win` (or `Clean win Gen G`): reach the Hall of Fame without losing a Pokémon. `Clean gym N`: get through battle #N without losing one.
-- `Quick wins: N`: win N gym battles in 4 turns or fewer. `Berries: N`, `Items: N`: give N berries or N held items to your Pokémon in total. `Diverse win`: reach the Hall of Fame with six different types on the team.
+- `Quick wins: N`: win N gym battles in 4 turns or fewer. `Berries: N`, `Items: N`: give N berries or N held items to your Pokémon in total. `Diverse win`: reach the Hall of Fame with six different types on the team. `Full team: T`: win a battle with six Pokémon of type T on the team. `Win all gens`: reach the Hall of Fame in every Challenge Gen (1–5). `Fast win: N`: reach the Hall of Fame within N minutes of play time (counted while the game is open and visible; only runs started after v0.23.0 are timed). `Team: a, b, c…`: win a battle with all of those exact species on the team together (the picker shows them; Cynthia's Platinum team is the example). `Friendship: N`: recruit N different Pokémon that evolve by friendship (Crobat, Blissey, Lucario, Espeon…); evolving is automatic by level, so there is no friendship system.
 
-**Pacing.** At most **2 trainers unlock per run**: the rest wait for the next battle or run, so each one feels like an event. Each unlock gets a "New trainer unlocked!" popup (or the end-of-run list) with what the perk does. The picker only shows trainers you have, plus a hint for the one closest to unlocking. Characters that are missing from the table are free.
+**Pacing.** At most **2 trainers unlock per run**: the rest wait for the next battle or run, so each one feels like an event. Each unlock gets a "New trainer unlocked!" popup (or the end-of-run list) with what the perk does. The picker shows every trainer: the ones you have list how you unlocked them, the locked ones list how to unlock them. A few cool trainers stay secret (shown as "???") until you have them: they are listed in `HIDDEN_TRAINERS` in `js/game/unlocks.js` (Lance, Steven, Red (Battle Frontier) and Silver). Characters that are missing from the table are free.
 
-**Perks.** The **Perk** column is the text players see; the **Effect** column is what the game applies (`—` means planned, not in the game yet). Effects, joined by `;`: `money:300`, `bag:oran-berry:2`, `item-pick:1` (one more starting item pick), `starter-reroll:1` (one more free reroll in the starter draft), `starter:kanto` (the starter draft always has a starter of that region), `first-recruit:ralts` (the starter draft always has that line). The names, themes and planned perks are suggestions to edit.
+**Perks.** The **Perk** column is the text players see; the **Effect** column is what the game applies (`—` means planned, not in the game yet). Effects, joined by `;`: `money:300`, `bag:oran-berry:2`, `item-pick:1` (one more starting item pick), `starter-reroll:1` (one more free reroll in the starter draft), `starter:kanto` (the starter draft always has a starter of that region), `first-recruit:ralts` (the starter draft always has that line), `starter-extra:kanto` (one extra starter card of that region), `starter-card:1` (one extra card in the starter draft), `scout:1` (one extra card on every recruit screen), `shiny:384` (shiny chance 1/384), `bias:dragon` (that type turns up more in recruits), `level-first:1` / `level-gyms:1` (+1 level in the first gym / at every gym), `discount:berry:50` (percent off a group: `berry`, `evo` for stones, `guard` for Guard Spec. and X items), `prize:10` (+10% prize money from every battle), `dice:1` (one extra reroll on every recruit screen), `stat:atk:5` (+5% to a stat for the whole team in battle; `stat:all:5` for every stat except HP), `power:fire:5` (that type's moves hit 5% harder), `acc:fighting:5` (that type's moves are 5% more accurate), `potion:20` (Potions heal 20 more HP), `revive:1` (once per run, a Pokémon that fell in a won battle is saved), `iv-rating:1` (recruit cards show an IV rating), `weak-badge:1` (the weakest badge in the case gets +1 strength), `rare-first:1` (one extra Rare card on the recruit screen after battle 1), `free-reroll-first:1` (one extra free reroll on that screen). The names, themes and planned perks are suggestions to edit.
 
 | ID | Character | Unlock | Perk | Effect |
 |---|---|---|---|---|
-| red-gb | Red (R/B) | Starters: kanto | Planned: Kanto starters appear more often | — |
-| oak | Prof. Oak (Yellow) | Species: 25 | Planned: recruit cards show an IV rating | — |
-| ethan-gsc | Ethan (G/S/C) | Starters: johto or Line win: cyndaquil or Line win: chikorita or Line win: totodile | Planned: Johto starters appear more often | — |
-| kris | Kris (Crystal) | Clean win | Planned: one fainted Pokémon per run comes back with half HP | — |
+| red-gb | Red (R/B) | Starters: kanto | One extra Kanto starter card in the starter draft | starter-extra:kanto |
+| oak | Prof. Oak (Yellow) | Species: 25 | Recruit cards show an IV rating | iv-rating:1 |
+| ethan-gsc | Ethan (G/S/C) | Starters: johto | One extra Johto starter card in the starter draft | starter-extra:johto |
+| kris | Kris (Crystal) | Clean win | Once per run, a Pokémon that would fall in a won battle is saved | revive:1 |
 | ethan | Ethan (HGSS) | Start | One extra free reroll in the starter draft | starter-reroll:1 |
-| lyra | Lyra (HGSS) | Start | Planned: shiny chance 1/512 → 1/384 (cosmetic) | — |
-| lance | Lance (HGSS) | Win Gen 2 and Type win: dragon | Planned: Dragon-type recruits appear more often | — |
-| silver | Silver (HGSS) | Type win: dark or Line gym 7: sneasel | Planned: +1 level on all your Pokémon in the first gym | — |
+| lyra | Lyra (HGSS) | Start | Shiny chance 1/512 → 1/384 (cosmetic) | shiny:384 |
+| lance | Lance (HGSS) | Full team: dragon | Dragon-type recruits appear more often | bias:dragon |
+| silver | Silver (HGSS) | Friendship: 5 | +1 level on all your Pokémon in the first gym | level-first:1 |
 | red | Red (FRLG) | Start | The starter draft always has a Kanto starter | starter:kanto |
 | leaf | Leaf (FRLG) | Start | +₽300 starting money | money:300 |
-| brendan-rs | Brendan (R/S) | Line win: treecko or Line win: torchic or Line win: mudkip | Planned: Hoenn starters appear more often | — |
-| may-rs | May (R/S) | Berries: 30 | Planned: berries cost half in the shop | — |
+| brendan-rs | Brendan (R/S) | Starters: hoenn | One extra Hoenn starter card in the starter draft | starter-extra:hoenn |
+| may-rs | May (R/S) | Win Gen 3 | Berries cost half in the shop | discount:berry:50 |
 | brendan | Brendan (Emerald) | Start | The starter draft always has a Hoenn starter | starter:hoenn |
 | may | May (Emerald) | Start | Start with 2 extra Oran Berries | bag:oran-berry:2 |
-| red-e | Red (Battle Frontier) | Wins: 3 and Starters: kanto | Planned: start with a Fire Stone, Water Stone and Leaf Stone | — |
-| steven | Steven (Emerald) | Win Gen 3 and Type win: steel or Win Gen 3 and Type win: rock | Planned: start with a Hard Stone or Metal Coat | — |
-| wally | Wally (R/S) | Line win: ralts or Line gym 4: ralts or Line picks 3: ralts | The starter draft always offers a Ralts | first-recruit:ralts |
+| red-e | Red (Battle Frontier) | Win all gens | +5% to all stats for your whole team, one extra item pick and one extra starter reroll | stat:all:5;item-pick:1;starter-reroll:1 |
+| steven | Steven (Emerald) | Full team: steel | Start with a Hard Stone and a Metal Coat | bag:hard-stone:1;bag:metal-coat:1 |
+| wally | Wally (R/S) | Line win: ralts | The starter draft always offers a Ralts | first-recruit:ralts |
 | lucas | Lucas (Platinum) | Start | One extra item pick (and card) in the starting items | item-pick:1 |
-| dawn | Dawn (Platinum) | Start | Planned: recruit cards hint at the Pokémon's best stat | — |
-| barry | Barry (Platinum) | Quick wins: 3 | Planned: your lead Pokémon start with a Quick Claw | — |
-| buck | Buck (D/P) | Type gym 5: fighting | Planned: Fighting moves are 5% more accurate | — |
-| cheryl | Cheryl (D/P) | Clean gym 4 | Planned: Potions heal 20 more HP | — |
-| marley | Marley (D/P) | Items: 25 | Planned: one extra held item at the start | — |
-| mira | Mira (D/P) | Species: 50 | Planned: one extra recruit card on every recruit screen | — |
-| riley | Riley (D/P) | Badges: 16 | Planned: your weakest badge gets +1 strength | — |
-| hilbert | Hilbert (B/W) | Wins: 1 | Planned: one extra card in the starter draft | — |
-| hilda | Hilda (B/W) | Wins: 2 | Planned: one extra Rare card on the first recruit screen | — |
-| juniper | Prof. Juniper (B/W) | Species: 100 | Planned: evolution stones cost 30% less | — |
-| nate | Nate (B2/W2) | Win Gen 5 | Planned: all your Pokémon get +1 level at every gym | — |
-| rosa | Rosa (B2/W2) | Win Gen 5 and Diverse win | Planned: type-resist berries in the starting items | — |
-| bianca | Bianca (B2/W2) | Type gym 6: normal | Planned: a free reroll after your first battle of each run | — |
-| cheren | Cheren (B2/W2) | Clean win Gen 5 | Planned: Guard Spec and X items cost half | — |
-| hugh | Hugh (B2/W2) | Quick wins: 5 | Planned: rival fights give 20% more money | — |
-| chili | Chili (B2/W2) | Type win: fire | Planned: Fire moves hit 5% harder | — |
-| cilan | Cilan (B2/W2) | Type win: grass | Planned: Grass moves hit 5% harder | — |
-| cress | Cress (B2/W2) | Type win: water | Planned: Water moves hit 5% harder | — |
+| dawn | Dawn (Platinum) | Start | One extra reroll on every recruit screen | dice:1 |
+| barry | Barry (Platinum) | Fast win: 60 | +8% Speed for your whole team and a Quick Claw to start | stat:spe:8;bag:quick-claw:1 |
+| buck | Buck (D/P) | Line win: machop | +5% Attack for your whole team | stat:atk:5 |
+| cheryl | Cheryl (D/P) | Clean gym 4 | Potions heal 20 more HP | potion:20 |
+| marley | Marley (D/P) | Items: 25 | Start with a Sitrus Berry to hold | bag:sitrus-berry:1 |
+| mira | Mira (D/P) | Species: 50 | One extra recruit card on every recruit screen | scout:1 |
+| riley | Riley (D/P) | Badges: 16 | Your weakest badge gets +1 strength | weak-badge:1 |
+| hilbert | Hilbert (B/W) | Wins: 1 | One extra card in the starter draft | starter-card:1 |
+| hilda | Hilda (B/W) | Wins: 2 | One extra Rare card on the first recruit screen (after battle 1) | rare-first:1 |
+| juniper | Prof. Juniper (B/W) | Species: 100 | Evolution stones cost 30% less | discount:evo:30 |
+| nate | Nate (B2/W2) | Win Gen 5 | +1 level on all your Pokémon at every gym | level-gyms:1 |
+| rosa | Rosa (B2/W2) | Diverse win | +5% Sp. Atk for your whole team | stat:spa:5 |
+| bianca | Bianca (B2/W2) | Type gym 6: normal | One extra free reroll on the first recruit screen (after battle 1) | free-reroll-first:1 |
+| cheren | Cheren (B2/W2) | Clean win Gen 5 | +5% Defense and Sp. Def for your whole team | stat:def:5;stat:spd:5 |
+| hugh | Hugh (B2/W2) | Quick wins: 5 | +10% prize money from every battle | prize:10 |
+| chili | Chili (B2/W2) | Type win: fire | Fire moves hit 5% harder | power:fire:5 |
+| cilan | Cilan (B2/W2) | Type win: grass | Grass moves hit 5% harder | power:grass:5 |
+| cress | Cress (B2/W2) | Type win: water | Water moves hit 5% harder | power:water:5 |
+| cynthia | Cynthia (Platinum) | Team: garchomp, spiritomb, roserade, togekiss, lucario, milotic | +6% Attack and Sp. Atk for your whole team | stat:atk:6;stat:spa:6 |
 
 ### 3k. Gym badges ✏️ _(editable tables)_
 
@@ -1607,7 +1608,7 @@ Code in `js/engine/` (plain ES modules, runs in the browser and in Node):
 - **Leader data:** `data/leaders/gen1.json` holds Brock's 8 sets. Team size and level are read from the §3a table in this file.
 - **Simplified for now:**
   - U-turn and Baton Pass switch to the next healthy Pokémon in team order (the player will get to choose once the UI exists).
-  - Every Gen 1–5 move now does something. The rules of the copy/call/field moves are listed below. Gen 5 Abilities that still do nothing: Zen Mode and Illusion (they need alternate forms); Run Away, Illuminate and Pickup have no use in this game.
+  - Every Gen 1–5 move now does something. The rules of the copy/call/field moves are listed below. Gen 5 Abilities that still do nothing: Zen Mode (it needs an alternate form); Run Away, Illuminate and Pickup have no use in this game.
   - Alternate forms (Castform, Cherrim, Rotom, etc.) aren't in the data yet.
 - Damage formula referenced against **Pokémon Showdown** for accuracy.
 
@@ -1928,3 +1929,34 @@ All Rock-type lines up to Gen 4. Slugma (Fire) and Steelix (Steel/Ground) are in
 - **v0.18.0 · October 26, 2026:** The Team card view (the "Detailed" toggle) shows one Pokémon in the middle, picked with the small Pokémon strip above it (moved from the right column). The right column's Moves tab then only lists the moves it can learn; drag one onto a move of the centered card to replace it (empty slots take a drop too), or drag a card's moves onto each other to change their order. The Grid view keeps the Moves bar with all four slots.
 - **v0.18.1 · October 26, 2026:** Bide works (it always failed before): the user stores energy for 2–3 turns without being able to act, then hits whoever last hurt it for twice the damage it took (it fails if it took none). On the Team card the abilities are in their own column next to the name and nature.
 - **v0.18.2 · October 26, 2026:** The badge case window during a run is wide (card on the left, the perks on the right). Tapping the Team card opens the details window (in the Detailed view too). On the Team card the nature effect sits right after the nature, the empty held item is a visible dashed slot ("+ Held item"), and the Physical / Special / Status pills are all exactly the same width (the "Status" word is longer, so before it was wider).
+- **v0.18.3 · October 26, 2026:** Battle log: a Log button next to the text speed (and while the text plays) opens a window with everything said in the battle so far, grouped by turn, with a fixed height and a scroll. A Pokémon that falls asleep or freezes is no longer locked into Petal Dance, Outrage or Rollout, so you can switch or choose again. Letter and word spacing are gone from the CSS (the info font is the body font now) along with about 70 unused rules from earlier designs.
+- **v0.18.4 · October 26, 2026:** U-turn, Volt Switch and Baton Pass now let you choose which Pokémon comes in (a "Who comes in?" list after picking the move and target). The foe still brings in its next Pokémon in team order.
+- **v0.18.5 · October 26, 2026:** The badge case is drawn with the Trainer Card artwork (`images/ui/trainer-card-480x340.svg`, inlined in `run-screens.js`). Its colours come from CSS variables, with ready-made colour classes on `.case-board` (red, blue, green, purple, gold, silver, bronze, black); red is used for now.
+- **v0.18.6 · October 26, 2026:** Badge case window tidied: a shorter two-line intro, three equal buttons under the card (Auto-fill, Clear, Perks) and the "in the case" count removed. Eight colour dots on the Trainer Card let you pick its colour; it is saved and also used for the card during a run.
+- **v0.18.7 · October 26, 2026:** The card colour dots moved next to the Auto-fill, Clear and Perks buttons under the card. The five Gen tabs in the badge case now fit on one row.
+- **v0.18.8 · October 27, 2026:** The Physical / Special / Status pills are a small icon only (the name shows on hover), so move buttons no longer run off the screen. Gen 4 back sprites stand a bit lower so they reach the textbox instead of floating above it.
+- **v0.19.0 · October 27, 2026:** Optional cloud save with Google login (Firebase): your progress (Trainer upgrades, badges, unlocks, Hall of Fame and the run in progress) is copied online and picked up on another device; when both changed you choose which to keep. Leaderboards for Champion wins, furthest run and flawless wins (public name = first name of the Google account). Off until a Firebase config is pasted into `js/firebase-config.js`; setup steps are in README.md and the security rules in `firestore.rules`. Multiplayer is still on the Later list.
+- **v0.19.1 · October 28, 2026:** Signed-in players can choose a username (up to 16 characters) with "Change name" under the title menu. It is the name on the leaderboards and is saved with the rest of the progress; empty means the first name of the Google account.
+- **v0.19.2 · October 28, 2026:** The login line under the title menu is quieter: small underlined text links (Sign in with Google, Change name, Sign out) and a short save status. The Sync now button is gone; saving is automatic.
+- **v0.19.3 · October 28, 2026:** First login on a device that already has progress, for an account that also has one: a window offers Combine both (runs, wins, TP and Trainer Points add up, the higher upgrade levels are kept, badges, unlocks and the Hall of Fame are joined), Use the online save, or Keep this device.
+- **v0.19.4 · October 28, 2026:** "Sign in with Google" is a normal small button again; Change name and Sign out stay small links.
+- **v0.19.5 · October 28, 2026:** One Ranks board for all players instead of three tabs. Everyone starts at Z and climbs towards A. Points: 1 per battle of your furthest run (max 14), 10 per Champion win and 10 more per flawless win; the letter steps get wider towards the top (first win is about V, ten wins about L, A needs roughly 375 points). Each row shows the letter, name, points and a bar to the next letter. The numbers are in `js/game/ranks.js`.
+- **v0.19.6 · October 28, 2026:** The leaderboards are back to tabs: the new Ranks tab (everyone, Z up to A) sits first, next to Champion wins, Furthest run and Flawless wins. The title menu is more compact, with a colour per button (green Continue, red New run, yellow Trainer Upgrades, blue Hall of Fame, purple Leaderboards).
+- **v0.20.0 · October 28, 2026:** Three more leaderboard tabs: Trainers unlocked, Badges (out of 40) and Most used, which counts how often each Pokémon was in a winning Hall of Fame team across all players. The public player line now also holds the trainer count, badge count and a per-Pokémon win count (taken from the Hall of Fame). `firestore.rules` changed: publish the new version in the Firebase console.
+- **v0.20.1 · October 28, 2026:** The title menu is a grid: Continue, New run and Trainer Upgrades are full-width rows, Hall of Fame and Leaderboards sit side by side.
+- **v0.20.2 · October 28, 2026:** Title menu: Continue and New run side by side on top (New run alone is full width), Trainer Upgrades, Hall of Fame and Leaderboards in a row of three below. The Hall of Fame count in its button is gone.
+- **v0.20.3 · October 28, 2026:** Title menu: Trainer Upgrades is back on its own row; Hall of Fame and Leaderboards share the row below it.
+- **v0.20.4 · October 28, 2026:** New title screen intro text, as wide as the menu below it.
+- **v0.20.5 · October 28, 2026:** Title screen intro text is one short line: "Hone your skills in this Pokémon double battle roguelike."
+- **v0.20.6 · October 28, 2026:** Title screen intro text is longer again: the roguelike line plus a short description of a run (draft, recruit, 8 gyms, Elite Four, Champion, Rival, permanent faints).
+- **v0.20.7 · October 28, 2026:** Title screen intro text shortened to two sentences.
+- **v0.20.8 · October 28, 2026:** Title screen intro text no longer mentions fainting.
+- **v0.20.9 · October 28, 2026:** All title menu buttons share the same, slightly larger padding.
+- **v0.21.0 · October 28, 2026:** Illusion now works: Zoroark enters looking like the last Pokémon in the team that is still standing (name, sprite and messages) until a move hits it ("Zoroark's Illusion wore off!"). Substitute shows a doll in place of the Pokémon until it breaks. The foe AI no longer keeps using Ground moves on Flying types or immune targets, and no longer uses a second Future Sight / Doom Desire on a slot that already has one coming. Reflect, Light Screen and other field tags no longer stay on screen in the next battle. The trainer picker shows every trainer with how to unlock them (and how you unlocked the ones you have); four stay secret. The TM from a gym leader is a quiet line like the badge notice instead of a big move card.
+- **v0.21.1 · October 28, 2026:** Substitute uses the real doll sprites (Gen 4, Gen 5 and moving styles, front and back) from Pokémon Showdown's sprite set, in `images/sprites/<style>/front|back/substitute.*`, instead of the placeholder drawing.
+- **v0.22.0 · October 28, 2026:** 25 more trainer perks work (32 of 36; Oak, Hilda, Riley and Bianca are still planned): extra starter cards (Red R/B, Ethan G/S/C, Brendan R/S, Hilbert), one more recruit card everywhere (Mira), a 1/384 shiny chance (Lyra), more Dragon recruits (Lance), a saved Pokémon once per run (Kris), +1 level in the first gym (Silver) or at every gym (Nate), cheaper berries, stones, Guard Spec. and X items (May R/S, Juniper, Cheren), more money from Rival fights (Hugh), Potions healing 20 more (Cheryl), Fighting moves 5% more accurate (Buck), Fire, Grass and Water moves 5% harder (Chili, Cilan, Cress), best stat on recruit cards (Dawn), and starting items for Red (Battle Frontier), Steven, Barry, Marley and Rosa. Unlock texts are shorter and several unlock requirements are simpler (Ethan G/S/C, Lance, Silver, Brendan R/S, Red (Battle Frontier), Steven, Wally, Rosa). The trainer picker has a Show locked switch.
+- **v0.22.1 · October 28, 2026:** Dupes clause (on by default, switch in the Pokémon Pool window on the New Run page): a Pokémon line you already had this run, including fallen and released ones, is not offered as a recruit again (it only relaxes if there would be too few cards). Locked trainers no longer say "To unlock:" in the picker.
+- **v0.23.0 · October 28, 2026:** Foe Pokémon now have random IVs like recruits (15–31), so their Hidden Power is no longer always Dark. Trainer changes: new unlocks Lance (win a battle with 6 Dragon-types), Steven (6 Steel-types), Silver (recruit 5 friendship evolutions), May R/S (Win Gen 3), Red (Battle Frontier) (win every generation: the hardest unlock) and Barry (win a run in 60 minutes of play time, timed from this version on), Buck (win with a Machop line Pokémon). New perks: Red (Battle Frontier) +5% to all stats, an extra item pick and starter reroll; Barry +8% Speed and a Quick Claw; Buck +5% Attack; Cheren +5% Defense and Sp. Def; Rosa +5% Sp. Atk; Hugh +10% prize money from every battle; Dawn an extra reroll on every recruit screen; Oak shows an IV rating on recruit cards. 33 of 36 perks work (Hilda, Riley and Bianca are still planned).
+- **v0.24.0 · October 28, 2026:** Cynthia (Platinum) is a playable trainer. Unlock: win a battle with her whole Platinum team on yours at once (Garchomp, Spiritomb, Roserade, Togekiss, Lucario and Milotic, exact forms). The picker shows those six Pokémon and the most of them you have had together so far. Perk: +6% Attack and Sp. Atk for your whole team. She has no back sprite in the games, so her front sprite is used from behind until a real one is added at `images/trainers/back/cynthia.png`.
+- **v0.24.1 · October 28, 2026:** Cynthia has a real back sprite (`images/trainers/back/cynthia.png`, cut from the artist's sprite sheet), instead of her front sprite.
+- **v0.25.0 · October 28, 2026:** The last three trainer perks work, so every trainer has one: Riley makes the weakest badge in your case 1 strength stronger (also shown in the in-run badge case), Hilda adds one extra Rare card to the recruit screen after battle 1, Bianca adds one extra free reroll to that screen.
