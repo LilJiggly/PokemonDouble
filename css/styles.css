@@ -4312,10 +4312,42 @@ img[src*="/sprites/"] { object-fit: contain;
 .bar-cell { width: 34%;
 }
 
+.stat-track { display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .stat-bar { display: block;
   height: 8px;
   border-radius: 4px;
   background: linear-gradient(90deg, var(--accent), #48c858);
+}
+
+/* The IV part of the bar: an IV point is worth half a base point in the stat formula */
+.stat-iv { display: block;
+  height: 8px;
+  min-width: 4px;
+  border-radius: 4px;
+  background: #58b8f0;
+}
+
+.bar-legend { color: var(--text-soft);
+  font-size: 11px;
+  font-weight: 400;
+  text-align: left;
+}
+
+.bar-legend i { display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin: 0 3px 0 6px;
+  border-radius: 2px;
+}
+
+.bar-legend i.base { background: #48c858;
+}
+
+.bar-legend i.iv { background: #58b8f0;
 }
 
 .evo-line { display: flex;
@@ -5999,4 +6031,272 @@ img[src*="/sprites/"] { object-fit: contain;
   color: var(--text-soft);
   font-size: 11px;
   font-weight: 400;
+}
+
+.unlocked-how em { color: var(--text-soft);
+  font-style: normal;
+}
+
+.mon-pick[draggable="true"] { cursor: grab;
+}
+
+.mon-pick.dragging { opacity: 0.45;
+}
+
+.mon-pick.drop-ok { outline: 3px dashed var(--accent);
+  outline-offset: 2px;
+}
+
+/* A raised or lowered stat: a coloured glow and arrows over the sprite (red = up, blue = down) */
+.stat-pop { position: absolute;
+  z-index: 6;
+  width: 31.25%;
+  aspect-ratio: 1;
+  overflow: hidden;
+  pointer-events: none;
+  animation: stat-glow 1s ease-out forwards;
+}
+
+.stat-pop.up { background: radial-gradient(ellipse at 50% 70%, rgba(255, 90, 60, 0.55), rgba(255, 90, 60, 0) 65%);
+  --arrow: #ff6a4a;
+}
+
+.stat-pop.down { background: radial-gradient(ellipse at 50% 70%, rgba(70, 120, 255, 0.55), rgba(70, 120, 255, 0) 65%);
+  --arrow: #5c8cff;
+}
+
+.stat-pop span { position: absolute;
+  inset: 0;
+}
+
+.stat-pop i { position: absolute;
+  bottom: 10%;
+  width: 0;
+  height: 0;
+  border-left: 2.6cqw solid transparent;
+  border-right: 2.6cqw solid transparent;
+  border-bottom: 4.2cqw solid var(--arrow);
+  filter: drop-shadow(0 0 0.4cqw rgba(0, 0, 0, 0.6));
+  opacity: 0;
+  animation: stat-arrow 0.85s ease-out forwards;
+}
+
+.stat-pop.down i { border-bottom: 0;
+  border-top: 4.2cqw solid var(--arrow);
+  bottom: auto;
+  top: 10%;
+  animation-name: stat-arrow-down;
+}
+
+.stat-pop i:nth-child(1) { left: 18%;
+}
+
+.stat-pop i:nth-child(2) { left: 44%;
+  animation-delay: 0.12s;
+}
+
+.stat-pop i:nth-child(3) { left: 70%;
+  animation-delay: 0.24s;
+}
+
+.stat-pop.foe.s0 { left: 44%;
+  top: -3.67%;
+}
+
+.stat-pop.foe.s1 { left: 64%;
+  top: -3.67%;
+}
+
+.stat-pop.player.s0 { left: 0%;
+  top: 30.33%;
+}
+
+.stat-pop.player.s1 { left: 27%;
+  top: 30.33%;
+}
+
+@keyframes stat-glow {
+  0% { opacity: 0;
+  }
+
+  20% { opacity: 1;
+  }
+
+  100% { opacity: 0;
+  }
+}
+
+@keyframes stat-arrow {
+  0% { opacity: 0;
+    transform: translateY(0);
+  }
+
+  25% { opacity: 1;
+  }
+
+  100% { opacity: 0;
+    transform: translateY(-520%);
+  }
+}
+
+@keyframes stat-arrow-down {
+  0% { opacity: 0;
+    transform: translateY(0);
+  }
+
+  25% { opacity: 1;
+  }
+
+  100% { opacity: 0;
+    transform: translateY(520%);
+  }
+}
+
+/* Shared Hall of Fame and Challenges boards */
+.board-list .hof-row .who, .board-list .challenge-row .who { flex-direction: column;
+  gap: 3px;
+}
+
+/* Challenges board: a checklist */
+.board-list .challenge-row { align-items: flex-start;
+  gap: 12px;
+}
+
+.ch-check { display: grid;
+  flex: none;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  margin-top: 2px;
+  border: 2px solid rgba(255, 255, 255, 0.28);
+  border-radius: 7px;
+  color: #fff;
+  font-weight: 700;
+}
+
+.challenge-row.done .ch-check { background: var(--accent);
+  border-color: var(--accent);
+}
+
+.challenge-row.planned { opacity: 0.6;
+}
+
+.challenge-row.planned .ch-check { border-style: dashed;
+}
+
+.ch-title { display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.ch-tag { padding: 1px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-soft);
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 400;
+}
+
+.ch-tag.rule { background: rgba(255, 180, 84, 0.2);
+  color: #ffb454;
+}
+
+.ch-bar { display: block;
+  height: 5px;
+  margin: 3px 0;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.ch-bar i { display: block;
+  height: 100%;
+  background: var(--accent);
+}
+
+.board-list .ch-head { display: block;
+  padding: 6px 4px;
+  background: none;
+}
+
+.board-list .ch-head.soon { margin-top: 10px;
+}
+
+.ch-head small { display: block;
+  margin-top: 2px;
+}
+
+.hof-mini { display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+
+.hof-mini .mon { display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 52px;
+}
+
+.hof-mini img { width: 48px;
+  height: 48px;
+  object-fit: contain;
+}
+
+.hof-mini small { font-size: 10px;
+}
+
+.user-pill.me { background: var(--accent);
+  color: #fff;
+}
+
+/* Music on / off */
+.music-btn { position: fixed;
+  right: 12px;
+  bottom: 12px;
+  z-index: 50;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 18px;
+  cursor: pointer;
+  opacity: 0.85;
+}
+
+.music-btn.off { background: rgba(255, 255, 255, 0.18);
+  color: var(--text-soft);
+  text-decoration: line-through;
+}
+
+/* Challenges tile on the setup screen: the number of rules that are switched on */
+.sc-chal { display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text-soft);
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.sc-chal.on { background: var(--accent);
+  color: #fff;
+}
+
+.ch-section { margin: 14px 0 6px;
+  font-size: 13px;
+}
+
+.ch-section small { margin-left: 6px;
+  color: var(--text-soft);
+  font-weight: 400;
+}
+
+.ch-list { margin: 0;
+  padding: 0;
 }

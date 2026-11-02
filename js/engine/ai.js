@@ -148,11 +148,22 @@ function scoreOptions(battle, mon, slotReq, earlier, focusTarget) {
         if (t && focusTarget && focusTarget.side === t.side && focusTarget.slot === battle.slotOf(t)) score *= 1.15;
       } else {
         score = statusScore(battle, mon, move, t, ally, allyChoice);
+        // Sleep clause: never put a second foe to sleep, or both in the same turn
+        if (isSleepMove(move) && sleepClause(battle, mon, ally, earlier)) score = -100;
       }
       options.push({ move: m.index, target: t ? battle.ref(t) : null, score, damaging });
     }
   }
   return options.length ? options : [{ move: 0, target: null, score: 0 }];
+}
+
+// Sleep moves: the ones that put a foe to sleep (Spore, Hypnosis, Sleep Powder, Yawn, Dark Void…), not Rest
+const isSleepMove = (move) => move.meta?.ailment === "sleep" || move.meta?.ailment === "yawn" || move.key === "dark-void";
+
+// Is a foe already asleep (or about to be), or did the partner just choose a sleep move this turn?
+function sleepClause(battle, mon, ally, earlier) {
+  if (battle.foesOf(mon).some((f) => f.status === "slp" || f.volatile.yawn)) return true;
+  return earlier.some((c) => c.type === "move" && ally && isSleepMove(battle.move(ally.moves[c.move]?.id)) );
 }
 
 function pickOption(battle, options) {
@@ -384,8 +395,16 @@ function statusScore(battle, mon, move, target, ally, allyChoice) {
   if (meta.category === "net-good-stats" && move.statChanges.length) {
     if (isAlly) return -100;
     let s = 0;
+    // A drop is only worth a turn when it helps something we do (our attacks, or the foe's best attacks), and not again once the target is at -2
+    const mine = [mon, ally].filter((m) => m && !m.fainted).flatMap((m) => m.moves.map((x) => battle.move(x.id)));
+    const uses = (cat) => mine.some((m) => m.category === cat);
+    const foeUses = (cat) => target.moves.some((m) => battle.move(m.id).category === cat);
     for (const { stat, change } of move.statChanges) {
-      if (change < 0 && target.boosts[stat] > -3 && !blocksStatDrop(battle, mon, target, stat)) s += 15 * -change;
+      if (change >= 0 || target.boosts[stat] <= -2 || blocksStatDrop(battle, mon, target, stat)) continue;
+      const useful = stat === "def" ? uses("physical") : stat === "spd" ? uses("special")
+        : stat === "atk" ? foeUses("physical") : stat === "spa" ? foeUses("special")
+          : stat === "spe" ? battle.speed(target) > battle.speed(mon) : false;
+      s += (useful ? 12 : 3) * -change;
     }
     if (s === 0) return -100; // nothing would happen (Clear Body, Mist, already very low…)
     // Lower defenses before the partner attacks

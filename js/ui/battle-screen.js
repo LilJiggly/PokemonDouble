@@ -218,6 +218,7 @@ export class BattleScreen {
   // Draw everything straight from the battle state (used when resuming a save)
   renderFromState() {
     const st = this.battle.state;
+    this.battleStarted = true; // resumed in the middle of a battle
     for (const side of st.sides) this.conds[side.index] = new Set(Object.keys(side.conditions ?? {}).filter((k) => side.conditions[k] > 0));
     this.renderConds();
     for (const side of st.sides) {
@@ -315,6 +316,15 @@ export class BattleScreen {
       numbers.textContent = `${Math.round(from + ((hp - from) * i) / steps)}/${maxHp}`;
       await sleep(this.speed === "fast" ? 18 : 45);
     }
+  }
+
+  // A red glow with arrows rising over the sprite for a raised stat, a blue one with arrows sinking for a lowered stat
+  showStatPop(side, slot, amount) {
+    const pop = document.createElement("div");
+    pop.className = `stat-pop ${amount > 0 ? "up" : "down"} ${side === PLAYER ? "player" : "foe"} s${slot}`;
+    pop.innerHTML = `<span>${"<i></i>".repeat(3)}</span>`;
+    this.scene.appendChild(pop);
+    setTimeout(() => pop.remove(), 1000);
   }
 
   // A number that pops up over the target for each hit of a multi-hit move
@@ -415,6 +425,9 @@ export class BattleScreen {
       case "switch":
         this.placeMon(e.side, e.slot, e.teamIndex, e.hp, e.maxHp, e.disguised ? { species: e.species, name: e.name, shiny: e.shiny } : null);
         await this.animateSprite(e.side, e.slot, "enter", 450);
+        return this.say(e.text);
+      case "boost":
+        if (this.view[posKey(e.side, e.slot)]) this.showStatPop(e.side, e.slot, e.amount);
         return this.say(e.text);
       case "swapPlaces": {
         // Ally Switch: the two Pokémon trade positions
@@ -540,7 +553,8 @@ export class BattleScreen {
   }
 
   showWaiting() {
-    const menu = this.setMenu(`<div class="panel result"><button class="btn small log-btn" data-cmd="log">Log</button></div>`);
+    // The Log button appears once the battle has started (not during the trainer intro), like the other buttons of the menu
+    const menu = this.setMenu(`<div class="panel result">${this.battleStarted ? `<button class="btn small log-btn" data-cmd="log">Log</button>` : ""}</div>`);
     menu.onclick = (ev) => { if (ev.target.closest("[data-cmd=log]")) this.showLog(); };
   }
 
@@ -598,6 +612,7 @@ export class BattleScreen {
   }
 
   commandMenu(slotReq, canGoBack, takenSwitches, reserved = {}) {
+    this.battleStarted = true; // the first command menu: the battle is on
     const mon = this.monData(PLAYER, slotReq.teamIndex);
     const bag = (slotReq.bag ?? []).filter((b) => b.count - (reserved[b.id] ?? 0) > 0);
     return new Promise((resolve) => {
@@ -717,10 +732,11 @@ export class BattleScreen {
         const valid = targets.find((t) => t.side === side && t.slot === slot);
         const mon = this.battle.monAt(side, slot);
         if (!mon || mon.fainted) return `<button class="btn target-btn ${side === FOE ? "foe" : "ally"}" disabled></button>`;
-        const img = this.data.pokemonByKey[mon.species].sprites.front;
+        const shown = this.view[posKey(side, slot)]?.shown ?? mon; // Illusion: what the screen shows, not who it really is
+        const img = this.data.pokemonByKey[shown.species].sprites.front;
         return `<button class="btn target-btn ${side === FOE ? "foe" : "ally"}" data-side="${side}" data-slot="${slot}" ${valid ? "" : "disabled"}>
           <img src="${img}" alt="">
-          <span><span class="who">${side === FOE ? "Foe" : "Ally"}</span><br><span class="tname">${mon.name}</span></span>
+          <span><span class="who">${side === FOE ? "Foe" : "Ally"}</span><br><span class="tname">${shown.name}</span></span>
         </button>`;
       };
       const menu = this.setMenu(`

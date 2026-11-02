@@ -227,8 +227,13 @@ function futureBattle(target) {
 }
 const idle = [[move(0, 0, { side: 0, slot: 1 }), move(1, 0, { side: 0, slot: 1 })], [move(0, 0, { side: 0, slot: 0 }), move(1, 0, { side: 0, slot: 1 })]];
 const turnFS = [[move(0, 0, { side: 1, slot: 0 }), move(1, 0, { side: 0, slot: 0 })], [move(0, 0, { side: 0, slot: 0 }), move(1, 0, { side: 0, slot: 1 })]];
-test("Future Sight hits at the end of the 2nd turn after it is used, and ignores types (hits Dark)", () => {
-  const b = futureBattle("umbreon");
+test("Future Sight hits at the end of the 2nd turn after it is used; Dark types are immune (Gen 5 rules)", () => {
+  const dark = futureBattle("umbreon");
+  const dt = at(dark, 1, 0), dfull = dt.hp;
+  dark.submitTurn(idle); dark.submitTurn(idle);
+  eq(dt.hp, dfull, "a Dark type takes nothing");
+  assert(!dark.state.sides[1].future[0], "…and the attack is used up");
+  const b = futureBattle("snorlax");
   const target = at(b, 1, 0);
   const full = target.hp;
   eq(target.hp, full, "no damage on turn 1");
@@ -413,7 +418,7 @@ test("Type badges (Sunbringer, Sand Caller, Cold Snap) boost their types only", 
   assert(fire({ "fire-boost": 0.5 }) > plain * 1.3, "Fire moves hit harder");
   eq(fire({ "ice-boost": 0.5 }), plain, "other types are unchanged");
 });
-test("Badges announce what they do in battle: once for ongoing effects, every time for saves and blocks", () => {
+test("Badges announce what they do in battle: one line for a healing badge each turn, every time for saves and blocks", () => {
   const withNames = (effects, names) => Battle.create(data, { seed: 1, sides: [
     { name: "P", isPlayer: true, team: [mon("geodude", ["splash", "splash"]), mon("magikarp", ["splash"])], badge: { stats: {}, effects, names } },
     { name: "F", team: [mon("squirtle", ["tackle", "splash"]), mon("magikarp", ["splash"])] }] });
@@ -422,10 +427,13 @@ test("Badges announce what they do in battle: once for ongoing effects, every ti
   const regen = withNames({ regen: 0.05 }, { regen: "Rainbow Badge" });
   regen.takeEvents();
   at(regen, 0, 0).hp -= 40;
+  at(regen, 0, 1).hp -= 3;
   const first = text(round(regen, p1(1), p2(1)));
   const second = text(round(regen, p1(1), p2(1)));
-  assert(/Rainbow Badge: your Pokémon regrow/.test(first), "announced the first time");
-  assert(!/Rainbow Badge/.test(second), "not again every turn");
+  assert(/Rainbow Badge: your team regrows HP/.test(first), "announced the first time");
+  assert(!/regrew a little HP/.test(first), "no extra line per Pokémon");
+  eq((first.match(/Rainbow Badge/g) ?? []).length, 1, "one line for the whole team, not one per Pokémon");
+  eq((second.match(/Rainbow Badge/g) ?? []).length, 1, "and once more on a later turn that heals");
   const ward = withNames({ "para-ward": 1 }, { "para-ward": "Thunder Badge" });
   ward.takeEvents();
   assert(!ward.trySetStatus(at(ward, 0, 0), "par", at(ward, 1, 0), { fromMove: true }), "paralysis blocked");
@@ -985,6 +993,42 @@ test("Illusion: Zoroark looks like the last Pokémon in the team until it is hit
   const ev = b.submitTurn([[move(0, 0, { side: 1, slot: 0 }), move(1, 0)], [move(0, 0), move(1, 0)]]);
   assert(!z.volatile.illusion, "the disguise is gone after a hit");
   assert(ev.some((e) => e.t === "illusionBreak" && /Zoroark's Illusion wore off/.test(e.text)), "break message");
+});
+
+test("Illusion copies the last Pokémon on the bench (or the partner from the first slot), never itself", () => {
+  const second = fight([mon("snorlax", ["tackle"]), mon("magikarp", ["splash"])], [mon("magikarp", ["splash"]), mon("zoroark", ["splash"], { ability: "illusion" })]);
+  assert(!at(second, 1, 1).volatile.illusion, "second slot with an empty bench: no disguise");
+  const first = fight([mon("snorlax", ["tackle"]), mon("magikarp", ["splash"])], [mon("zoroark", ["splash"], { ability: "illusion" }), mon("drapion", ["splash"])]);
+  eq(at(first, 1, 0).volatile.illusion?.species, "drapion", "first slot, empty bench: it copies its partner");
+  const benched = fight([mon("snorlax", ["tackle"]), mon("magikarp", ["splash"])], [mon("zoroark", ["splash"], { ability: "illusion" }), mon("drapion", ["splash"]), mon("gengar", ["splash"]), mon("charmander", ["splash"])]);
+  eq(at(benched, 1, 0).volatile.illusion?.species, "charmander", "with a bench it copies the last one on it");
+});
+test("AI never puts a second foe to sleep, or both in one turn", () => {
+  const b = fight([mon("snorlax", ["splash"]), mon("magikarp", ["splash"])], [mon("breloom", ["spore", "tackle"]), mon("parasect", ["spore", "tackle"])]);
+  const id = (c, slot) => b.getRequest(1).slots[slot].moves[c.move].id;
+  const picks = chooseTurn(b, 1);
+  assert(!(id(picks[0], 0) === "spore" && id(picks[1], 1) === "spore"), "not both Spore in one turn");
+  at(b, 0, 0).status = "slp";
+  const later = chooseTurn(b, 1);
+  assert(id(later[0], 0) !== "spore" && id(later[1], 1) !== "spore", "no Spore while a foe sleeps");
+});
+
+test("AI attacks instead of spamming a stat drop (Fake Tears), and stops after two drops", () => {
+  const b = fight([mon("snorlax", ["splash"]), mon("magikarp", ["splash"])], [mon("jynx", ["fake-tears", "ice-beam"]), mon("magikarp", ["splash"])]);
+  const id = (c) => b.getRequest(1).slots[0].moves[c.move].id;
+  eq(id(chooseTurn(b, 1)[0]), "ice-beam", "a real attack beats Fake Tears");
+  const weak = fight([mon("spiritomb", ["splash"]), mon("magikarp", ["splash"])], [mon("jynx", ["fake-tears", "psychic"]), mon("magikarp", ["splash"])]);
+  at(weak, 0, 0).boosts.spd = -2;
+  const pick = chooseTurn(weak, 1)[0];
+  assert(weak.getRequest(1).slots[0].moves[pick.move].id !== "fake-tears", "no third Fake Tears");
+});
+
+test("Close Combat lowers the user's Defense and Sp. Def even when it knocks the target out", () => {
+  const b = battle([mon("machamp", ["close-combat"], { level: 100 }), mon("magikarp", ["splash"])], [mon("magikarp", ["splash"], { level: 5 }), mon("magikarp", ["splash"])]);
+  b.submitTurn([[move(0, 0, { side: 1, slot: 0 }), move(1, 0, { side: 1, slot: 1 })], [move(0, 0, { side: 0, slot: 0 }), move(1, 0, { side: 0, slot: 1 })]]);
+  assert(at(b, 1, 0) === null || at(b, 1, 0).fainted, "the target fainted");
+  eq(at(b, 0, 0).boosts.def, -1, "Defense");
+  eq(at(b, 0, 0).boosts.spd, -1, "Sp. Def");
 });
 
 console.log(`\n${passed} passed, ${failed} failed`);

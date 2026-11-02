@@ -5,6 +5,8 @@
 // and at the end of a run. unlocks.js reads the meta counters.
 // =====================================================
 
+import { noteChallenges } from "./challenges.js";
+
 export const STARTER_LINES = {
   kanto: ["bulbasaur", "charmander", "squirtle"],
   johto: ["chikorita", "cyndaquil", "totodile"],
@@ -82,6 +84,7 @@ export function noteRunEnd(meta, run, ctx) {
   for (const type of types) bump(meta.typeWins, type);
   if (types.size >= 6) meta.diverseWins = (meta.diverseWins ?? 0) + 1;
   if (run.playMs > 0) meta.fastestWin = Math.min(meta.fastestWin ?? Infinity, run.playMs);
+  noteChallenges(meta, run, ctx);
   if (!run.fallen.length) {
     meta.cleanWins = (meta.cleanWins ?? 0) + 1;
     bump(meta.cleanWinGens, run.settings.gen);

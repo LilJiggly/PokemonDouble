@@ -56,13 +56,14 @@ function rollTier(run, odds, available) {
 // ===============================
 
 // perks: Trainer upgrades from meta progression (see meta.js perksFromMeta)
-export function newRun(ctx, { gen, pools, seed = Math.floor(Math.random() * 2 ** 32), perks = {}, character = "lucas", badges = [], badgeLinks = [], badgeOff = [], dupes = true }) {
+export function newRun(ctx, { gen, pools, seed = Math.floor(Math.random() * 2 ** 32), perks = {}, character = "lucas", badges = [], badgeLinks = [], badgeOff = [], dupes = true, fixedSix = false }) {
   const run = {
     version: 1,
     character,
     rng: seed >>> 0,
-    settings: { gen, pools: [...pools].sort(), dupes }, // dupes: the dupes clause (a line you had before, even a fallen or released one, doesn't come back as a recruit)
+    settings: { gen, pools: [...pools].sort(), dupes, fixedSix }, // dupes: the dupes clause (a line you had before, even a fallen or released one, doesn't come back as a recruit); fixedSix: pick six at the start, never recruit again
     lines: [], // evolution lines of every Pokémon you recruited this run
+    rerollsUsed: 0, // recruit and shop rerolls (for the "No rerolls" challenge)
     seenSpecies: [], // every species that was on your team at some point of this run (for the Obtain unlocks)
     perks: { scout: 0, dice: 0, allowance: 0, bag: 0, gift: 0, hidden: 0, shiny: 0, ...perks },
     money: 0,
@@ -99,7 +100,7 @@ export function newRun(ctx, { gen, pools, seed = Math.floor(Math.random() * 2 **
   run.perks.dice += run.charFx.dice ?? 0; // Dawn: one more reroll on every recruit screen
   const row = ctx.rules.progression.find((r) => r.order === 0);
   const level = playerLevelFor(ctx, 1);
-  run.offer = makeRecruitOffer(run, ctx, { count: row.recruitOptions + run.perks.scout + (run.charFx["starter-card"] ?? 0), picks: row.recruitPicks, odds: row.odds, level, starter: true });
+  run.offer = makeRecruitOffer(run, ctx, { count: (fixedSix ? 12 : row.recruitOptions) + run.perks.scout + (run.charFx["starter-card"] ?? 0), picks: fixedSix ? 6 : row.recruitPicks, odds: row.odds, level, starter: true });
   applyCharacterPerk(run, ctx);
   return run;
 }
@@ -289,6 +290,7 @@ export function rerollOffer(run, ctx) {
   const fresh = makeRecruitOffer(run, ctx, { count, picks: offer.picks, odds, level: offer.level, starter: offer.starter });
   offer.options = [...kept, ...fresh.options];
   offer.rerollsLeft -= 1;
+  run.rerollsUsed = (run.rerollsUsed ?? 0) + 1;
   return { ok: true };
 }
 
@@ -680,6 +682,7 @@ export function rerollShop(run, ctx) {
   const rerolls = (run.shop?.rerolls ?? 0) + 1;
   run.shop = makeShop(run, ctx);
   run.shop.rerolls = rerolls;
+  run.rerollsUsed = (run.rerollsUsed ?? 0) + 1;
   return { ok: true };
 }
 
@@ -1021,7 +1024,7 @@ export function finishBattle(run, ctx) {
     return;
   }
   const row = rowFor(ctx, run.order);
-  if (row.recruitOptions > 0) {
+  if (row.recruitOptions > 0 && !run.settings.fixedSix) { // Fixed Six: no recruit screens after the draft
     const level = playerLevelFor(ctx, run.order + 1);
     // Replacement picks: +1 pick and +1 card per Pokémon lost this battle (DESIGN.md §3a)
     const lost = run.lastBattle.fallen.length;

@@ -18,6 +18,8 @@ import { sceneHtml, alignScene } from "./title-banner.js";
 import { CASE_SIZE, badgeId, badgeImage, badgeName, caseOf, caseStrengths, ownedBadges, randomZones, validZones, SLOT_UNLOCKS, slotUnlocked, unlockedSlotCount, statOfBadge, badgeStatBoost, STAT_NAME, parseBadgeId, perkInfo, perkOfBadge, perkParam, placeBadge, removeBadge, setBonus, unlockBadge } from "../game/badges.js";
 import { targetIcon, categoryIcon } from "./target-icon.js";
 import { rankScore, rankOf } from "../game/ranks.js";
+import { play as playMusic } from "../game/music.js";
+import { CHALLENGES, PLANNED } from "../game/challenges.js";
 import { VERSION } from "../version.js";
 import * as Run from "../game/run.js";
 import { loadMeta, saveMeta, buyUpgrade, canBuyUpgrade, upgradeLevel, perksFromMeta, trainerPointsFor, recordRun, noteSave } from "../game/meta.js";
@@ -114,6 +116,7 @@ export class RunUI {
   showHub() {
     this.battleScreen?.destroy();
     this.battleScreen = null;
+    playMusic("hub");
     this.app.hidden = true; this.hub.hidden = false; window.scrollTo(0, 0);
   }
   showBattle() { this.hub.hidden = true; this.app.hidden = false; this.lastScreen = "battle"; }
@@ -248,7 +251,9 @@ export class RunUI {
     this.hub.className = "hub";
     this.hub.innerHTML = `
       <div class="offer-head"><h1>Leaderboards</h1><button class="btn" data-act="title">◀ Title</button></div>
-      <div class="tabs board-tabs">${[{ id: "ranks", label: "Ranks" }, ...LEADERBOARDS, { id: "pokemon", label: "Most used" }].map((b) => `<button class="tab ${b.id === boardId ? "active" : ""}" data-act="board" data-board="${b.id}">${b.label}</button>`).join("")}</div>
+      <div class="tabs board-tabs">${[{ id: "ranks", label: "Ranks" }, ...LEADERBOARDS, { id: "hof", label: "Hall of Fame" }, { id: "challenges", label: "Challenges" }, { id: "pokemon", label: "Most used" }].map((b) => `<button class="tab ${b.id === boardId ? "active" : ""}" data-act="board" data-board="${b.id}">${b.label}</button>`).join("")}</div>
+      ${boardId === "hof" ? `<p class="rank-note">The latest winning teams of all players, newest first.</p>` : ""}
+      ${boardId === "challenges" ? `<p class="rank-note">Special goals for a winning run. Beat one in any run to put your name on it.</p>` : ""}
       ${boardId === "pokemon" ? `<p class="rank-note">The Pokémon that were in the most winning Hall of Fame teams, across all players.</p>` : ""}
       ${boardId === "ranks" ? `<p class="rank-note">Everyone starts at Z. Climb towards A: points for your furthest run, every Champion win and flawless win, every badge and every trainer you unlock.</p>` : ""}
       <section class="card-panel"><ol class="board-list" data-board-list><li class="empty-note">Loading…</li></ol></section>`;
@@ -257,6 +262,38 @@ export class RunUI {
       if (el?.dataset.act === "title") this.start();
       if (el?.dataset.act === "board") this.renderLeaderboards(el.dataset.board);
     };
+    if (boardId === "hof" || boardId === "challenges") {
+      let players;
+      try { players = await allPlayers(); } catch (err) { console.error(err); players = null; }
+      const box = this.hub.querySelector("[data-board-list]");
+      if (!box) return;
+      const myId = cloudState().user?.uid;
+      if (players === null) { box.innerHTML = `<li class="empty-note">Could not load the leaderboard.</li>`; return; }
+      if (boardId === "challenges") {
+        const mine = new Set(loadMeta().challenges ?? []);
+        const total = Math.max(1, players.length);
+        const row = (c) => {
+          const done = players.filter((p) => p.challenges?.includes(c.id)).sort((a, b) => String(a.name).localeCompare(String(b.name)));
+          const pills = done.slice(0, 10).map((p) => `<span class="user-pill ${p.uid === myId ? "me" : ""}">${escapeHtml(p.name ?? "Trainer")}</span>`).join("") + (done.length > 10 ? `<span class="user-pill more">+${done.length - 10} more</span>` : "");
+          return `<li class="challenge-row ${mine.has(c.id) ? "done" : ""}"><span class="ch-check" title="${mine.has(c.id) ? "You beat this one" : "Not beaten yet"}">${mine.has(c.id) ? "✓" : ""}</span>
+            <span class="who"><span class="ch-title"><strong>${c.name}</strong><em class="ch-tag ${c.rule ? "rule" : ""}">${c.rule ? `Rule: ${c.rule}` : "Any run"}</em></span><small>${c.text}</small>
+            <span class="ch-bar" title="${done.length} of ${players.length} players"><i style="width:${Math.round(done.length / total * 100)}%"></i></span>
+            ${done.length ? `<span class="user-pills">${pills}</span>` : ""}</span>
+            <b>${done.length}<small> / ${players.length}</small></b></li>`;
+        };
+        box.innerHTML = `<li class="ch-head"><b>${CHALLENGES.filter((c) => mine.has(c.id)).length} of ${CHALLENGES.length}</b> beaten by you<small>Beat a challenge in a winning run. Most count in any run; a rule challenge needs its switch on before you start.</small></li>`
+          + CHALLENGES.map(row).join("")
+          + `<li class="ch-head soon"><b>Coming soon</b><small>Ideas on the list. They aren't tracked yet.</small></li>`
+          + PLANNED.map((c) => `<li class="challenge-row planned"><span class="ch-check"></span><span class="who"><span class="ch-title"><strong>${c.name}</strong></span><small>${c.text}</small></span></li>`).join("");
+        return;
+      }
+      const entries = players.flatMap((p) => (p.hof ?? []).map((e) => ({ ...e, name: p.name ?? "Trainer", uid: p.uid }))).filter((e) => e.t?.some((m) => this.ctx.data.pokemonByKey[m.s]))
+        .sort((a, b) => String(b.d).localeCompare(String(a.d)) || a.name.localeCompare(b.name)).slice(0, 30);
+      box.innerHTML = entries.length ? entries.map((e) => `<li class="hof-row ${e.uid === myId ? "me" : ""}"><span class="who"><strong>${escapeHtml(e.name)}</strong><small>${e.d} · Gen ${e.g} ${this.ctx.leaders[e.g]?.region ?? ""} · ${e.f ? `${e.f} fallen` : "Flawless"}</small>
+          <span class="hof-mini">${e.t.filter((m) => this.ctx.data.pokemonByKey[m.s]).map((m) => { const mon = this.ctx.data.pokemonByKey[m.s]; return `<span class="mon" title="${mon.name} Lv ${m.l}"><img src="${m.sh ? mon.sprites.frontShiny : mon.sprites.front}" alt="${mon.name}"><small>Lv ${m.l}</small></span>`; }).join("")}</span></span></li>`).join("")
+        : `<li class="empty-note">No champion teams yet. Win a run to start the board!</li>`;
+      return;
+    }
     if (boardId === "pokemon") {
       let players;
       try { players = await allPlayers(); } catch (err) { console.error(err); players = null; }
@@ -399,6 +436,7 @@ export class RunUI {
     const challengeIcon = `<img class="sc-img" src="${this.ctx.data.pokemonByKey[ICONIC[setup.gen]].sprites.front}" alt="">`;
     const spriteDir = spriteMode.id === "gen5-ani" ? "gen5-ani" : spriteMode.id === "gen4" ? "gen4" : "gen5";
     const spriteIcon = `<img class="sc-img" src="images/sprites/${spriteDir}/front/9.${spriteMode.id === "gen5-ani" ? "gif" : "png"}" alt="">`;
+    const rules = [setup.dupes !== false ? "Dupes clause" : null, setup.fixedSix === true ? "Fixed Six" : null].filter(Boolean);
     const card = ({ act, label, body, sub, ghost = "" }) => `<button class="setup-card ${ghost ? "ghost" : ""}" data-act="${act}">
       <span class="sc-label">${label}${ghost ? ` <em class="sc-hidden" title="Hidden until you win your first badge">${ghost}</em>` : ""}</span>
       <span class="sc-body">${body}</span><span class="sc-sub">${sub}</span><span class="sc-go" aria-hidden="true">Change ▸</span></button>`;
@@ -412,6 +450,8 @@ export class RunUI {
           sub: `${slots.filter(Boolean).length} of ${unlockedSlotCount(meta)} slots · ${owned.size} badges owned` }) : ""}
         ${card({ act: "pick-pool", label: "Pokémon Pool",
           body: `${poolIcon}<b>${setup.pools.length === 5 ? "All generations" : `Gen ${setup.pools.join(", ")}`}</b>`, sub: "Where your recruits come from" })}
+        ${card({ act: "pick-challenges", label: "Challenges",
+          body: `<span class="sc-chal ${rules.length ? "on" : ""}">${rules.length}</span><b>${rules.length ? `${rules.length} rule${rules.length > 1 ? "s" : ""} on` : "No rules on"}</b>`, sub: rules.join(", ") || "Dupes clause, Fixed Six" })}
         ${card({ act: "pick-sprites", label: "Sprites", body: `${spriteIcon}<b>${spriteMode.label}</b>`, sub: spriteMode.hint })}
       </div>
       <div class="row-buttons">
@@ -434,12 +474,13 @@ export class RunUI {
         if (g) { m.setup.gen = g; saveMeta(m); this.renderSetup(); }
       }
       if (act === "pick-pool") { await this.poolDialog(m); this.renderSetup(); }
+      if (act === "pick-challenges") { await this.challengesDialog(m); this.renderSetup(); }
       if (act === "pick-sprites") {
         const id = await this.spritesDialog(m);
         if (id) { m.sprites = id; saveMeta(m); applySpriteMode(this.ctx.data, id); this.renderSetup(); }
       }
       if (act === "go") {
-        this.run = Run.newRun(this.ctx, { gen: m.setup.gen, pools: m.setup.pools, perks: perksFromMeta(m), character: m.character, dupes: m.setup.dupes !== false, badges: caseOf(m), badgeLinks: m.badgeLinks, badgeOff: m.badgeOff ?? [] });
+        this.run = Run.newRun(this.ctx, { gen: m.setup.gen, pools: m.setup.pools, perks: perksFromMeta(m), character: m.character, dupes: m.setup.dupes !== false, fixedSix: m.setup.fixedSix === true, badges: caseOf(m), badgeLinks: m.badgeLinks, badgeOff: m.badgeOff ?? [] });
         saveMeta(m);
         this.render();
       }
@@ -532,20 +573,10 @@ export class RunUI {
       title: "Pokémon Pool",
       variant: "settings",
       body: `<div class="note-row"><p class="opt-note">Tap to include a generation. Recruits come from the highlighted ones.</p></div>
-        <div class="opt-grid" data-pool>${[1, 2, 3, 4, 5].map(tile).join("")}</div>
-        <label class="dupes-row"><span class="switch"><input type="checkbox" data-dupes ${meta.setup.dupes !== false ? "checked" : ""}><span class="track-dot"></span></span>
-          <span><b>Dupes clause</b><small>A Pokémon line you had before, even a fallen one, won't be offered as a recruit again.</small></span></label>`,
+        <div class="opt-grid" data-pool>${[1, 2, 3, 4, 5].map(tile).join("")}</div>`,
       options: [],
       cancel: "Done",
       onOpen: (dialog) => {
-        dialog.addEventListener("change", (e) => {
-          if (!e.target.matches("[data-dupes]")) return;
-          const m = loadMeta();
-          m.setup ??= { gen: meta.setup.gen, pools: [...meta.setup.pools] };
-          m.setup.dupes = e.target.checked;
-          meta.setup.dupes = e.target.checked;
-          saveMeta(m);
-        });
         dialog.addEventListener("click", (e) => {
           const t = e.target.closest("[data-gen]");
           if (!t) return;
@@ -558,6 +589,39 @@ export class RunUI {
           m.setup.pools = meta.setup.pools;
           saveMeta(m);
           dialog.querySelector("[data-pool]").innerHTML = [1, 2, 3, 4, 5].map(tile).join("");
+        });
+      },
+    });
+  }
+
+  // Extra rules for the run: switches (changes apply at once)
+  async challengesDialog(meta) {
+    const mine = new Set(loadMeta().challenges ?? []);
+    const row = (key, on, title, text) => `<label class="dupes-row"><span class="switch"><input type="checkbox" data-rule="${key}" ${on ? "checked" : ""}><span class="track-dot"></span></span>
+      <span><b>${title}</b><small>${text}</small></span></label>`;
+    await this.modal({
+      title: "Challenges",
+      variant: "settings",
+      body: `<div class="note-row"><p class="opt-note">Rules change how the next run is played. A challenge is beaten by winning a run: most count in any run, a challenge with a switch needs it on before you start.</p></div>
+        <h4 class="ch-section">Run rule</h4>
+        ${row("dupes", meta.setup.dupes !== false, "Dupes clause", "A Pokémon line you had before, even a fallen one, won't be offered as a recruit again.")}
+        <h4 class="ch-section">Challenges <small>${CHALLENGES.filter((c) => mine.has(c.id)).length} of ${CHALLENGES.length} beaten</small></h4>
+        <ol class="board-list ch-list">${CHALLENGES.map((c) => `<li class="challenge-row ${mine.has(c.id) ? "done" : ""}"><span class="ch-check">${mine.has(c.id) ? "✓" : ""}</span>
+          <span class="who"><span class="ch-title"><strong>${c.name}</strong><em class="ch-tag ${c.toggle ? "rule" : ""}">${c.toggle ? "Needs its switch" : "Any run"}</em></span><small>${c.text}</small></span>
+          ${c.toggle ? `<span class="switch"><input type="checkbox" data-rule="${c.toggle}" ${meta.setup[c.toggle] === true ? "checked" : ""} aria-label="${c.name} on or off"><span class="track-dot"></span></span>` : ""}</li>`).join("")}</ol>
+        <h4 class="ch-section">Coming soon</h4>
+        <ol class="board-list ch-list">${PLANNED.map((c) => `<li class="challenge-row planned"><span class="ch-check"></span><span class="who"><span class="ch-title"><strong>${c.name}</strong></span><small>${c.text}</small></span></li>`).join("")}</ol>`,
+      options: [],
+      cancel: "Done",
+      onOpen: (dialog) => {
+        dialog.addEventListener("change", (e) => {
+          const key = e.target.dataset?.rule;
+          if (!key) return;
+          const m = loadMeta();
+          m.setup ??= { gen: meta.setup.gen, pools: [...meta.setup.pools] };
+          m.setup[key] = e.target.checked;
+          meta.setup[key] = e.target.checked;
+          saveMeta(m);
         });
       },
     });
@@ -897,6 +961,32 @@ export class RunUI {
         if (btn.dataset.i === undefined) return; // buttons inside the body (e.g. effect toggles)
         close(options[Number(btn.dataset.i)].value);
       };
+      // A team strip in the head (data-reorder): drag a Pokémon onto another one to change the team order
+      let dragUid = null;
+      const stripPick = (e) => e.target.closest?.(".mon-strip[data-reorder] .mon-pick[data-uid]");
+      backdrop.addEventListener("dragstart", (e) => {
+        const b = stripPick(e);
+        if (!b) return;
+        dragUid = Number(b.dataset.uid);
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData("text/plain", "mon");
+        b.classList.add("dragging");
+      });
+      backdrop.addEventListener("dragover", (e) => { if (dragUid !== null && stripPick(e)) e.preventDefault(); });
+      backdrop.addEventListener("dragend", () => { dragUid = null; backdrop.querySelectorAll(".dragging").forEach((el) => el.classList.remove("dragging")); });
+      backdrop.addEventListener("drop", (e) => {
+        const b = stripPick(e);
+        if (dragUid === null || !b) return;
+        e.preventDefault();
+        const run = this.run;
+        Run.moveTeamMemberTo(run, dragUid, run.team.findIndex((m) => m.uid === Number(b.dataset.uid)));
+        dragUid = null;
+        this.save();
+        const strip = backdrop.querySelector(".mon-strip[data-reorder]");
+        const current = run.team.find((m) => m.uid === Number(strip.dataset.current));
+        if (current) strip.outerHTML = this.monStrip(current);
+        this.render(); // the team behind the window follows
+      });
       // Swipe left / right on phones to flip through Pokémon
       if (nav) {
         let start = null;
@@ -964,9 +1054,9 @@ export class RunUI {
   monStrip(mon) {
     const team = this.run.team;
     if (team.length < 2) return "";
-    return `<div class="mon-strip" role="group" aria-label="Choose a Pokémon">${team.map((m, j) => `
-      <button class="mon-pick ${m === mon ? "current" : ""} ${j < 2 ? "lead" : ""}" data-result='{"goto":${m.uid}}' ${m === mon ? `aria-current="true"` : ""}
-        title="${this.ctx.data.pokemonByKey[m.species].name}${j < 2 ? " (lead)" : ""}"><img src="${this.sprite(m)}" alt="${this.ctx.data.pokemonByKey[m.species].name}">${this.newDot(m)}</button>`).join("")}</div>`;
+    return `<div class="mon-strip" role="group" aria-label="Choose a Pokémon" data-reorder data-current="${mon.uid}">${team.map((m, j) => `
+      <button class="mon-pick ${m === mon ? "current" : ""} ${j < 2 ? "lead" : ""}" data-result='{"goto":${m.uid}}' data-uid="${m.uid}" draggable="true" ${m === mon ? `aria-current="true"` : ""}
+        title="${this.ctx.data.pokemonByKey[m.species].name}${j < 2 ? " (lead)" : ""} (drag to change the order)"><img src="${this.sprite(m)}" alt="${this.ctx.data.pokemonByKey[m.species].name}">${this.newDot(m)}</button>`).join("")}</div>`;
   }
 
   // ===============================
@@ -994,7 +1084,7 @@ export class RunUI {
           ${o.taken ? "" : `<span class="open-hint">Tap for details</span>`}
         </button>`;
     }).join("");
-    const headline = starter ? "Choose your starters"
+    const headline = starter ? (run.settings.fixedSix ? "Choose your six Pokémon" : "Choose your starters")
       : `You beat ${run.lastBattle?.opponent}! Recruit time`;
     const picks = offer.picksLeft;
     const meter = `<div class="pick-meter" aria-label="${picks} of ${offer.picks} picks left"><span class="pm-count"><b>${picks}</b> of ${offer.picks} pick${offer.picks > 1 ? "s" : ""} left</span>
@@ -1430,7 +1520,7 @@ export class RunUI {
     const SLOT = ".move-slot, .mon-card .move-card[data-slot]";
     const targetOf = (el) => {
       if (this.drag && ["learn", "slot"].includes(this.drag.kind)) return el.closest(SLOT);
-      return el.closest(".mon-card, .team-tile") ?? el.closest(".bag-panel");
+      return el.closest(".mon-card, .team-tile, .mon-pick") ?? el.closest(".bag-panel");
     };
     const accepts = (drag, target) => {
       if (!drag || !target) return false;
@@ -1438,7 +1528,7 @@ export class RunUI {
       if (drag.kind === "learn") return target.matches(SLOT);
       if (drag.kind === "slot") return target.matches(SLOT) && Number(target.dataset.slot) !== drag.slot && Number(target.dataset.uid) === drag.uid;
       if (target.matches(SLOT)) return false;
-      const isMon = target.matches(".mon-card, .team-tile");
+      const isMon = target.matches(".mon-card, .team-tile, .mon-pick");
       if (drag.kind === "mon") return isMon && Number(target.dataset.uid) !== drag.uid;
       if (drag.kind === "held") return (isMon && Number(target.dataset.uid) !== drag.uid) || target.matches(".bag-panel");
       return isMon; // bag item or TM onto a Pokémon
@@ -1921,7 +2011,7 @@ export class RunUI {
   monPicker(mon) {
     const { run, ctx } = this;
     return `<div class="mon-strip" role="group" aria-label="Choose a Pokémon">${run.team.map((m) => `
-        <button class="mon-pick ${m === mon ? "current" : ""}" data-act="move-focus" data-uid="${m.uid}" title="${Run.displayName(ctx, m)}"><img src="${this.sprite(m)}" alt="">${this.newDot(m)}</button>`).join("")}</div>`;
+        <button class="mon-pick ${m === mon ? "current" : ""}" data-act="move-focus" data-uid="${m.uid}" data-drag="mon" draggable="true" title="${Run.displayName(ctx, m)} (drag to change the order)"><img src="${this.sprite(m)}" alt="">${this.newDot(m)}</button>`).join("")}</div>`;
   }
 
   movesPanel() {
@@ -2050,24 +2140,24 @@ export class RunUI {
   statsTable(m) {
     const p = this.ctx.data.pokemonByKey[m.species];
     const ivs = { ...DEFAULT_IVS, ...m.ivs };
-    const evs = { ...DEFAULT_EVS, ...m.evs };
-    const stats = calcStats(p.baseStats, m.level, m.nature, ivs, evs, m.species);
+    const stats = calcStats(p.baseStats, m.level, m.nature, ivs, { ...DEFAULT_EVS, ...m.evs }, m.species);
     const [up, down] = NATURES[m.nature] ?? [];
     const rows = ["hp", "atk", "def", "spa", "spd", "spe"].map((s) => {
       const mark = s === up ? `<span class="nat up" title="Raised by ${m.nature}">▲</span>` : s === down ? `<span class="nat down" title="Lowered by ${m.nature}">▼</span>` : "";
       const pct = Math.min(100, (p.baseStats[s] / 180) * 100);
+      const ivPct = Math.min(100 - pct, (ivs[s] / 2 / 180) * 100); // an IV point is worth half a base point in the stat formula
       return `<tr class="${s === up ? "up" : s === down ? "down" : ""}">
         <th>${STAT_NAMES[s]} ${mark}</th>
         <td>${p.baseStats[s]}</td>
-        <td class="bar-cell"><span class="stat-bar" style="width:${pct}%"></span></td>
-        <td>${ivs[s]}</td><td>${evs[s]}</td>
+        <td class="bar-cell"><span class="stat-track"><span class="stat-bar" style="width:${pct}%" title="Base ${p.baseStats[s]}"></span><span class="stat-iv" style="width:${ivPct}%" title="IV ${ivs[s]}"></span></span></td>
+        <td>${ivs[s]}</td>
         <td class="total">${stats[s]}</td>
       </tr>`;
     }).join("");
     return `<table class="stats-table">
-      <thead><tr><th>Stat</th><th>Base</th><th></th><th>IV</th><th>EV</th><th>Lv ${m.level}</th></tr></thead>
+      <thead><tr><th>Stat</th><th>Base</th><th class="bar-legend"><i class="base"></i>Base <i class="iv"></i>IV</th><th>IV</th><th>Lv ${m.level}</th></tr></thead>
       <tbody>${rows}</tbody>
-      <tfoot><tr><th>Total</th><td>${p.bst}</td><td></td><td></td><td></td><td></td></tr></tfoot>
+      <tfoot><tr><th>Total</th><td>${p.bst}</td><td></td><td></td><td></td></tr></tfoot>
     </table>`;
   }
 
@@ -2590,6 +2680,7 @@ export class RunUI {
 
   playBattle(battle, runOpts) {
     this.showBattle();
+    playMusic({ "Gym Leader": "gym", "Elite Four": "elite", Champion: "champion", Rival: "rival" }[this.run.opponent.title] ?? "battle");
     const mine = this.run;
     const screen = new BattleScreen(battle, {
       data: this.ctx.data,
@@ -2665,7 +2756,7 @@ export class RunUI {
       const perk = this.perkLine(id);
       await this.modal({
         title: "New trainer unlocked!",
-        body: `<div class="unlock-card"><img src="${c.front}" alt=""><b>${c.name}</b>${perk ? `<p>${perk.replace(/<\/?small>/g, "")}</p>` : ""}<p class="empty-note">Pick them on the New run screen.</p></div>`,
+        body: `<div class="unlock-card"><img src="${c.front}" alt=""><b>${c.name}</b><p class="unlocked-how"><em>How you unlocked them:</em> ${unlockText((this.ctx.rules.characterUnlocks ?? {})[id])}</p>${perk ? `<p>${perk.replace(/<\/?small>/g, "")}</p>` : ""}<p class="empty-note">Pick them on the New run screen.</p></div>`,
         cancel: "Nice!",
       });
     }

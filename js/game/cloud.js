@@ -18,8 +18,6 @@ const CHANGED_KEY = "pd.localChanged"; // when this device last saved something
 
 export const LEADERBOARDS = [
   { id: "wins", label: "Champion wins", field: "wins" },
-  { id: "fastest", label: "Fastest win", field: "fastestWin", ascending: true, format: (sec) => `${Math.floor(sec / 3600)}:${String(Math.floor((sec % 3600) / 60)).padStart(2, "0")}:${String(sec % 60).padStart(2, "0")}` },
-  { id: "clean", label: "Flawless wins", field: "cleanWins" },
   { id: "trainers", label: "Trainers unlocked", field: "trainers" },
   { id: "badges", label: "Badges", field: "badges", suffix: " of 40" },
 ];
@@ -71,6 +69,14 @@ export async function signOutUser() { await load(); await fb.signOut(fb.auth); }
 function localSave() {
   return { meta: read(KEYS.meta), hof: read(KEYS.hof) ?? [], run: read(KEYS.run) };
 }
+// A short fingerprint of a save: "did this device change since the last sync?" is answered by content, not by clock
+// (the game also writes its save when it starts, which must not count as a change)
+function fingerprint(s) {
+  const text = JSON.stringify([s.meta, s.hof, s.run ?? null]);
+  let h = 5381;
+  for (let i = 0; i < text.length; i++) h = ((h << 5) + h + text.charCodeAt(i)) | 0;
+  return `${text.length}:${h}`;
+}
 const hasProgress = (s) => !!s.meta && ((s.meta.runs ?? 0) > 0 || (s.meta.tp ?? 0) > 0 || (s.meta.badges?.length ?? 0) > 0 || s.hof.length > 0);
 export const summary = (s) => `${s.meta?.runs ?? 0} runs, ${s.meta?.wins ?? 0} wins, ${s.meta?.tp ?? 0} TP`;
 
@@ -87,11 +93,12 @@ function usedFrom(hof) {
   for (const e of hof ?? []) for (const m of e.team ?? []) used[m.species] = (used[m.species] ?? 0) + 1;
   return used;
 }
+// The latest champion teams, small enough to show on the shared Hall of Fame board
+const recentHof = (hof) => (hof ?? []).slice(0, 3).map((e) => ({ d: e.date, g: e.gen, f: e.fallen ?? 0, t: (e.team ?? []).slice(0, 6).map((m) => ({ s: m.species, l: m.level, ...(m.shiny ? { sh: true } : {}) })) }));
 function publicLine(meta, hof) {
   return {
     name: publicName(meta), wins: meta?.wins ?? 0, best: meta?.best ?? 0, cleanWins: meta?.cleanWins ?? 0,
-    trainers: extraStats(meta).trainers ?? 1, badges: meta?.badges?.length ?? 0, used: usedFrom(hof), updatedAt: Date.now(),
-    ...(meta?.fastestWin > 0 ? { fastestWin: Math.max(60, Math.round(meta.fastestWin / 1000)) } : {}), // seconds of the fastest win (timed runs only)
+    trainers: extraStats(meta).trainers ?? 1, badges: meta?.badges?.length ?? 0, used: usedFrom(hof), hof: recentHof(hof), challenges: (meta?.challenges ?? []).slice(0, 40), updatedAt: Date.now(),
   };
 }
 
@@ -103,7 +110,7 @@ async function push() {
     meta: JSON.stringify(s.meta ?? {}), hof: JSON.stringify(s.hof), run: s.run ? JSON.stringify(s.run) : null, updatedAt: at,
   });
   if (s.meta) await fb.setDoc(fb.doc(fb.db, "players", user.uid), publicLine(s.meta, s.hof));
-  localStorage.setItem(SYNC_KEY, JSON.stringify({ uid: user.uid, at }));
+  localStorage.setItem(SYNC_KEY, JSON.stringify({ uid: user.uid, at, h: fingerprint(s) }));
 }
 
 function applyCloud(d) {
@@ -112,7 +119,7 @@ function applyCloud(d) {
     localStorage.setItem(KEYS.meta, d.meta);
     localStorage.setItem(KEYS.hof, d.hof);
     if (d.run) localStorage.setItem(KEYS.run, d.run); else localStorage.removeItem(KEYS.run);
-    localStorage.setItem(SYNC_KEY, JSON.stringify({ uid: user.uid, at: d.updatedAt }));
+    localStorage.setItem(SYNC_KEY, JSON.stringify({ uid: user.uid, at: d.updatedAt, h: fingerprint(localSave()) }));
   } finally { paused = false; }
 }
 
@@ -177,8 +184,10 @@ export async function syncNow({ first = false } = {}) {
       const cloud = { meta: JSON.parse(d.meta), hof: JSON.parse(d.hof) };
       const known = last?.uid === user.uid ? last.at : 0;
       const cloudNewer = d.updatedAt > known;
-      const localNewer = changed > known && hasProgress(local);
-      if (!hasProgress(local) || (cloudNewer && !localNewer)) { applyCloud(d); result = "pulled"; }
+      const localNewer = hasProgress(local) && (last?.h ? last.h !== fingerprint(local) : changed > known);
+      if (hasProgress(local) && fingerprint(local) === fingerprint({ ...cloud, run: d.run ? JSON.parse(d.run) : null })) { // already identical
+        localStorage.setItem(SYNC_KEY, JSON.stringify({ uid: user.uid, at: d.updatedAt, h: fingerprint(local) }));
+      } else if (!hasProgress(local) || (cloudNewer && !localNewer)) { applyCloud(d); result = "pulled"; }
       else if (!cloudNewer) await push();
       else {
         const choice = await (chooser ?? defaultAsk)(summary(cloud), summary(local));

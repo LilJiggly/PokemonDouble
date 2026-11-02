@@ -123,7 +123,7 @@ export class Battle {
     for (const side of st.sides) {
       const turns = this.bfx(side.index, "rain-start");
       if (turns && this.setWeather("rain", null)) { st.field.weatherTurns = turns; this.badgeNote(side.index, "rain-start", "rain starts to fall!"); }
-      if (this.bfx(side.index, "opener")) this.badgeNote(side.index, "opener", "your attacks hit harder this turn!");
+      if (this.bfx(side.index, "opener")) this.badgeNote(side.index, "opener", "stronger attacks this turn!");
     }
     st.turn = 1;
     st.phase = "choose";
@@ -831,7 +831,13 @@ export class Battle {
   sendOutLog(mon) {
     const side = this.state.sides[mon.side];
     if (mon.ability === "illusion") {
-      const fake = [...side.team].reverse().find((m) => m !== mon && !m.fainted);
+      // Gen 5: it copies the last Pokémon in the party that is still standing and sits behind it in the party order.
+      // The party order is the two Pokémon on the field, then the bench: a Pokémon in the first slot can copy its active partner
+      // (so two of the same look can be on the field), one in the second slot only a Pokémon from the bench.
+      const bench = side.team.filter((m) => !side.active.includes(m.teamIndex) && !m.fainted && m !== mon);
+      const slot = side.active.indexOf(mon.teamIndex);
+      const partner = slot === 0 ? side.team[side.active[1]] : null;
+      const fake = bench.at(-1) ?? (partner && !partner.fainted && partner !== mon ? partner : null);
       if (fake) mon.volatile.illusion = { species: fake.species, name: fake.name, shiny: fake.shiny };
     }
     const shown = mon.volatile.illusion ?? mon;
@@ -857,13 +863,18 @@ export class Battle {
 
   // A badge doing something you can see: "Rainbow Badge: …". Passive boosts stay silent; the effects that act on their own
   // are announced the first time they happen in a battle (always: when they save a Pokémon or block a status).
-  badgeNote(sideIndex, id, text, { always = false } = {}) {
+  badgeNote(sideIndex, id, text, { always = false, perTurn = false } = {}) {
     const b = this.state.sides[sideIndex]?.badge;
     const name = b?.names?.[id];
     if (!name) return;
     b.shown ??= {};
-    if (b.shown[id] && !always) return;
-    b.shown[id] = true;
+    if (perTurn) { // once per turn, when it really does something
+      if (b.shown[id] === this.state.turn) return;
+      b.shown[id] = this.state.turn;
+    } else {
+      if (b.shown[id] && !always) return;
+      b.shown[id] = true;
+    }
     this.msg(`${name}: ${text}`);
   }
 
@@ -1589,26 +1600,28 @@ export class Battle {
     }
   }
 
-  // Gen 4 rules: the damage is worked out now (typeless: no STAB, no type effectiveness, so even
-  // Dark types are hit by Future Sight) and dealt at the end of the 2nd turn after this one.
-  // The target is whoever stands in that slot by then.
+  // Gen 5 rules: the attack is Psychic (Future Sight) or Steel (Doom Desire), so Dark types are immune to Future Sight.
+  // The damage is worked out when it lands (end of the 2nd turn after this one), against whoever stands in that slot by then.
   scheduleFutureAttack(user, move, target) {
     const side = this.state.sides[target.side];
     const slot = this.slotOf(target);
     side.future ??= {};
     if (side.future[slot]) { this.msg("But it failed!"); return; }
     if (!chance(this.state, move.accuracy ?? 100)) { this.msg(`${this.name(user, true)}'s attack missed!`); return; }
-    const damage = this.calcDamage(user, target, move, { type: "???", crit: false, spread: false, roll: randomInt(this.state, 85, 100) });
-    side.future[slot] = { turns: 3, damage, move: move.key, name: move.name, user: user.name };
+    side.future[slot] = { turns: 3, move: move.key, name: move.name, user: user.name, userSide: user.side, userTeam: user.teamIndex };
     this.msg(move.key === "doom-desire" ? `${this.name(user, true)} chose Doom Desire as its destiny!` : `${this.name(user, true)} foresaw an attack!`);
   }
 
   resolveFutureAttack(side, slot, hit) {
     const target = this.monAt(side.index, slot);
     if (!target || target.fainted) return;
+    const move = this.move(hit.move);
+    const user = this.state.sides[hit.userSide].team[hit.userTeam];
     this.msg(`${target.name} took the ${hit.name} attack!`);
-    const dealt = this.applyMoveDamage(target, hit.damage);
-    this.log({ t: "damage", ...this.ref(target), hp: target.hp, maxHp: target.maxHp, amount: dealt, crit: false, effectiveness: 1, move: hit.move, text: "" });
+    if (this.effectiveness(move.type, target) === 0) { this.msg(`It doesn't affect ${target.name}...`); return; }
+    const damage = !user ? hit.damage ?? 1 : this.calcDamage(user, target, move, { type: move.type, crit: false, spread: false, roll: randomInt(this.state, 85, 100) });
+    const dealt = this.applyMoveDamage(target, damage);
+    this.log({ t: "damage", ...this.ref(target), hp: target.hp, maxHp: target.maxHp, amount: dealt, crit: false, effectiveness: this.effectiveness(move.type, target), move: hit.move, text: "" });
     if (target.hp <= 0) this.faint(target);
     else this.checkHpBerries(target);
   }
@@ -2033,8 +2046,8 @@ export class Battle {
 
         const dealt = this.applyMoveDamage(target, dmg);
         if (target.volatile.bide && dealt > 0) { target.volatile.bide.damage += dealt; target.volatile.bide.from = this.monKey(user); } // Bide stores it
-        if (dealt > 0 && !user.fainted && this.bfx(user.side, "vampire")) this.badgeNote(user.side, "vampire", "your Pokémon heal from the damage they deal.");
-        if (dealt > 0 && !user.fainted && this.bfx(user.side, "vampire")) this.heal(user, Math.max(1, Math.floor(dealt * this.bfx(user.side, "vampire"))), `${this.name(user, true)} drained some HP!`);
+        if (dealt > 0 && !user.fainted && this.bfx(user.side, "vampire")) this.badgeNote(user.side, "vampire", "your attacks heal you.");
+        if (dealt > 0 && !user.fainted && this.bfx(user.side, "vampire")) this.heal(user, Math.max(1, Math.floor(dealt * this.bfx(user.side, "vampire"))), "");
         dealtToTarget += dealt;
         hitsLanded++;
         if (dealt > 0 && target.hp > 0) this.breakIllusion(target);
@@ -2064,12 +2077,13 @@ export class Battle {
             this.indirectDamage(user, Math.floor(user.maxHp / 4), `${this.name(user, true)} was caught in the aftermath!`);
           }
           this.faint(target);
-          if (!user.fainted && this.bfx(user.side, "ko-heal")) this.badgeNote(user.side, "ko-heal", "a Pokémon that knocks out a foe recovers HP.");
-          if (!user.fainted && this.bfx(user.side, "ko-heal")) this.heal(user, user.maxHp * this.bfx(user.side, "ko-heal"), `${this.name(user, true)} recovered from the spoils of war!`);
+          if (!sheerForce) this.selfStatEffects(user, move);
+          if (!user.fainted && this.bfx(user.side, "ko-heal")) this.badgeNote(user.side, "ko-heal", "knockouts heal your Pokémon.");
+          if (!user.fainted && this.bfx(user.side, "ko-heal")) this.heal(user, user.maxHp * this.bfx(user.side, "ko-heal"), "");
           if (user.ability === "moxie" && !user.fainted && !user.volatile.abilitySuppressed) this.boost(user, { atk: 1 }, user);
         } else {
           if (makesContact(move)) this.contactEffects(user, target);
-          if (!sheerForce) this.secondaryEffects(user, target, move, dealt);
+          if (!sheerForce) { this.secondaryEffects(user, target, move, dealt); this.selfStatEffects(user, move); }
           if (target.status === "frz" && type === "fire") this.cureStatus(target);
           this.checkHpBerries(target);
         }
@@ -2256,8 +2270,8 @@ export class Battle {
     const st = this.state;
     const tab = this.ability(target);
     if (user.fainted) return;
-    if (this.bfx(target.side, "thorns")) this.badgeNote(target.side, "thorns", "foes that touch your Pokémon get hurt.");
-    if (this.bfx(target.side, "thorns")) this.indirectDamage(user, Math.max(1, Math.floor(user.maxHp * this.bfx(target.side, "thorns"))), `${this.name(user, true)} was hurt by the spikes!`);
+    if (this.bfx(target.side, "thorns")) this.badgeNote(target.side, "thorns", "foes that touch you get hurt.");
+    if (this.bfx(target.side, "thorns")) this.indirectDamage(user, Math.max(1, Math.floor(user.maxHp * this.bfx(target.side, "thorns"))), "");
     if (user.fainted) return;
     if (tab === "static" && chance(st, 30)) this.trySetStatus(user, "par", target);
     else if (tab === "flame-body" && chance(st, 30)) this.trySetStatus(user, "brn", target);
@@ -2299,12 +2313,18 @@ export class Battle {
       this.flinch(target, this.itemName(this.item(user)), user);
     }
     if (move.statChanges.length && meta.statChance > 0) {
-      if (meta.category === "damage-raise") {
-        if (chance(st, meta.statChance * (meta.statChance < 100 ? serene : 1))) this.boost(user, this.changesObj(move), user);
-      } else if (meta.category === "damage-lower" && !shieldDust) {
+      if (meta.category === "damage-lower" && !shieldDust) {
         if (chance(st, meta.statChance * serene)) this.boost(target, this.changesObj(move), user);
       }
     }
+  }
+
+  // The user's own stat change after a damaging move (Close Combat, Superpower, Overheat, Power-Up Punch…): it also happens when the hit knocks the target out
+  selfStatEffects(user, move) {
+    const meta = move.meta;
+    if (user.fainted || meta?.category !== "damage-raise" || !move.statChanges.length || !(meta.statChance > 0)) return;
+    const serene = (user.ability === "serene-grace" ? 2 : 1) * (this.state.sides[user.side].conditions.rainbow ? 2 : 1);
+    if (chance(this.state, meta.statChance * (meta.statChance < 100 ? serene : 1))) this.boost(user, this.changesObj(move), user);
   }
 
   // by: the move, ability or item that caused it (named in the "flinched!" message), source: who used it
@@ -2490,8 +2510,10 @@ export class Battle {
       if (ab === "speed-boost" && v.activeTurns > 0) this.boost(m, { spe: 1 }, m);
       if (ab === "shed-skin" && m.status && chance(st, 30)) this.cureStatus(m);
       if (item === "leftovers") this.heal(m, m.maxHp / 16, `${this.name(m, true)} restored a little HP using its Leftovers!`);
-      if (this.bfx(m.side, "regen")) this.badgeNote(m.side, "regen", "your Pokémon regrow a little HP every turn.");
-      if (this.bfx(m.side, "regen")) this.heal(m, m.maxHp * this.bfx(m.side, "regen"), `${this.name(m, true)} regrew a little HP!`);
+      if (this.bfx(m.side, "regen") && m.hp < m.maxHp) {
+        this.badgeNote(m.side, "regen", "your team regrows HP.", { perTurn: true }); // once a turn, not per Pokémon
+        this.heal(m, m.maxHp * this.bfx(m.side, "regen"), "");
+      }
       if (item === "black-sludge") {
         if (m.types.includes("poison")) this.heal(m, m.maxHp / 16, `${this.name(m, true)} restored a little HP using its Black Sludge!`);
         else this.indirectDamage(m, Math.floor(m.maxHp / 8), `${this.name(m, true)} is hurt by its Black Sludge!`);

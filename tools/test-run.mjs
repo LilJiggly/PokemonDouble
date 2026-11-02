@@ -16,7 +16,8 @@ import { SLOT_UNLOCKS, slotUnlocked, unlockedSlotCount, badgeStatBoost, statOfBa
 import { emptyMeta, recordRun } from "../js/game/meta.js";
 import { grantUnlocks, isUnlocked, meetsRule, unlockText, nextHint, parseRule, setFriendshipSpecies } from "../js/game/unlocks.js";
 import { levelUpMovesAt } from "../js/game/recruit.js";
-import { noteBattleWon } from "../js/game/progress.js";
+import { noteBattleWon, noteRunEnd } from "../js/game/progress.js";
+import { CHALLENGES } from "../js/game/challenges.js";
 import { rankOf, rankScore } from "../js/game/ranks.js";
 import { mergeSaves } from "../js/game/cloud.js";
 
@@ -401,6 +402,40 @@ test("Hilda, Bianca and Riley perks", () => {
   const riley = caseStrengths(slots, [], 1);
   eq(riley.find((b) => b.id === "1-1").strength, plain.find((b) => b.id === "1-1").strength + 1, "Riley: the weakest badge gets +1");
   eq(riley.find((b) => b.id === "1-5").strength, plain.find((b) => b.id === "1-5").strength, "…and only that one");
+});
+
+test("Fixed Six: pick six at the start, and no recruit screen follows a battle", () => {
+  const r = Run.newRun(ctx, { gen: 1, pools: [1, 2, 3, 4, 5], seed: 5, fixedSix: true });
+  eq(r.offer.picks, 6, "six picks");
+  assert(r.offer.options.length >= 6, "enough cards to choose from");
+  while (r.offer?.kind === "recruit" && r.offer.picksLeft > 0) Run.pickRecruit(r, ctx, r.offer.options.findIndex((o) => !o.taken));
+  eq(r.team.length, 6, "a full team of six");
+  r.order = 1;
+  r.opponent = r.nextOpponent;
+  Run.startBattle(r, ctx);
+  r.battle.winner = 0;
+  Run.finishBattle(r, ctx);
+  assert(r.screen !== "recruit", `no recruit screen (got ${r.screen})`);
+  assert(CHALLENGES.find((c) => c.id === "fixed-six").check(r.team, r, ctx), "counts for the challenge");
+});
+
+console.log("Challenges");
+test("A won run records the challenges it beat, and a lost run records none", () => {
+  const mon = (species, extra = {}) => ({ species, level: 50, ...extra });
+  const won = { screen: "won", team: ["charmander", "squirtle", "bulbasaur", "caterpie", "rattata", "pidgey"].map((k) => mon(k)), fallen: [], settings: { gen: 1 }, seenSpecies: ["charmander", "squirtle", "bulbasaur", "caterpie", "rattata", "pidgey"], money: 6000, stats: null };
+  const meta = emptyMeta();
+  noteRunEnd(meta, won, ctx);
+  for (const id of ["flawless", "single-gen", "little-cup", "rich"]) assert(meta.challenges.includes(id), `${id} beaten`);
+  for (const id of ["starters", "fully-evolved", "shiny", "legend"]) assert(!meta.challenges.includes(id), `${id} not beaten`);
+  const lost = emptyMeta();
+  noteRunEnd(lost, { ...won, screen: "lost" }, ctx);
+  assert(!(lost.challenges ?? []).length, "a lost run beats nothing");
+  const rr = Run.newRun(ctx, { gen: 1, pools: [1, 2, 3, 4, 5], seed: 7, badges: [] });
+  eq(rr.rerollsUsed, 0, "a new run starts at 0 rerolls");
+  Run.rerollOffer(rr, ctx);
+  eq(rr.rerollsUsed, 1, "a recruit reroll counts");
+  assert(CHALLENGES.find((c) => c.id === "no-rerolls").check([], { rerollsUsed: 0 }, ctx) && !CHALLENGES.find((c) => c.id === "no-rerolls").check([], rr, ctx), "No rerolls challenge");
+  assert(new Set(CHALLENGES.map((c) => c.id)).size === CHALLENGES.length, "challenge ids are unique");
 });
 
 console.log(`\n${passed} passed, ${failed} failed`);
