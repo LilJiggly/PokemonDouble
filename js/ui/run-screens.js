@@ -2740,7 +2740,7 @@ export class RunUI {
     const fresh = (run.newUnlocks ?? []).map((id) => characterById(id));
     return `<p class="tp-earned">+${tp} Trainer Points <small>(spend them in Trainer Upgrades)</small></p>
       ${fresh.length ? `<section class="card-panel"><h3>New trainers unlocked!</h3>
-        <div class="characters">${fresh.map((c) => `<div class="character selected"><img src="${c.front}" alt=""><span>${c.name}</span>${this.perkLine(c.id)}</div>`).join("")}</div></section>` : ""}`;
+        <div class="characters">${fresh.map((c) => `<div class="character selected"><img src="${c.front}" alt=""><span>${c.name}</span><small class="how-unlocked"><em>How you unlocked them:</em> ${unlockText((this.ctx.rules.characterUnlocks ?? {})[c.id])}</small>${this.perkLine(c.id)}</div>`).join("")}</div></section>` : ""}`;
   }
 
   // What a trainer's perk does (only perks the game applies are shown)

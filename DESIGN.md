@@ -1982,3 +1982,4 @@ All Rock-type lines up to Gen 4. Slugma (Fire) and Steelix (Steel/Ground) are in
 - **v0.31.3 · October 29, 2026:** The Challenges window of the New run screen has the run rules (switches), the challenge checklist with your ticks and the "Coming soon" ideas.
 - **v0.31.4 · October 29, 2026:** The Fixed Six switch sits on its challenge row in the Challenges window (under Run rule only the Dupes clause stays). "Never switch" removed from the Coming soon list.
 - **v0.31.5 · October 29, 2026:** Fixed the user's own stat drops (Close Combat, Superpower, Overheat, Draco Meteor, Leaf Storm…) being skipped when the move knocked the target out. Self stat changes after a damaging move now always happen.
+- **v0.31.6 · November 2, 2026:** The "New trainers unlocked!" panel on the end-of-run screen (win or loss) now says how you unlocked each trainer, like the mid-run card does.
