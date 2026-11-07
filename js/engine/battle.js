@@ -93,6 +93,8 @@ export class Battle {
         wish: null,
         // Gym badges (badges.js battleBonus): { stats: { atk: 0.08, … }, effects: { opener: 0.12, … } (id → number, see EFFECTS in badges.js)
         badge: s.badge ?? null,
+        // Skill tree bonuses (meta.js perksFromMeta): { flat: { atk: 4 }, pct: { atk: 0.06 } }, added after the badges
+        bonus: s.bonus ?? null,
         // Bag items usable in battle: { id: { name, count, effect } }. usedItems counts what was used.
         bag: s.bag ?? {},
         usedItems: {},
@@ -102,6 +104,23 @@ export class Battle {
     for (const side of state.sides) {
       if (!side.badge?.stats) continue;
       for (const mon of side.team) for (const [k, pct] of Object.entries(side.badge.stats)) if (pct) mon.stats[k] = Math.floor(mon.stats[k] * (1 + pct));
+    }
+    // Skill tree: a percentage and a flat bonus per stat (HP raises max HP and the current HP with it)
+    for (const side of state.sides) {
+      if (!side.bonus) continue;
+      for (const mon of side.team) {
+        for (const k of ["hp", "atk", "def", "spa", "spd", "spe"]) {
+          const flat = side.bonus.flat?.[k] ?? 0;
+          const pct = side.bonus.pct?.[k] ?? 0;
+          if (!flat && !pct) continue;
+          if (k === "hp") {
+            if (mon.species === "shedinja") continue; // always 1 HP
+            const was = mon.maxHp;
+            mon.stats.hp = mon.maxHp = Math.floor(was * (1 + pct)) + flat;
+            mon.hp = mon.hp >= was ? mon.maxHp : Math.min(mon.maxHp, mon.hp + (mon.maxHp - was));
+          } else mon.stats[k] = Math.floor(mon.stats[k] * (1 + pct)) + flat;
+        }
+      }
     }
     const battle = new Battle(data, state);
     battle.start();

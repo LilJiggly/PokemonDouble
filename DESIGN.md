@@ -101,7 +101,7 @@ _Last updated: October 09, 2026_
 - **Held items** (1 per Pokémon) and a **bag**. Full item pool and odds in **§3d–3e**.
 - Only items that exist **up to Gen 4** (no Eviolite, Assault Vest, Rocky Helmet, etc.). **Exceptions:** Ice Stone (for Glaceon), **Ability Patch** (switch between a Pokémon's normal abilities) and **Hidden Ability Patch** (switch to its Hidden Ability). Both patches are single-use (used up when applied).
 - **No Revives** of any kind. Permadeath is the core of the game.
-- **Consumable held items** (berries, herbs) are **single use**: lost for good once they trigger. Item cards say "Single use: lost once it triggers". The **Focus Sash** is the exception: it works once per battle and you keep it afterwards.
+- **Consumable held items** (herbs) are **single use**: lost for good once they trigger. Item cards say "Single use: lost once it triggers". The **Focus Sash** is the exception: it works once per battle and you keep it afterwards.
 - **Bag items** are **used up for good** once used. They **can be used in battle**, which takes up that Pokémon's turn.
 - **Evolution items** (stones, Link Cable, trade items like Metal Coat) are **multi-use**. Link Cable is only for plain trade evolutions (Machoke, Kadabra, Graveler, Haunter).
 - When a Pokémon dies, its **held item goes back to the bag**.
@@ -211,9 +211,9 @@ Each offered item rolls its tier separately. Each row must total **100%**.
 
 | Tier | Held items | Bag items |
 |---|---|---|
-| Common | Oran Berry, Sitrus Berry, Cheri / Chesto / Pecha / Rawst / Aspear Berry, type boosters (Charcoal, Mystic Water, Miracle Seed, etc.) | Potion, Super Potion, Antidote, Paralyze Heal, Burn Heal, Awakening, Ice Heal |
-| Uncommon | Lum Berry, Muscle Band, Wise Glasses, Scope Lens, Quick Claw, Bright Powder, Shell Bell, Black Sludge, type-resist berries (Occa, Passho, etc.) | Hyper Potion, Full Heal, X Attack / Defense / Sp. Atk / Sp. Def / Speed, Dire Hit, Guard Spec. |
-| Rare | Leftovers, Expert Belt, Focus Sash, White Herb, Mental Herb, Power Herb, Light Clay, weather rocks (Damp, Heat, Smooth, Icy), pinch berries (Liechi, Salac, Petaya), Toxic Orb, Flame Orb, trade-evolution items (Metal Coat, King's Rock, Dragon Scale, Up-Grade, etc.), Razor Claw, Razor Fang, Oval Stone | Max Potion, evolution stones (incl. Ice Stone), Link Cable, Ability Patch |
+| Common | Type boosters (Charcoal, Mystic Water, Miracle Seed, etc.) | — |
+| Uncommon | Muscle Band, Wise Glasses, Scope Lens, Quick Claw, Bright Powder, Shell Bell, Black Sludge | X Attack / Defense / Sp. Atk / Sp. Def / Speed, Dire Hit, Guard Spec. |
+| Rare | Leftovers, Expert Belt, Focus Sash, White Herb, Mental Herb, Power Herb, Light Clay, weather rocks (Damp, Heat, Smooth, Icy), Toxic Orb, Flame Orb, trade-evolution items (Metal Coat, King's Rock, Dragon Scale, Up-Grade, etc.), Razor Claw, Razor Fang, Oval Stone | evolution stones (incl. Ice Stone), Link Cable, Ability Patch, Nature Mint |
 | Epic | Choice Band, Choice Specs, Choice Scarf, Life Orb | Full Restore, Hidden Ability Patch |
 | Species-only | Light Ball (Pikachu), Thick Club (Cubone / Marowak), Metal Powder (Ditto), Stick (Farfetch'd), Lucky Punch (Chansey), DeepSeaTooth / DeepSeaScale (Clamperl). **Only offered if a matching Pokémon is on your team.** Rolls as Rare. | — |
 
@@ -225,8 +225,9 @@ Every run starts with these items in the bag.
 
 | Item | Count |
 |---|---|
-| Potion | 2 |
-| Oran Berry | 2 |
+| X Attack | 1 |
+| X Sp. Atk | 1 |
+| X Speed | 1 |
 
 ### 3g. TM rewards
 
@@ -245,7 +246,7 @@ Every opponent (gyms, Elite Four, Champion, Rival) gives a **reusable TM** when 
 
 ### 3h. Shop & prize money
 
-The **shop** in the hub is split into **sections** (tabs, like the Bag): Items (held items), Berries, Medicine, Battle, Key Items and TMs. Each section sells the number of random items below, from the item pool (§3e) rolled with the item odds (§3d). TMs are ones you don't own yet, within the TM power limit for the next battle (§3g). The stock refreshes after every battle. **Reroll:** the first reroll after each battle is free, after that each reroll costs the amount below. You can sell items for half their price. **Deals:** every restock puts 2 random items and 1 TM on sale for 20–50% off (shown at the top as "Today's deals", with the old price struck through). The reroll button is called Restock and rerolls the deals too.
+The **shop** in the hub is split into **sections** (tabs, like the Bag): Items (held items), Battle, Key Items and TMs. Each section sells the number of random items below, from the item pool (§3e) rolled with the item odds (§3d). TMs are ones you don't own yet, within the TM power limit for the next battle (§3g). The stock refreshes after every battle. **Reroll:** the first reroll after each battle is free, after that each reroll costs the amount below. You can sell items for half their price. **Deals:** every restock puts 2 random items and 1 TM on sale for 20–50% off (shown at the top as "Today's deals", with the old price struck through). The reroll button is called Restock and rerolls the deals too.
 
 | Tier | Price |
 |---|---|
@@ -257,8 +258,6 @@ The **shop** in the hub is split into **sections** (tabs, like the Bag): Items (
 | Shop section | Items for sale |
 |---|---|
 | Items (held items) | 4 |
-| Berries | 3 |
-| Medicine | 3 |
 | Battle (X items, Dire Hit…) | 2 |
 | Key Items (stones, Link Cable, patches) | 2 |
 | TMs | 3 |
@@ -284,15 +283,96 @@ The **shop** in the hub is split into **sections** (tabs, like the Bag): Items (
 | Champion | 3 |
 | Hall of Fame (beating the Final Rival) | 5 |
 
-| ID | Upgrade | Max level | Cost per level | Effect per level |
-|---|---|---|---|---|
-| scout | Scout | 1 extra card on every recruit screen and item screen | 1 extra card on every recruit screen and item screen | 2 extra cards on every recruit screen and item screen |
-| dice | Lucky Dice | 2 | 5 | +1 free reroll per recruit screen |
-| allowance | Allowance | 3 | 3 | +500 starting money |
-| bag | Bigger Bag | 2 | 3 | Level 1: +2 Super Potions. Level 2: + Sitrus Berry and Full Heal |
-| gift | Gift Box | Every item screen shows 1 more card | Every item screen shows 1 more card | Every item screen shows 1 more card and lets you take 1 more item |
-| hidden | Hidden Potential | 2.1% extra chance that a recruit has its Hidden Ability | 5.3% extra chance that a recruit has its Hidden Ability | 9.5% extra chance that a recruit has its Hidden Ability |
-| shiny | Shiny Charm | 1 | 5 | Shiny chance 1/512 → 1/128 (cosmetic) |
+**Skill tree.** Trainer Points are spent in a skill tree (Trainer Upgrades on the title screen). The tree is six panels side by side (Defense, Attack, Economy, Extras, Skills, Modes). Every panel builds upwards: the bottom row is open from the start and each node above needs the one below it. This table is the whole tree: edit it to change costs, effects, prerequisites or where a node sits on the screen.
+
+- **Requires:** `id` or `id:level` (comma separated): the nodes (and levels) you need first. `—` means open from the start.
+- **Needs:** a milestone besides TP: `wins:N` (Hall of Fame wins), `earned:N` (TP earned in total) or `challenge:id` (a challenge from the Challenges board). `—` means none.
+- **Costs:** the TP cost of each level, in order. The number of costs is the number of levels.
+- **Does:** what the node does, per level: `stat-flat:STAT:N` (+N to that stat for every Pokémon in battle), `run:EFFECT:V` (a run effect from the badge list that adds to the badge's own: haggler, swap, tm, wallet), `stat-pct:STAT:N` (+N%), `tp-pct:N` (+N% Trainer Points), `perk:NAME:N` (a run perk: scout, dice, allowance, bag, gift, hidden, shiny, shiny2), `unlock:NAME` (a feature: starter-pick, encounter-pick, legend-pick, mythic-pick, mode-moves, mode-levels, mode-mons). Several effects in one cell are separated by `;`.
+- **Arm / Pos:** the panel a node sits in, and its `column,row` in that panel (row 0 is the bottom; an optional third number is how many columns it spans, centred). **Icon:** the file name of an item picture in `images/items` (without `.png`).
+- **Stats only in battle:** the tree never does anything on its own during a fight, it only raises stats (and levels); healing, damage and survival effects belong to the gym badges.
+- **Paths:** every stat has a flat path and a separate percentage path, three tiers each (2, 2 and 1 levels). The two final upgrades (Fortress for Defense, Rampage for Attack) need all six paths of their panel finished.
+- **Challenge runs:** a run with Fixed Six or any Mode switched on pays **+25% Trainer Points**. The bonus doesn't stack per mode.
+
+| ID | Node | Arm | Requires | Needs | Costs | Does | Effect | Pos | Icon |
+|---|---|---|---|---|---|---|---|---|---|
+| hp-flat | HP + | Defense | — | — | 3, 5 | stat-flat:hp:4 | +4 HP for every Pokémon in battle (tier 1 of 3) | 0,0 | hp-up |
+| hp-flat-2 | HP + II | Defense | hp-flat:2 | — | 7, 10 | stat-flat:hp:4 | +4 HP for every Pokémon in battle (tier 2 of 3) | 0,1 | hp-up |
+| hp-flat-3 | HP + III | Defense | hp-flat-2:2 | — | 14 | stat-flat:hp:4 | +4 HP for every Pokémon in battle (tier 3 of 3) | 0,2 | hp-up |
+| hp-pct | HP % | Defense | — | — | 5, 8 | stat-pct:hp:2 | +2% HP (tier 1 of 3) | 1,0 | bright-powder |
+| hp-pct-2 | HP % II | Defense | hp-pct:2 | — | 12, 18 | stat-pct:hp:2 | +2% HP (tier 2 of 3) | 1,1 | bright-powder |
+| hp-pct-3 | HP % III | Defense | hp-pct-2:2 | — | 26 | stat-pct:hp:2 | +2% HP (tier 3 of 3) | 1,2 | bright-powder |
+| def-flat | Defense + | Defense | — | — | 3, 5 | stat-flat:def:2 | +2 Defense for every Pokémon in battle (tier 1 of 3) | 2,0 | x-defense |
+| def-flat-2 | Defense + II | Defense | def-flat:2 | — | 7, 10 | stat-flat:def:2 | +2 Defense for every Pokémon in battle (tier 2 of 3) | 2,1 | x-defense |
+| def-flat-3 | Defense + III | Defense | def-flat-2:2 | — | 14 | stat-flat:def:2 | +2 Defense for every Pokémon in battle (tier 3 of 3) | 2,2 | x-defense |
+| def-pct | Defense % | Defense | — | — | 5, 8 | stat-pct:def:2 | +2% Defense (tier 1 of 3) | 3,0 | metal-powder |
+| def-pct-2 | Defense % II | Defense | def-pct:2 | — | 12, 18 | stat-pct:def:2 | +2% Defense (tier 2 of 3) | 3,1 | metal-powder |
+| def-pct-3 | Defense % III | Defense | def-pct-2:2 | — | 26 | stat-pct:def:2 | +2% Defense (tier 3 of 3) | 3,2 | metal-powder |
+| spd-flat | Sp. Def + | Defense | — | — | 3, 5 | stat-flat:spd:2 | +2 Sp. Def for every Pokémon in battle (tier 1 of 3) | 4,0 | x-sp-def |
+| spd-flat-2 | Sp. Def + II | Defense | spd-flat:2 | — | 7, 10 | stat-flat:spd:2 | +2 Sp. Def for every Pokémon in battle (tier 2 of 3) | 4,1 | x-sp-def |
+| spd-flat-3 | Sp. Def + III | Defense | spd-flat-2:2 | — | 14 | stat-flat:spd:2 | +2 Sp. Def for every Pokémon in battle (tier 3 of 3) | 4,2 | x-sp-def |
+| spd-pct | Sp. Def % | Defense | — | — | 5, 8 | stat-pct:spd:2 | +2% Sp. Def (tier 1 of 3) | 5,0 | deep-sea-scale |
+| spd-pct-2 | Sp. Def % II | Defense | spd-pct:2 | — | 12, 18 | stat-pct:spd:2 | +2% Sp. Def (tier 2 of 3) | 5,1 | deep-sea-scale |
+| spd-pct-3 | Sp. Def % III | Defense | spd-pct-2:2 | — | 26 | stat-pct:spd:2 | +2% Sp. Def (tier 3 of 3) | 5,2 | deep-sea-scale |
+| atk-flat | Attack + | Attack | — | — | 3, 5 | stat-flat:atk:2 | +2 Attack for every Pokémon in battle (tier 1 of 3) | 0,0 | x-attack |
+| atk-flat-2 | Attack + II | Attack | atk-flat:2 | — | 7, 10 | stat-flat:atk:2 | +2 Attack for every Pokémon in battle (tier 2 of 3) | 0,1 | x-attack |
+| atk-flat-3 | Attack + III | Attack | atk-flat-2:2 | — | 14 | stat-flat:atk:2 | +2 Attack for every Pokémon in battle (tier 3 of 3) | 0,2 | x-attack |
+| atk-pct | Attack % | Attack | — | — | 5, 8 | stat-pct:atk:2 | +2% Attack (tier 1 of 3) | 1,0 | choice-band |
+| atk-pct-2 | Attack % II | Attack | atk-pct:2 | — | 12, 18 | stat-pct:atk:2 | +2% Attack (tier 2 of 3) | 1,1 | choice-band |
+| atk-pct-3 | Attack % III | Attack | atk-pct-2:2 | — | 26 | stat-pct:atk:2 | +2% Attack (tier 3 of 3) | 1,2 | choice-band |
+| spa-flat | Sp. Atk + | Attack | — | — | 3, 5 | stat-flat:spa:2 | +2 Sp. Atk for every Pokémon in battle (tier 1 of 3) | 2,0 | x-sp-atk |
+| spa-flat-2 | Sp. Atk + II | Attack | spa-flat:2 | — | 7, 10 | stat-flat:spa:2 | +2 Sp. Atk for every Pokémon in battle (tier 2 of 3) | 2,1 | x-sp-atk |
+| spa-flat-3 | Sp. Atk + III | Attack | spa-flat-2:2 | — | 14 | stat-flat:spa:2 | +2 Sp. Atk for every Pokémon in battle (tier 3 of 3) | 2,2 | x-sp-atk |
+| spa-pct | Sp. Atk % | Attack | — | — | 5, 8 | stat-pct:spa:2 | +2% Sp. Atk (tier 1 of 3) | 3,0 | choice-specs |
+| spa-pct-2 | Sp. Atk % II | Attack | spa-pct:2 | — | 12, 18 | stat-pct:spa:2 | +2% Sp. Atk (tier 2 of 3) | 3,1 | choice-specs |
+| spa-pct-3 | Sp. Atk % III | Attack | spa-pct-2:2 | — | 26 | stat-pct:spa:2 | +2% Sp. Atk (tier 3 of 3) | 3,2 | choice-specs |
+| spe-flat | Speed + | Attack | — | — | 3, 5 | stat-flat:spe:2 | +2 Speed for every Pokémon in battle (tier 1 of 3) | 4,0 | x-speed |
+| spe-flat-2 | Speed + II | Attack | spe-flat:2 | — | 7, 10 | stat-flat:spe:2 | +2 Speed for every Pokémon in battle (tier 2 of 3) | 4,1 | x-speed |
+| spe-flat-3 | Speed + III | Attack | spe-flat-2:2 | — | 14 | stat-flat:spe:2 | +2 Speed for every Pokémon in battle (tier 3 of 3) | 4,2 | x-speed |
+| spe-pct | Speed % | Attack | — | — | 5, 8 | stat-pct:spe:2 | +2% Speed (tier 1 of 3) | 5,0 | choice-scarf |
+| spe-pct-2 | Speed % II | Attack | spe-pct:2 | — | 12, 18 | stat-pct:spe:2 | +2% Speed (tier 2 of 3) | 5,1 | choice-scarf |
+| spe-pct-3 | Speed % III | Attack | spe-pct-2:2 | — | 26 | stat-pct:spe:2 | +2% Speed (tier 3 of 3) | 5,2 | choice-scarf |
+| final-def | Fortress | Defense | hp-flat-3:1, hp-pct-3:1, def-flat-3:1, def-pct-3:1, spd-flat-3:1, spd-pct-3:1 | — | 150 | stat-pct:hp:5;stat-pct:def:5;stat-pct:spd:5 | Needs all six Defense paths finished. +5% HP, Defense and Sp. Def | 2,3,2 | leftovers |
+| final-atk | Rampage | Attack | atk-flat-3:1, atk-pct-3:1, spa-flat-3:1, spa-pct-3:1, spe-flat-3:1, spe-pct-3:1 | — | 150 | stat-pct:atk:5;stat-pct:spa:5;stat-pct:spe:5 | Needs all six Attack paths finished. +5% Attack, Sp. Atk and Speed | 2,3,2 | life-orb |
+| allowance | Allowance | Economy | — | — | 4, 9, 16 | perk:allowance:1 | +500 starting money | 0,0 | kings-rock |
+| bag | Bigger Bag | Economy | allowance:3 | — | 6, 14 | perk:bag:1 | Level 1: an X Attack, X Sp. Atk and X Speed. Level 2: two of each and an X Defense and X Sp. Def | 0,1 | x-attack |
+| dice | Lucky Dice | Economy | bag:2 | — | 10, 30 | perk:dice:1 | +1 free reroll per recruit screen | 0,2 | lucky-punch |
+| scout | Scout | Economy | — | — | 10, 30 | perk:scout:1 | 1 extra card on every recruit screen and item screen | 1,0 | scope-lens |
+| gift | Gift Box | Economy | scout:2, bag:1 | — | 25 | perk:gift:1 | Every item screen shows 1 more card and lets you take 1 more item | 1,1 | rare-candy |
+| tp | Pay increase | Economy | — | — | 15, 25 | tp-pct:10 | +10% Trainer Points from every run | 2,0 | exp-share |
+| tp-2 | Pay increase II | Economy | tp:2 | — | 40, 60 | tp-pct:10 | +10% Trainer Points from every run | 2,1 | exp-share |
+| tp-3 | Pay increase III | Economy | tp-2:2 | — | 90 | tp-pct:10 | +10% Trainer Points from every run | 2,2 | exp-share |
+| shiny | Shiny Charm | Extras | — | — | 20 | perk:shiny:1 | Shiny chance 1/512 → 1/128 (cosmetic) | 0,0 | shiny-stone |
+| shiny2 | Shiny Charm II | Extras | shiny:1 | — | 80 | perk:shiny2:1 | Shiny chance 1/128 → 1/64 (cosmetic) | 0,1 | dawn-stone |
+| hidden | Hidden Potential | Extras | — | — | 15, 40 | perk:hidden:1 | +10% chance that a recruit has its Hidden Ability | 1,0 | ability-patch |
+| starter-pick | Starter pick | Skills | — | — | 25 | unlock:starter-pick | Choose a starter line that is always in your draft | 0,0 | poke-ball |
+| encounter-pick | Encounter pick | Skills | starter-pick:1 | wins:3 | 50 | unlock:encounter-pick | Choose a Pokémon that is always on your first recruit screen | 0,1 | quick-claw |
+| legend-pick | Legendary pick | Skills | encounter-pick:1 | wins:5 | 150 | unlock:legend-pick | Choose a Legendary that is on the recruit screen after battle 7 | 0,2 | dragon-scale |
+| mythic-pick | Mythical pick | Skills | legend-pick:1 | wins:10 | 250 | unlock:mythic-pick | Choose a Mythical that is on the recruit screen after battle 11 | 0,3 | dusk-stone |
+| mode-moves | Random moves | Modes | — | — | 40 | unlock:mode-moves | Run rule: recruits come with random moves. Challenge runs pay +25% TP | 0,0 | tm-normal |
+| mode-levels | Random levels | Modes | — | — | 40 | unlock:mode-levels | Run rule: recruits arrive at a random level (±5). Challenge runs pay +25% TP | 1,0 | up-grade |
+| mode-mons | Random mons | Modes | — | — | 40 | unlock:mode-mons | Run rule: recruit cards are random species, ignoring tiers. Challenge runs pay +25% TP | 2,0 | oval-stone |
+| haggler | Haggler | Economy | allowance:1 | — | 12, 25, 45 | run:haggler:0.03 | Everything in the shop costs 3% less | 3,0 | silk-scarf |
+| swap | Swap | Economy | haggler:1, scout:2 | — | 120 | run:swap:1 | Once on every recruit screen, trade one of your Pokémon for any card without using a pick | 3,1 | up-grade |
+| iv-floor | IV floor | Extras | — | — | 60 | perk:ivFloor:5 | Recruits' hidden stat boosts (IVs) start at 20 instead of 15 | 2,0 | protein |
+| mode-hard | Hard mode | Modes | — | — | 60 | unlock:mode-hard | Run rule: every opponent is 3 levels higher. Challenge runs pay +25% TP | 3,0 | black-glasses |
+| hp-mastery | HP Mastery | Defense | hp-flat-3:1, hp-pct-3:1 | — | 40, 70 | stat-pct:hp:2 | +2% HP | 0,3,2 | protector |
+| spd-mastery | Sp. Def Mastery | Defense | spd-flat-3:1, spd-pct-3:1 | — | 40, 70 | stat-pct:spd:2 | +2% Sp. Def | 4,3,2 | deep-sea-tooth |
+| atk-mastery | Attack Mastery | Attack | atk-flat-3:1, atk-pct-3:1 | — | 40, 70 | stat-pct:atk:2 | +2% Attack | 0,3,2 | muscle-band |
+| spe-mastery | Speed Mastery | Attack | spe-flat-3:1, spe-pct-3:1 | — | 40, 70 | stat-pct:spe:2 | +2% Speed | 4,3,2 | quick-claw |
+| wallet | Lucky Wallet | Economy | — | — | 20, 35, 60 | run:wallet:0.035 | +3.5% prize money after every win | 4,0 | silver-powder |
+| interest | Interest | Economy | wallet:3 | — | 30, 55, 90 | perk:interestLevel:1 | After every win, earn a share of the money you hold (2% at level 1, up to ₽60) | 4,1 | shell-bell |
+| tm-master | TM Master | Economy | — | — | 20, 35, 60 | run:tm:0.07 | +7% chance of a second TM after every win | 5,0 | tm-psychic |
+| extra-recruit | Extra Recruit | Economy | gift:1 | — | 120 | perk:recruitCards:1 | 1 more card on every recruit screen | 1,2 | everstone |
+| wide-choice | Wide Choice | Economy | extra-recruit:1, dice:2 | — | 250 | perk:recruitPicks:1 | 1 more Pokémon to take on every recruit screen | 1,3 | sun-stone |
+| starter-reroll | Starter reroll | Skills | — | — | 30 | perk:starterReroll:1 | 1 more reroll on the starter draft | 1,0 | thunder-stone |
+| rare-first | Rare first | Skills | starter-reroll:1 | — | 80 | perk:rareFirst:1 | A Rare card on your first recruit screen | 1,1 | dragon-fang |
+| training | Training | Skills | rare-first:1 | wins:3 | 150 | perk:training:1 | Your Pokémon are 1 level higher in every gym battle | 1,2 | thick-club |
+| starting-item | Starting item | Skills | — | — | 40 | unlock:pick-item | Choose a held item to begin every run with | 2,0 | stick |
+| second-chance | Second Chance | Skills | starting-item:1 | wins:5 | 200 | perk:revive:1 | Once per run, a Pokémon that fell in a battle you won is saved | 2,1 | full-restore |
+| mode-opponents | Random gyms | Modes | — | — | 80 | unlock:mode-opponents | Run rule: the 8 gyms are shuffled, mixed from every generation or fully random. Challenge runs pay +25% TP | 4,0 | dubious-disc |
+| mode-mono | Mono type | Modes | — | — | 60 | unlock:mode-mono | Run rule: every recruit has the type you choose. Challenge runs pay +25% TP | 5,0 | mystic-water |
+| mode-noitems | No items | Modes | mode-hard:1 | — | 50 | unlock:mode-noitems | Run rule: no bag, no item screens and the shop sells only TMs. Challenge runs pay +25% TP | 3,1 | hard-stone |
 
 ### 3j. Character unlocks ✏️ _(editable table)_
 
@@ -305,11 +385,11 @@ Trainers unlock through **themes**: you do something that fits them and they joi
 - `Type win: T`: reach the Hall of Fame with a T-type Pokémon on the team. `Type gym N: T`: have a T-type on the team when you beat battle #N.
 - `Species: N`: recruit N different species in total. `Badges: N`: own N badges.
 - `Clean win` (or `Clean win Gen G`): reach the Hall of Fame without losing a Pokémon. `Clean gym N`: get through battle #N without losing one.
-- `Quick wins: N`: win N gym battles in 4 turns or fewer. `Berries: N`, `Items: N`: give N berries or N held items to your Pokémon in total. `Diverse win`: reach the Hall of Fame with six different types on the team. `Full team: T`: win a battle with six Pokémon of type T on the team. `Win all gens`: reach the Hall of Fame in every Challenge Gen (1–5). `Fast win: N`: reach the Hall of Fame within N minutes of play time (counted while the game is open and visible; only runs started after v0.23.0 are timed). `Obtain: a, b, c…`: have every one of those exact species on your team at some point of one run, not necessarily at once, and fallen or released ones count (the picker shows them and the most you had in a single run; Cynthia's Platinum team is the example). `Friendship: N`: recruit N different Pokémon that evolve by friendship (Crobat, Blissey, Lucario, Espeon…); evolving is automatic by level, so there is no friendship system.
+- `Quick wins: N`: win N gym battles in 4 turns or fewer. `Items: N`: give N held items to your Pokémon in total (`Berries: N` still works for saves that have berries). `Diverse win`: reach the Hall of Fame with six different types on the team. `Full team: T`: win a battle with six Pokémon of type T on the team. `Win all gens`: reach the Hall of Fame in every Challenge Gen (1–5). `Fast win: N`: reach the Hall of Fame within N minutes of play time (counted while the game is open and visible; only runs started after v0.23.0 are timed). `Obtain: a, b, c…`: have every one of those exact species on your team at some point of one run, not necessarily at once, and fallen or released ones count (the picker shows them and the most you had in a single run; Cynthia's Platinum team is the example). `Friendship: N`: recruit N different Pokémon that evolve by friendship (Crobat, Blissey, Lucario, Espeon…); evolving is automatic by level, so there is no friendship system.
 
 **Pacing.** At most **2 trainers unlock per run**: the rest wait for the next battle or run, so each one feels like an event. Each unlock gets a "New trainer unlocked!" popup (or the end-of-run list) with what the perk does. The picker shows every trainer: the ones you have list how you unlocked them, the locked ones list how to unlock them. A few cool trainers stay secret (shown as "???") until you have them: they are listed in `HIDDEN_TRAINERS` in `js/game/unlocks.js` (Lance, Steven, Red (Battle Frontier) and Silver). Characters that are missing from the table are free.
 
-**Perks.** The **Perk** column is the text players see; the **Effect** column is what the game applies (`—` means planned, not in the game yet). Effects, joined by `;`: `money:300`, `bag:oran-berry:2`, `item-pick:1` (one more starting item pick), `starter-reroll:1` (one more free reroll in the starter draft), `starter:kanto` (the starter draft always has a starter of that region), `first-recruit:ralts` (the starter draft always has that line), `starter-extra:kanto` (one extra starter card of that region), `starter-card:1` (one extra card in the starter draft), `scout:1` (one extra card on every recruit screen), `shiny:384` (shiny chance 1/384), `bias:dragon` (that type turns up more in recruits), `level-first:1` / `level-gyms:1` (+1 level in the first gym / at every gym), `discount:berry:50` (percent off a group: `berry`, `evo` for stones, `guard` for Guard Spec. and X items), `prize:10` (+10% prize money from every battle), `dice:1` (one extra reroll on every recruit screen), `stat:atk:5` (+5% to a stat for the whole team in battle; `stat:all:5` for every stat except HP), `power:fire:5` (that type's moves hit 5% harder), `acc:fighting:5` (that type's moves are 5% more accurate), `potion:20` (Potions heal 20 more HP), `revive:1` (once per run, a Pokémon that fell in a won battle is saved), `iv-rating:1` (recruit cards show an IV rating), `weak-badge:1` (the weakest badge in the case gets +1 strength), `rare-first:1` (one extra Rare card on the recruit screen after battle 1), `free-reroll-first:1` (one extra free reroll on that screen). The names, themes and planned perks are suggestions to edit.
+**Perks.** The **Perk** column is the text players see; the **Effect** column is what the game applies (`—` means planned, not in the game yet). Effects, joined by `;`: `money:300`, `bag:oran-berry:2`, `item-pick:1` (one more starting item pick), `starter-reroll:1` (one more free reroll in the starter draft), `starter:kanto` (the starter draft always has a starter of that region), `first-recruit:ralts` (the starter draft always has that line), `starter-extra:kanto` (one extra starter card of that region), `starter-card:1` (one extra card in the starter draft), `scout:1` (one extra card on every recruit screen), `shiny:384` (shiny chance 1/384), `bias:dragon` (that type turns up more in recruits), `level-first:1` / `level-gyms:1` (+1 level in the first gym / at every gym), `discount:berry:50` (percent off a group: `berry`, `evo` for stones, `guard` for Guard Spec. and X items), `prize:10` (+10% prize money from every battle), `dice:1` (one extra reroll on every recruit screen), `stat:atk:5` (+5% to a stat for the whole team in battle; `stat:all:5` for every stat except HP), `power:fire:5` (that type's moves hit 5% harder), `acc:fighting:5` (that type's moves are 5% more accurate), `revive:1` (once per run, a Pokémon that fell in a won battle is saved), `iv-rating:1` (recruit cards show an IV rating), `weak-badge:1` (the weakest badge in the case gets +1 strength), `rare-first:1` (one extra Rare card on the recruit screen after battle 1), `free-reroll-first:1` (one extra free reroll on that screen). The names, themes and planned perks are suggestions to edit.
 
 | ID | Character | Unlock | Perk | Effect |
 |---|---|---|---|---|
@@ -324,9 +404,9 @@ Trainers unlock through **themes**: you do something that fits them and they joi
 | red | Red (FRLG) | Start | The starter draft always has a Kanto starter | starter:kanto |
 | leaf | Leaf (FRLG) | Start | +₽300 starting money | money:300 |
 | brendan-rs | Brendan (R/S) | Starters: hoenn | One extra Hoenn starter card in the starter draft | starter-extra:hoenn |
-| may-rs | May (R/S) | Win Gen 3 | Berries cost half in the shop | discount:berry:50 |
+| may-rs | May (R/S) | Win Gen 3 | Evolution stones cost half in the shop | discount:evo:50 |
 | brendan | Brendan (Emerald) | Start | The starter draft always has a Hoenn starter | starter:hoenn |
-| may | May (Emerald) | Start | Start with 2 extra Oran Berries | bag:oran-berry:2 |
+| may | May (Emerald) | Start | Start with 2 extra X Speed | bag:x-speed:2 |
 | red-e | Red (Battle Frontier) | Win all gens | +5% to all stats for your whole team, one extra item pick and one extra starter reroll | stat:all:5;item-pick:1;starter-reroll:1 |
 | steven | Steven (Emerald) | Full team: steel | Start with a Hard Stone and a Metal Coat | bag:hard-stone:1;bag:metal-coat:1 |
 | wally | Wally (R/S) | Line win: ralts | The starter draft always offers a Ralts | first-recruit:ralts |
@@ -334,8 +414,8 @@ Trainers unlock through **themes**: you do something that fits them and they joi
 | dawn | Dawn (Platinum) | Start | One extra reroll on every recruit screen | dice:1 |
 | barry | Barry (Platinum) | Fast win: 60 | +8% Speed for your whole team and a Quick Claw to start | stat:spe:8;bag:quick-claw:1 |
 | buck | Buck (D/P) | Line win: machop | +5% Attack for your whole team | stat:atk:5 |
-| cheryl | Cheryl (D/P) | Clean gym 4 | Potions heal 20 more HP | potion:20 |
-| marley | Marley (D/P) | Items: 25 | Start with a Sitrus Berry to hold | bag:sitrus-berry:1 |
+| cheryl | Cheryl (D/P) | Clean gym 4 | Your team's Sp. Def is 4% higher in battle | stat:spd:4 |
+| marley | Marley (D/P) | Items: 25 | Start with a Shell Bell to hold | bag:shell-bell:1 |
 | mira | Mira (D/P) | Species: 50 | One extra recruit card on every recruit screen | scout:1 |
 | riley | Riley (D/P) | Badges: 16 | Your weakest badge gets +1 strength | weak-badge:1 |
 | hilbert | Hilbert (B/W) | Wins: 1 | One extra card in the starter draft | starter-card:1 |
@@ -1983,3 +2063,16 @@ All Rock-type lines up to Gen 4. Slugma (Fire) and Steelix (Steel/Ground) are in
 - **v0.31.4 · October 29, 2026:** The Fixed Six switch sits on its challenge row in the Challenges window (under Run rule only the Dupes clause stays). "Never switch" removed from the Coming soon list.
 - **v0.31.5 · October 29, 2026:** Fixed the user's own stat drops (Close Combat, Superpower, Overheat, Draco Meteor, Leaf Storm…) being skipped when the move knocked the target out. Self stat changes after a damaging move now always happen.
 - **v0.31.6 · November 2, 2026:** The "New trainers unlocked!" panel on the end-of-run screen (win or loss) now says how you unlocked each trainer, like the mid-run card does.
+- **v0.32.0 · November 7, 2026:** **Skill Tree** replaces the flat Trainer Upgrades: 34 nodes in six arms (Defense and Attack with a flat and a percentage line for HP, Defense, Sp. Def, Attack, Sp. Atk and Speed; Economy with TP pay increase, money, cards, bag and rerolls; Extras with shiny and hidden ability chances; Skills to pick your starter, a first-screen encounter, a Legendary and a Mythical; Modes to unlock Random moves, Random levels and Random mons as run rules). Nodes must be next to one you own and some need wins; the whole tree is the table in §3i (Requires, Needs, Costs, Does, Pos). A run with Fixed Six or a Mode on pays +25% TP. Every Trainer Point spent on the old upgrades is refunded once (also when two old saves are combined) and the old upgrades start over; the Skill Tree screen says how much came back. Full tree costs 1,987 TP.
+- **v0.32.1 · November 7, 2026:** The Skill Tree is compact and no longer a web: Defense and Attack run to the left, Economy, Extras, Skills and Modes to the right, joined by elbow lines, with item pictures from the games as icons (a new Icon column in the §3i table). Every stat has its own head node that opens a separate flat path and a separate percentage path. Two final upgrades, **Fortress** (+5% HP, Defense, Sp. Def) and **Rampage** (+5% Attack, Sp. Atk, Speed), need all six paths of their arm maxed. Flat and percentage lines got cheaper; the full tree costs 2,179 TP.
+- **v0.33.0 · November 7, 2026:** The Skill Tree looks like the old League of Legends rune pages: six panels side by side (Defense, Attack, Economy, Extras, Skills, Modes) that build upwards. The Trainer centre and the arm and head nodes are gone: the bottom row of every panel is open from the start, and each node above needs the one below it. Every stat has a flat and a separate percentage path of three tiers (2, 2 and 1 levels); Fortress and Rampage at the top of Defense and Attack need all six paths of their panel finished. Wins still gate the later Skills nodes. Full tree: 2,082 TP.
+- **v0.33.1 · November 7, 2026:** Skill Tree layout: Defense and Attack side by side on top, and Economy, Extras, Skills and Modes below them stretched to the same total width (the left edge lines up with Defense, the right edge with Attack). On narrow screens the panels stack.
+- **v0.33.2 · November 7, 2026:** Skill Tree nodes lift and glow on hover. The buy window is narrower and quicker to read: the icon and what one level gives in a few words ("+2 Sp. Def"), the level, what this node will be after buying, and your TP before and after. The green Buy button is bottom right, a grey Not now bottom left; a locked node shows what it needs, and a node you can't afford yet shows how many TP are missing.
+- **v0.33.3 · November 7, 2026:** Bigger Skill Tree: nodes are 96 px wide with larger icons, names and costs. Defense and Attack sit side by side from 1,400 px wide and stack below that; the lower four panels go two by two below 1,100 px.
+- **v0.34.0 · November 7, 2026:** The Skill Tree has a tab for every type of upgrade (Defense, Attack, Economy, Extras, Skills, Modes) and shows one panel at a time. Eight new nodes: **Regrowth** (heal 1% HP each turn, 2 levels) and **Last Stand** (a full-HP Pokémon survives one knockout per battle) in Defense; **Opener** (+5% damage on turn 1, 2 levels) and **Vampire** (heal 4% of damage dealt, 2 levels) in Attack; **Haggler** (3% cheaper shop, 3 levels) and **Swap** in Economy; **IV floor** (recruit IVs start at 20) in Extras; and the **Hard mode** run rule (opponents +3 levels, +25% TP) in Modes. Their effects reuse the gym badge effects and add to them; battle messages say "Skill tree". Nodes can need a node in another column (shown in their lock text).
+- **v0.34.1 · November 7, 2026:** Skill Tree: every tab has the same size, the nodes sit on a visible grid (empty cells are faint slots) and lines join each node to the nodes it needs, lit once that requirement is met. Hovering a node highlights what you need to finish first (white) and what it opens (dashed). The special nodes now sit above the paths they need: Regrowth above the HP paths, Last Stand above Sp. Def, Vampire above Attack, Opener above Speed (each needs both of its paths finished); Gift Box also needs Bigger Bag. Fortress and Rampage are in the middle of the top row.
+- **v0.35.0 · November 7, 2026:** New Skill Tree node **Random trainer** (Modes, 50 TP). Once bought it is a switch in New run → Challenges: when the run starts, your trainer (and their perk) is picked at random from the trainers you have unlocked, and a window shows who you got. The Trainer tile reads "Random trainer" while it is on. It is a Mode, so the run pays +25% TP.
+- **v0.36.0 · November 7, 2026:** The Skill Tree only raises stats in battle now: Regrowth, Last Stand, Opener and Vampire are gone (healing, damage and survival effects stay with the gym badges), replaced by four **Mastery** nodes (+2% HP, Sp. Def, Attack or Speed per level) above the paths. The Random trainer mode became **Random gyms** (Modes): the 8 gyms are *shuffled* (your Challenge Gen in a random order), *mixed* (gyms from every generation, no two of the same type) or *wild* (any 8 gyms); each gym keeps its own team, theme and badge. New nodes: Economy **Lucky Wallet**, **Interest**, **TM Master**, **Extra Recruit** and **Wide Choice**; Skills **Starter reroll**, **Rare first**, **Training** (+1 level in gyms), **Starting item** (pick a held item) and **Second Chance** (saves one fallen Pokémon per run); Modes **Mono type** (every recruit has one type you pick) and **No items** (no bag, item screens or shop items). Every mode pays +25% TP.
+- **v0.36.1 · November 7, 2026:** The Skill Tree, Hall of Fame and Leaderboards screens are framed, centred cards (880 px wide, the Skill Tree 1,100 px) instead of the full page width.
+- **v0.36.2 · November 7, 2026:** Skill Tree tabs are folder tabs stuck to the panel in the panel's colour, and every panel is as wide as the card.
+- **v0.37.0 · November 7, 2026:** **Profile** (title menu): a Stats tab with about 35 numbers (runs, win rate, time played, battles, turns per win, Pokémon lost, species recruited, shinies, favourite champion and type, badges, trainers, challenges, wins per generation…) and a Customize tab: your name, a tagline, a trainer avatar (any trainer you unlocked) and a favourite team of six Pokémon you have had. The avatar, tagline and favourites are public; click a player in the Leaderboards to see their profile (rank, numbers, favourite team, latest champion teams, challenges beaten). **Nature Mint** (Key Items, Rare): changes a Pokémon's Nature to any Nature you pick. Berries and healing items (Potions, status heals, Full Heal, Full Restore…) are retired: no longer in item cards, the shop or the starting bag (the start is now an X Attack, X Sp. Atk and X Speed; Bigger Bag gives X items; May, Cheryl and Marley have new perks; saved runs that still hold them keep working). **Challenges:** "Little cup" is now "Don't evolve" ("Don't evolve anything"); new team challenges (Team Magma: only Fire, Team Aqua: Water, Team Rocket: Poison and Normal, Team Galactic: Steel and Psychic, Team Plasma: Dark and Ghost) and four mode wins (Hard mode, Random gyms, Mono type, No items); challenges are in four tiers and each tier is a "???" row until you have beaten 2, 5 and 8 challenges. Republish `firestore.rules` (new `avatar`, `favs`, `tagline` fields).

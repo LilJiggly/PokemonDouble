@@ -108,7 +108,7 @@ export function parseRules(markdown, data) {
   }
 
   // §3h shop sections: how many items each section sells
-  const shopStock = { items: 4, berries: 3, medicine: 3, battle: 2, key: 2, tms: 3 };
+  const shopStock = { items: 4, battle: 2, key: 2, tms: 3 };
   for (const row of readTableAfter(markdown, "### 3h.", "| Shop section")) {
     const name = clean(row["Shop section"]).toLowerCase();
     const n = firstNumber(row["Items for sale"]);
@@ -129,13 +129,24 @@ export function parseRules(markdown, data) {
       else if (what.includes("champion")) tp.champion = n;
       else if (what.includes("hall")) tp.hallOfFame = n;
     }
+    // The skill tree: one row per node (see the table in DESIGN.md §3i)
+    const dash = (t) => { const v = clean(t); return v === "—" || v === "-" ? "" : v; };
     for (const row of readTableAfter(markdown, "### 3i.", "| ID |")) {
+      const costs = dash(row["Costs"]).split(",").map((c) => Number(c.trim())).filter((n) => Number.isFinite(n) && n >= 0);
+      const [x, y, span] = dash(row["Pos"]).split(",").map(Number);
       upgrades.push({
         id: clean(row["ID"]),
-        name: clean(row["Upgrade"]),
-        max: firstNumber(row["Max level"]),
-        cost: firstNumber(row["Cost per level"]),
-        effect: clean(row["Effect per level"]),
+        name: clean(row["Node"]),
+        arm: clean(row["Arm"]),
+        requires: dash(row["Requires"]).split(",").filter(Boolean).map((r) => { const [id, level] = r.trim().split(":"); return { id, level: Number(level ?? 1) }; }),
+        needs: dash(row["Needs"]).split(",").filter(Boolean).map((r) => { const [kind, arg] = r.trim().split(":"); return { kind, arg }; }),
+        costs,
+        max: costs.length,
+        does: dash(row["Does"]),
+        effect: clean(row["Effect"]),
+        pos: [Number.isFinite(x) ? x : 0, Number.isFinite(y) ? y : 0],
+        span: Number.isFinite(span) ? span : 1,
+        icon: dash(row["Icon"]),
       });
     }
   }

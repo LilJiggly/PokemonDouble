@@ -13,16 +13,18 @@
 
 import { nextRandom } from "../engine/rng.js";
 import { Battle } from "../engine/battle.js";
-import { createRecruit, levelUpMovesAt } from "./recruit.js";
+import { NATURES as NATURE_TABLE } from "../engine/constants.js";
+import { createRecruit, levelUpMovesAt, randomMovesAt } from "./recruit.js";
 import { emptyRunStats, STARTER_LINES } from "./progress.js";
 import { itemOddsFor, tmMaxPowerFor, TIERS } from "./rules.js";
-import { ITEMS, pocketOf } from "./item-catalog.js";
-import { hasPerk as badgeHasPerk, perkParam, battleBonus } from "./badges.js";
+import { ITEMS, pocketOf, isRetired } from "./item-catalog.js";
+import { hasPerk as badgeHasPerk, perkParam, battleBonus, EFFECTS } from "./badges.js";
 
 // Held items that trigger once per battle and are back afterwards
 const RESTORED_AFTER_BATTLE = new Set(["focus-sash"]);
 export const FINAL_ORDER = 14;
 export const REPLACEMENT_PICK_CAP = 2;
+export const HARD_MODE_LEVELS = 3;
 const NATURES = ["hardy", "adamant", "modest", "jolly", "timid", "bold", "impish", "calm", "careful", "brave", "quiet", "naive", "hasty"];
 
 // ctx = { data, dex, rules, tms, leaders: { 1: gen1Json, … } }
@@ -30,12 +32,25 @@ const NATURES = ["hardy", "adamant", "modest", "jolly", "timid", "bold", "impish
 // Is this gym-badge perk equipped? (§3k)
 export const hasPerk = (run, ctx, id) => badgeHasPerk(run, ctx.rules, id);
 // The number of a run badge effect (0 when the badge isn't worn; it grows with the badge's strength)
-const perkN = (run, ctx, id, none = 0) => perkParam(run, ctx.rules, id, none);
+// The skill tree adds to it (Haggler, Swap…) when the effect is a plain number
+const perkN = (run, ctx, id, none = 0) => {
+  const base = perkParam(run, ctx.rules, id, none);
+  const extra = run.perks?.tree?.run?.[id] ?? 0;
+  return extra && typeof base === "number" ? base + extra : base;
+};
+
+// The Interest badge and the skill tree's Interest node: the better of the two
+function interestOf(run, ctx) {
+  const badge = perkParam(run, ctx.rules, "interest", null);
+  const level = run.perks?.interestLevel ?? 0;
+  const tree = level ? EFFECTS.interest.param(level) : null;
+  return badge && tree ? (badge.rate >= tree.rate ? badge : tree) : badge ?? tree;
+}
 
 // TMs that do nothing in this game are never given (§3g)
 const TM_EXCLUDED = new Set(["flash", "natural-gift", "fling", "snatch", "recycle"]);
 // Bigger Bag upgrade kits (§3i)
-const BAG_KITS = [{}, { "super-potion": 2 }, { "super-potion": 2, "sitrus-berry": 1, "full-heal": 1 }];
+const BAG_KITS = [{}, { "x-attack": 1, "x-sp-atk": 1, "x-speed": 1 }, { "x-attack": 2, "x-sp-atk": 2, "x-speed": 2, "x-defense": 1, "x-sp-def": 1 }];
 
 const rand = (run) => () => nextRandom(run);
 const pickOne = (run, list) => list[Math.floor(nextRandom(run) * list.length)];
@@ -56,16 +71,17 @@ function rollTier(run, odds, available) {
 // ===============================
 
 // perks: Trainer upgrades from meta progression (see meta.js perksFromMeta)
-export function newRun(ctx, { gen, pools, seed = Math.floor(Math.random() * 2 ** 32), perks = {}, character = "lucas", badges = [], badgeLinks = [], badgeOff = [], dupes = true, fixedSix = false }) {
+export function newRun(ctx, { gen, pools, seed = Math.floor(Math.random() * 2 ** 32), perks = {}, character = "lucas", badges = [], badgeLinks = [], badgeOff = [], dupes = true, fixedSix = false, modes = {}, picks = {}, monoType = "" }) {
   const run = {
     version: 1,
     character,
     rng: seed >>> 0,
-    settings: { gen, pools: [...pools].sort(), dupes, fixedSix }, // dupes: the dupes clause (a line you had before, even a fallen or released one, doesn't come back as a recruit); fixedSix: pick six at the start, never recruit again
+    settings: { gen, pools: [...pools].sort(), dupes, fixedSix, modes: { ...modes }, picks: { ...picks }, monoType }, // dupes: the dupes clause (a line you had before, even a fallen or released one, doesn't come back as a recruit); fixedSix: pick six at the start, never recruit again
     lines: [], // evolution lines of every Pokémon you recruited this run
     rerollsUsed: 0, // recruit and shop rerolls (for the "No rerolls" challenge)
+    evolutions: 0, // Pokémon you evolved (for the "Don't evolve anything" challenge)
     seenSpecies: [], // every species that was on your team at some point of this run (for the Obtain unlocks)
-    perks: { scout: 0, dice: 0, allowance: 0, bag: 0, gift: 0, hidden: 0, shiny: 0, ...perks },
+    perks: { scout: 0, dice: 0, allowance: 0, bag: 0, gift: 0, hidden: 0, shiny: 0, shiny2: 0, tree: { flat: {}, pct: {}, run: {} }, tpPct: 0, unlocked: [], ...perks },
     money: 0,
     tms: [],
     shop: null,
@@ -86,11 +102,14 @@ export function newRun(ctx, { gen, pools, seed = Math.floor(Math.random() * 2 **
     rival: null,
     messages: [],
   };
-  for (const [id, count] of Object.entries(ctx.rules.startingBag ?? {})) {
-    if (ITEMS[id]) addToBag(run, id, count);
+  if (!modes.noitems) { // No items (mode): nothing in the bag at the start
+    for (const [id, count] of Object.entries(ctx.rules.startingBag ?? {})) {
+      if (ITEMS[id]) addToBag(run, id, count);
+    }
+    for (const [id, count] of Object.entries(BAG_KITS[Math.min(run.perks.bag, 2)])) addToBag(run, id, count);
   }
-  for (const [id, count] of Object.entries(BAG_KITS[Math.min(run.perks.bag, 2)])) addToBag(run, id, count);
   run.money = (ctx.rules.money?.start ?? 500) + run.perks.allowance * 500;
+  if (modes.opponents) run.gymPlan = makeGymPlan(run, ctx, modes.opponents); // Random gyms
   const rivalEntry = leaderFor(run, ctx, FINAL_ORDER);
   run.rival = pickOne(run, rivalEntry.options);
   run.nextOpponent = chooseOpponent(run, ctx, 1);
@@ -102,6 +121,9 @@ export function newRun(ctx, { gen, pools, seed = Math.floor(Math.random() * 2 **
   const level = playerLevelFor(ctx, 1);
   run.offer = makeRecruitOffer(run, ctx, { count: (fixedSix ? 12 : row.recruitOptions) + run.perks.scout + (run.charFx["starter-card"] ?? 0), picks: fixedSix ? 6 : row.recruitPicks, odds: row.odds, level, starter: true });
   applyCharacterPerk(run, ctx);
+  if (picks.starter) guaranteeOption(run, ctx, picks.starter); // Skills: Starter pick
+  run.offer.rerollsLeft += run.perks.starterReroll ?? 0; // Skills: Starter reroll
+  if (picks.item && ITEMS[picks.item]?.kind === "held" && !modes.noitems) addToBag(run, picks.item); // Skills: Starting item
   return run;
 }
 
@@ -150,8 +172,7 @@ function addStarterCard(run, ctx, region) {
   const lines = (STARTER_LINES[region] ?? []).filter((k) => ctx.data.pokemonByKey[k] && pools.has(ctx.data.pokemonByKey[k].gen) && !shown.has(ctx.dex.lineOf[k]));
   if (!lines.length) return;
   const key = pickOne(run, lines);
-  const spec = createRecruit(ctx.data, key, run.offer.level, rand(run), recruitChances(run, ctx));
-  spec.abilitySlot = abilitySlotOf(ctx, spec);
+  const spec = newSpec(run, ctx, key, run.offer.level);
   run.offer.options.push({ spec, tier: ctx.dex.tier(ctx.dex.lineOf[key]), taken: false });
 }
 
@@ -163,8 +184,7 @@ function addCardOfTier(run, ctx, offer, tier) {
   if (!choices.length) return;
   const pick = pickOne(run, choices);
   const species = pickOne(run, pick.species);
-  const spec = createRecruit(ctx.data, species, offer.level, rand(run), recruitChances(run, ctx));
-  spec.abilitySlot = abilitySlotOf(ctx, spec);
+  const spec = newSpec(run, ctx, species, offer.level);
   offer.options.push({ spec, tier, taken: false });
 }
 
@@ -175,8 +195,7 @@ function guaranteeOption(run, ctx, speciesKey) {
   if (!offer || !p || !run.settings.pools.includes(p.gen)) return;
   const root = ctx.dex.lineOf[speciesKey];
   if (offer.options.some((o) => ctx.dex.lineOf[o.spec.species] === root)) return;
-  const spec = createRecruit(ctx.data, speciesKey, offer.level, rand(run), recruitChances(run, ctx));
-  spec.abilitySlot = abilitySlotOf(ctx, spec);
+  const spec = newSpec(run, ctx, speciesKey, offer.level);
   const card = { spec, tier: ctx.dex.tier(root), taken: false };
   if (offer.options.length) offer.options[offer.options.length - 1] = card;
   else offer.options.push(card);
@@ -197,8 +216,34 @@ export function rowFor(ctx, order) {
   return ctx.rules.progression.find((r) => r.order === order);
 }
 
+// The leader of a battle. gen and gymOrder say which gym of which generation it really is (they differ from the run's
+// Challenge Gen and from the battle number when the Random gyms mode is on, see makeGymPlan)
 export function leaderFor(run, ctx, order) {
-  return ctx.leaders[run.settings.gen].opponents.find((o) => o.order === order);
+  const plan = order >= 1 && order <= 8 ? run.gymPlan?.[order - 1] : null;
+  const gen = plan?.gen ?? run.settings.gen;
+  const entry = ctx.leaders[gen].opponents.find((o) => o.order === (plan?.order ?? order));
+  return { ...entry, gen, gymOrder: plan?.order ?? order };
+}
+
+// Random gyms (mode): which gym stands in each of the first 8 battles. Every leader is { gen, order } (their place in their own game).
+//   shuffled: the 8 gyms of your Challenge Gen, in a random order
+//   mixed: gyms from every generation, no two of the same type
+//   wild: any 8 different gyms from every generation
+export function makeGymPlan(run, ctx, kind) {
+  const shuffle = (list) => { const a = [...list]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(nextRandom(run) * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const gyms = (gens) => gens.flatMap((gen) => ctx.leaders[gen].opponents.filter((o) => o.order >= 1 && o.order <= 8).map((o) => ({ gen, order: o.order, theme: o.theme })));
+  if (kind === "shuffled") return shuffle(gyms([run.settings.gen])).map(({ gen, order }) => ({ gen, order }));
+  const all = shuffle(gyms(Object.keys(ctx.leaders).map(Number)));
+  if (kind === "wild") return all.slice(0, 8).map(({ gen, order }) => ({ gen, order }));
+  const types = new Set();
+  const plan = [];
+  for (const g of all) {
+    if (plan.length === 8) break;
+    if (g.theme && types.has(g.theme)) continue;
+    types.add(g.theme);
+    plan.push({ gen: g.gen, order: g.order });
+  }
+  return plan;
 }
 
 // ===============================
@@ -236,6 +281,11 @@ function candidateLines(run, ctx, { level, starter, strict = false }) {
       species = dex.highestLegalStages(root, level, inPool);
       if (!species.length) continue;
     }
+    // Mono type (mode): only Pokémon of the chosen type
+    if (run.settings?.monoType) {
+      species = species.filter((k) => data.pokemonByKey[k].types.includes(run.settings.monoType));
+      if (!species.length) continue;
+    }
     const tier = dex.tier(root);
     (byTier[tier] ??= []).push({ root, species });
   }
@@ -251,8 +301,9 @@ export function makeRecruitOffer(run, ctx, { count, picks, odds, level, starter 
   for (let i = 0; i < count; i++) {
     const available = new Set(TIERS.filter((t) => byTier[t]?.some((c) => !usedRoots.has(c.root))));
     if (!available.size) break;
-    const tier = rollTier(run, odds, available);
-    let choices = byTier[tier].filter((c) => !usedRoots.has(c.root));
+    // Random mons (run mode): every line is as likely as any other, whatever its tier
+    const tier = run.settings?.modes?.mons ? null : rollTier(run, odds, available);
+    let choices = (tier ? byTier[tier] : Object.values(byTier).flat()).filter((c) => !usedRoots.has(c.root));
     // Lance: Dragon-types (or whatever the trainer favours) turn up more often
     const bias = run.charFx?.bias;
     if (bias && nextRandom(run) < 0.35) {
@@ -262,18 +313,28 @@ export function makeRecruitOffer(run, ctx, { count, picks, odds, level, starter 
     const pick = pickOne(run, choices);
     usedRoots.add(pick.root);
     const species = pickOne(run, pick.species);
-    const spec = createRecruit(ctx.data, species, level, rand(run), recruitChances(run, ctx));
-    spec.abilitySlot = abilitySlotOf(ctx, spec);
-    options.push({ spec, tier, taken: false });
+    const spec = newSpec(run, ctx, species, level);
+    options.push({ spec, tier: tier ?? ctx.dex.tier(pick.root), taken: false });
   }
   return { kind: "recruit", starter, options, picks, picksLeft: Math.min(picks, options.length), level, odds,
     rerollsLeft: 1 + (run.perks?.dice ?? 0) + perkN(run, ctx, "reroll") };
 }
 
+// A recruit card's Pokémon, with the run modes applied: Random levels (±5) and Random moves
+function newSpec(run, ctx, speciesKey, level) {
+  const modes = run.settings?.modes ?? {};
+  const lv = modes.levels ? Math.max(5, level + Math.floor(nextRandom(run) * 11) - 5) : level;
+  const spec = createRecruit(ctx.data, speciesKey, lv, rand(run), recruitChances(run, ctx));
+  if (modes.moves) spec.moves = randomMovesAt(ctx.data.pokemonByKey[speciesKey], lv, ctx.data, rand(run));
+  spec.abilitySlot = abilitySlotOf(ctx, spec);
+  return spec;
+}
+
 function recruitChances(run, ctx) {
   return {
-    hidden: Math.min(0.6, (run.perks?.hidden ? 0.2 : 0.1) + perkN(run, ctx, "hidden")),
-    shiny: run.perks?.shiny ? 1 / 128 : 1 / (run.charFx?.shiny ?? 512), // Lyra: 1/384
+    hidden: Math.min(0.6, 0.1 + 0.1 * (run.perks?.hidden ?? 0) + perkN(run, ctx, "hidden")),
+    shiny: run.perks?.shiny2 ? 1 / 64 : run.perks?.shiny ? 1 / 128 : 1 / (run.charFx?.shiny ?? 512), // Lyra: 1/384
+    ivFloor: run.perks?.ivFloor ?? 0, // skill tree: IV floor
   };
 }
 
@@ -317,6 +378,7 @@ export function pickRecruit(run, ctx, optionIndex, replaceUid = null) {
   const mon = { ...structuredClone(option.spec), uid: run.nextUid++ };
   run.team.push(mon);
   noteRecruited(run, ctx, mon.species, offer.starter);
+  if (mon.shiny) run.shinies = (run.shinies ?? 0) + 1;
   (run.lines ??= []).push(ctx.dex.lineOf[mon.species]);
   (run.seenSpecies ??= []).push(mon.species);
   if (offer.picksLeft <= 0) finishOffer(run, ctx);
@@ -338,6 +400,7 @@ export function swapForRecruit(run, ctx, optionIndex, uid) {
   offer.swapsUsed = (offer.swapsUsed ?? 0) + 1;
   run.team.splice(idx, 0, { ...structuredClone(option.spec), uid: run.nextUid++ });
   noteRecruited(run, ctx, option.spec.species, false);
+  if (option.spec.shiny) run.shinies = (run.shinies ?? 0) + 1;
   (run.lines ??= []).push(ctx.dex.lineOf[option.spec.species]);
   (run.seenSpecies ??= []).push(option.spec.species);
   return { ok: true };
@@ -372,7 +435,7 @@ function finishOffer(run, ctx) {
 
 function startItemOffer(run, ctx) {
   const row = rowFor(ctx, run.order);
-  if (!row?.itemOptions) {
+  if (!row?.itemOptions || run.settings.modes?.noitems) { // (No items mode: no item screens)
     enterHub(run, ctx, run.order + 1);
     return;
   }
@@ -386,6 +449,7 @@ function startItemOffer(run, ctx) {
   const byTier = {};
   for (const [id, item] of Object.entries(ITEMS)) {
     if (item.species && !item.species.some((s) => teamSpecies.has(s))) continue;
+    if (item.retired) continue; // berries and healing items are no longer offered
     (byTier[item.tier] ??= []).push(id);
   }
   const options = [];
@@ -552,6 +616,7 @@ export function evolve(run, ctx, uid, to) {
   if (!option?.ready) return { ok: false, reason: option?.needs.join(", ") };
   const fromName = displayName(ctx, mon);
   const fromSpecies = mon.species;
+  run.evolutions = (run.evolutions ?? 0) + 1; // (the "Don't evolve anything" challenge)
   mon.species = to;
   const p = ctx.data.pokemonByKey[to];
   mon.ability = mon.abilitySlot === "H" && p.abilities.hidden ? p.abilities.hidden
@@ -588,6 +653,17 @@ export function usePatch(run, ctx, uid, kind) {
   run.bag[kind] -= 1; // patches are used up
   if (run.bag[kind] <= 0) delete run.bag[kind];
   run.messages.push(`${displayName(ctx, mon)}'s Ability became ${ctx.data.abilities[mon.ability]?.name ?? mon.ability}!`);
+  return { ok: true };
+}
+
+// Nature Mint: the Pokémon gets the Nature you picked (its stats follow, and its level-up stays the same)
+export function useNatureMint(run, ctx, uid, nature) {
+  const mon = run.team.find((m) => m.uid === uid);
+  if (!mon || !(run.bag["nature-mint"] > 0) || !(nature in NATURE_TABLE) || mon.nature === nature) return { ok: false };
+  mon.nature = nature;
+  run.bag["nature-mint"] -= 1; // a mint is used up
+  if (run.bag["nature-mint"] <= 0) delete run.bag["nature-mint"];
+  run.messages.push(`${displayName(ctx, mon)} is ${nature} now!`);
   return { ok: true };
 }
 
@@ -632,12 +708,13 @@ function makeShop(run, ctx) {
   const bySection = {};
   for (const [id, item] of Object.entries(ITEMS)) {
     if (item.species && !item.species.some((s) => teamSpecies.has(s))) continue;
+    if (item.retired) continue;
     ((bySection[pocketOf(id)] ??= {})[item.tier] ??= []).push(id);
   }
   // Every section rolls its own items with the item odds (§3d)
   const counts = ctx.rules.shopStock ?? {};
   const stock = [];
-  for (const section of ["items", "berries", "medicine", "battle", "key"]) {
+  for (const section of run.settings.modes?.noitems ? [] : ["items", "battle", "key"]) {
     const byTier = bySection[section] ?? {};
     const used = new Set();
     for (let i = 0; i < (counts[section] ?? 0); i++) {
@@ -765,12 +842,13 @@ export function teachTM(run, ctx, uid, move, replaceIndex) {
 
 export function chooseOpponent(run, ctx, order) {
   const entry = leaderFor(run, ctx, order);
-  const row = rowFor(ctx, order);
+  const baseRow = rowFor(ctx, order);
+  const row = run.settings?.modes?.hard ? { ...baseRow, level: baseRow.level + HARD_MODE_LEVELS } : baseRow; // Hard mode: foes are 3 levels higher
   const name = order === FINAL_ORDER ? run.rival.name : entry.name;
-  const base = { order, id: entry.id, name, title: entry.title, theme: entry.theme, level: row.level,
-    playerLevel: row.level + (row.levelBonus ?? 0), teamSize: row.teamSize };
+  const base = { order, id: entry.id, gen: entry.gen, gymOrder: entry.gymOrder, name, title: entry.title, theme: entry.theme, level: row.level,
+    playerLevel: baseRow.level + (baseRow.levelBonus ?? 0), teamSize: row.teamSize };
   // Team pools (§5) take priority over handcrafted sets
-  const pool = ctx.rules.teamPools?.[run.settings.gen]?.[order === FINAL_ORDER ? `rival-${run.rival.id}` : entry.id];
+  const pool = ctx.rules.teamPools?.[entry.gen ?? run.settings.gen]?.[order === FINAL_ORDER ? `rival-${run.rival.id}` : entry.id];
   if (pool?.some((g) => g?.length)) return { ...base, pooled: true, team: poolTeam(run, ctx, entry, row, pool) };
   if (entry.sets.length) {
     const setIndex = Math.floor(nextRandom(run) * entry.sets.length);
@@ -908,7 +986,7 @@ export function startBattle(run, ctx) {
   if (run.pendingMoves.length) return { ok: false, reason: "Decide on the new moves first." };
   const foe = opponentTeam(run, ctx);
   const bag = {};
-  for (const [id, count] of Object.entries(run.bag)) {
+  for (const [id, count] of Object.entries(run.settings.modes?.noitems ? {} : run.bag)) {
     const item = ITEMS[id];
     if (item?.kind === "bag" && item.battle) bag[id] = { name: item.name, count, effect: item.effect };
   }
@@ -917,7 +995,7 @@ export function startBattle(run, ctx) {
     seed: Math.floor(nextRandom(run) * 2 ** 32),
     terrain: run.opponent.theme ?? "normal", // Camouflage turns into the arena's type
     sides: [
-      { name: "You", isPlayer: true, team: run.team.map((m) => ({ ...m, level: m.level + levelBump(run) })), bag, badge: withTrainerEffects(battleBonus(run, ctx.rules), run) },
+      { name: "You", isPlayer: true, team: run.team.map((m) => ({ ...m, level: m.level + levelBump(run) })), bag, badge: withTrainerEffects(battleBonus(run, ctx.rules), run), bonus: run.perks?.tree },
       { name: `${title} ${run.opponent.name}`, team: foe.team, script: foe.script },
     ],
   });
@@ -930,7 +1008,7 @@ export function startBattle(run, ctx) {
 function levelBump(run) {
   const fx = run.charFx ?? {};
   const gym = run.order >= 1 && run.order <= 8;
-  return (gym && run.order === 1 ? fx["level-first"] ?? 0 : 0) + (gym ? fx["level-gyms"] ?? 0 : 0);
+  return (gym && run.order === 1 ? fx["level-first"] ?? 0 : 0) + (gym ? (fx["level-gyms"] ?? 0) + (run.perks?.training ?? 0) : 0); // Nate, and the tree's Training
 }
 
 // Type power (chili, cilan, cress), accuracy (buck) and potion perks ride along with the badge effects the engine already reads
@@ -959,10 +1037,10 @@ export function finishBattle(run, ctx) {
     const mon = run.team[i];
     // Items that are only used up for the length of the battle (the Focus Sash)
     const keeps = RESTORED_AFTER_BATTLE.has(bm.consumedItem) && !bm.item ? bm.consumedItem : null;
-    if (bm.fainted && won && !run.charFx?.revived && run.charFx?.revive) {
-      // Kris: once per run, a Pokémon that fell in a won battle is saved
-      run.charFx.revived = true;
-      run.charFx.revive = 0;
+    const saves = (run.charFx?.revive ?? 0) + (run.perks?.revive ?? 0); // Kris, and the tree's Second Chance
+    if (bm.fainted && won && (run.revivesUsed ?? 0) < saves) {
+      // Once per source and run, a Pokémon that fell in a won battle is saved
+      run.revivesUsed = (run.revivesUsed ?? 0) + 1;
       mon.item = bm.item ?? keeps ?? mon.item;
       survivors.push(mon);
       (run.revivedNow ??= []).push(displayName(ctx, mon));
@@ -996,11 +1074,11 @@ export function finishBattle(run, ctx) {
     const flawless = run.lastBattle.fallen.length === 0;
     if (flawless) prize = Math.round(prize * (1 + m.flawlessBonus / 100));
     // Gym badge (§3k): the leader's badge is unlocked for good (saved by the screen code); the equipped badges' perks count now
-    const badge = run.order >= 1 && run.order <= 8 ? { gen: run.settings.gen, order: run.order } : null;
+    const badge = run.order >= 1 && run.order <= 8 ? { gen: run.opponent.gen ?? run.settings.gen, order: run.opponent.gymOrder ?? run.order } : null; // (the gym's own badge, even when the gyms are random)
     prize = Math.round(prize * (1 + perkN(run, ctx, "wallet"))); // Lucky Wallet badge
     if (run.charFx?.prize) prize = Math.round(prize * (1 + run.charFx.prize / 100)); // Hugh: more money from every battle
     // Interest badge: a share of the money you held before this prize (up to a cap)
-    const bank = perkN(run, ctx, "interest", null);
+    const bank = interestOf(run, ctx);
     const interest = bank ? Math.min(bank.cap, Math.floor(run.money * bank.rate)) : 0;
     run.money += prize + interest;
     const tm = rollTM(run, ctx);
@@ -1030,13 +1108,22 @@ export function finishBattle(run, ctx) {
     const lost = run.lastBattle.fallen.length;
     const bonus = Math.min(REPLACEMENT_PICK_CAP, lost, Math.max(0, 6 - run.team.length));
     const extra = perkN(run, ctx, "recruit", { picks: 0, cards: 0 }); // Extra Recruit badge
-    const extraPicks = extra.picks;
-    const extraCards = extra.cards + perkN(run, ctx, "scout"); // Extra Recruit and Scout badges
+    const extraPicks = extra.picks + (run.perks?.recruitPicks ?? 0); // + the skill tree's Wide Choice
+    const extraCards = extra.cards + perkN(run, ctx, "scout") + (run.perks?.recruitCards ?? 0); // Extra Recruit and Scout badges, and the tree's Extra Recruit
     run.offer = makeRecruitOffer(run, ctx, { count: row.recruitOptions + bonus + extraCards, picks: row.recruitPicks + bonus + extraPicks, odds: row.odds, level });
     run.offer.replacementPicks = bonus;
     // Hilda and Bianca: the first recruit screen of the run has an extra Rare card / an extra free reroll
-    if (run.order === 1 && run.charFx?.["rare-first"]) addCardOfTier(run, ctx, run.offer, "rare");
+    if (run.order === 1 && (run.charFx?.["rare-first"] || run.perks?.rareFirst)) addCardOfTier(run, ctx, run.offer, "rare");
     if (run.order === 1 && run.charFx?.["free-reroll-first"]) run.offer.rerollsLeft += run.charFx["free-reroll-first"];
+    // Skills: the Pokémon you picked for the first screen, and the Legendary / Mythical for the later ones
+    const picks = run.settings.picks ?? {};
+    if (run.order === 1 && picks.encounter) guaranteeOption(run, ctx, picks.encounter);
+    run.picksUsed ??= {};
+    for (const [slot, from] of [["legend", 7], ["mythic", 11]]) {
+      if (!picks[slot] || run.picksUsed[slot] || run.order < from) continue;
+      guaranteeOption(run, ctx, picks[slot]);
+      if (run.offer.options.some((o) => o.spec.species === picks[slot])) run.picksUsed[slot] = true;
+    }
     run.screen = "recruit";
   } else {
     startItemOffer(run, ctx);

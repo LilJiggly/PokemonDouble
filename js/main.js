@@ -7,7 +7,7 @@
 
 import { loadData } from "./engine/data.js";
 import { setCharacters } from "./game/characters.js";
-import { loadMeta, onSave } from "./game/meta.js";
+import { loadMeta, onSave, persistMigration } from "./game/meta.js";
 import { initCloud, noteLocalSave } from "./game/cloud.js";
 import { applySpriteMode } from "./game/sprite-mode.js";
 import { watchSpriteFit } from "./ui/sprite-fit.js";
@@ -19,6 +19,7 @@ import { RunUI } from "./ui/run-screens.js";
 import { DevTools } from "./ui/dev-tools.js";
 
 async function boot() {
+  persistMigration(); // saves from before the skill tree: refund the old upgrades once
   const hub = document.getElementById("hub");
   hub.hidden = false;
   hub.innerHTML = `<p>Loading Pokémon data…</p>`;

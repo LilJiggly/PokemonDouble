@@ -63,6 +63,8 @@ export function noteBattleWon(meta, run, ctx, { turns = null } = {}) {
     meta.fullTeam ??= {};
     for (const type of typesOf(ctx, run.team[0])) if (run.team.every((m) => typesOf(ctx, m).includes(type))) meta.fullTeam[type] = true;
   }
+  meta.battlesWon = (meta.battlesWon ?? 0) + 1;
+  if (turns !== null) { meta.battleTurns = (meta.battleTurns ?? 0) + turns; meta.battleTurnCount = (meta.battleTurnCount ?? 0) + 1; }
   if (order >= 1 && order <= 8 && turns !== null && turns <= 4) meta.quickWins = (meta.quickWins ?? 0) + 1;
   if (!run.fallen.length) meta.cleanGym = Math.max(meta.cleanGym ?? 0, order);
   for (const [region, lines] of Object.entries(STARTER_LINES)) {
@@ -75,6 +77,15 @@ export function noteBattleWon(meta, run, ctx, { turns = null } = {}) {
 export function noteRunEnd(meta, run, ctx) {
   noteObtained(meta, run, ctx);
   mergeStats(meta, run);
+  // Totals for the Stats screen (the profile)
+  const add = (key, n) => { meta[key] = (meta[key] ?? 0) + (n ?? 0); };
+  add("pokemonLost", run.fallen?.length);
+  add("recruited", run.lines?.length);
+  add("shiniesFound", run.shinies);
+  add("evolutionsDone", run.evolutions);
+  add("rerollsDone", run.rerollsUsed);
+  add("playMs", run.playMs);
+  if (run.screen !== "won" && run.lastBattle) add("battlesLost", 1);
   if (run.screen !== "won") return;
   meta.lineWins ??= {};
   meta.typeWins ??= {};

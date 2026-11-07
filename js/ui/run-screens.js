@@ -13,17 +13,18 @@ import { terrainFor } from "./terrain.js";
 import { CHARACTERS, GEN_LABELS, characterById } from "../game/characters.js";
 import { SPRITE_MODES, applySpriteMode } from "../game/sprite-mode.js";
 import { isUnlocked, HIDDEN_TRAINERS, unlockText, unlockedIds, grantUnlocks, nextHint as nextUnlockHint, MAX_UNLOCKS_PER_RUN } from "../game/unlocks.js";
-import { noteBattleWon } from "../game/progress.js";
+import { noteBattleWon, STARTER_LINES } from "../game/progress.js";
 import { sceneHtml, alignScene } from "./title-banner.js";
 import { CASE_SIZE, badgeId, badgeImage, badgeName, caseOf, caseStrengths, ownedBadges, randomZones, validZones, SLOT_UNLOCKS, slotUnlocked, unlockedSlotCount, statOfBadge, badgeStatBoost, STAT_NAME, parseBadgeId, perkInfo, perkOfBadge, perkParam, placeBadge, removeBadge, setBonus, unlockBadge } from "../game/badges.js";
 import { targetIcon, categoryIcon } from "./target-icon.js";
 import { rankScore, rankOf } from "../game/ranks.js";
 import { play as playMusic } from "../game/music.js";
-import { CHALLENGES, PLANNED } from "../game/challenges.js";
+import { CHALLENGES, PLANNED, REVEAL_AT, isRevealed } from "../game/challenges.js";
 import { VERSION } from "../version.js";
 import * as Run from "../game/run.js";
-import { loadMeta, saveMeta, buyUpgrade, canBuyUpgrade, upgradeLevel, perksFromMeta, trainerPointsFor, recordRun, noteSave } from "../game/meta.js";
-import { cloudAvailable, state as cloudState, onCloudChange, signIn, signOutUser, allPlayers, topPlayers, LEADERBOARDS, publicName, cleanUsername, setSyncChooser, setPublicStats } from "../game/cloud.js";
+import { loadMeta, saveMeta, buyUpgrade, canBuyUpgrade, upgradeLevel, lockReason, nextCost, perksFromMeta, trainerPointsFor, isChallengeRun, CHALLENGE_RUN_BONUS, recordRun, noteSave } from "../game/meta.js";
+import { cloudAvailable, state as cloudState, onCloudChange, signIn, signOutUser, allPlayers, topPlayers, LEADERBOARDS, publicName, cleanUsername, cleanTagline, setSyncChooser, setPublicStats } from "../game/cloud.js";
+import { buildStats, ownedSpecies } from "../game/stats.js";
 import { ITEMS, POCKETS, pocketOf, itemInfo, itemSprite } from "../game/item-catalog.js";
 import { itemLabel } from "../game/pokedex.js";
 import { calcStats, DEFAULT_IVS, DEFAULT_EVS, hiddenPowerOf } from "../engine/pokemon.js";
@@ -57,6 +58,8 @@ const DETAIL_TABS = [
   { id: "evolution", label: "Evolution", icon: "everstone" },
   { id: "moves", label: "Moves", icon: "tm-normal" },
 ];
+const TYPE_CHOICES = ["normal", "fire", "water", "electric", "grass", "ice", "fighting", "poison", "ground", "flying", "psychic", "bug", "rock", "ghost", "dragon", "dark", "steel"];
+const cap = (t) => t.charAt(0).toUpperCase() + t.slice(1);
 const STOP_LABELS = ["1", "2", "3", "4", "5", "6", "7", "8", "E1", "E2", "E3", "E4", "C", "R"];
 
 const escapeHtml = (t) => String(t).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
@@ -103,6 +106,7 @@ export class RunUI {
     else if (name === "upgrades") this.renderUpgrades();
     else if (name === "leaderboards" && cloudAvailable()) this.renderLeaderboards();
     else if (name === "hof") this.renderHallOfFame();
+    else if (name === "profile") this.renderProfile();
     else this.start();
   }
   resumeSaved() {
@@ -184,7 +188,8 @@ export class RunUI {
       <div class="menu-list">
         ${savedRun ? `<button class="btn primary" data-act="continue">Continue run</button>` : ""}
         <button class="btn ${savedRun ? "" : "primary"}" data-act="new">New run</button>
-        <button class="btn" data-act="upgrades">Trainer Upgrades <span class="tp-pill">${meta.tp} TP</span></button>
+        <button class="btn" data-act="upgrades">Skill Tree <span class="tp-pill">${meta.tp} TP</span></button>
+        <button class="btn" data-act="profile">Profile</button>
         <button class="btn" data-act="hof" ${hof.length ? "" : "disabled"}>Hall of Fame</button>
         ${cloudAvailable() ? `<button class="btn" data-act="leaderboards">Leaderboards</button>` : ""}
       </div>
@@ -216,6 +221,7 @@ export class RunUI {
       if (act === "new") this.renderSetup();
       if (act === "hof") this.renderHallOfFame();
       if (act === "upgrades") this.renderUpgrades();
+      if (act === "profile") this.renderProfile();
     };
   }
 
@@ -248,7 +254,7 @@ export class RunUI {
   async renderLeaderboards(boardId = "ranks") {
     this.trackView("leaderboards");
     this.showHub();
-    this.hub.className = "hub";
+    this.hub.className = "hub framed";
     this.hub.innerHTML = `
       <div class="offer-head"><h1>Leaderboards</h1><button class="btn" data-act="title">◀ Title</button></div>
       <div class="tabs board-tabs">${[{ id: "ranks", label: "Ranks" }, ...LEADERBOARDS, { id: "hof", label: "Hall of Fame" }, { id: "challenges", label: "Challenges" }, { id: "pokemon", label: "Most used" }].map((b) => `<button class="tab ${b.id === boardId ? "active" : ""}" data-act="board" data-board="${b.id}">${b.label}</button>`).join("")}</div>
@@ -257,10 +263,14 @@ export class RunUI {
       ${boardId === "pokemon" ? `<p class="rank-note">The Pokémon that were in the most winning Hall of Fame teams, across all players.</p>` : ""}
       ${boardId === "ranks" ? `<p class="rank-note">Everyone starts at Z. Climb towards A: points for your furthest run, every Champion win and flawless win, every badge and every trainer you unlock.</p>` : ""}
       <section class="card-panel"><ol class="board-list" data-board-list><li class="empty-note">Loading…</li></ol></section>`;
+    this.boardPlayers = new Map(); // uid → the line, for the profile window
+    const avatarOf = (p) => { const c = CHARACTERS.find((x) => x.id === p.avatar); return c ? `<img class="board-avatar" src="${c.front}" alt="">` : ""; };
     this.hub.onclick = (e) => {
       const el = e.target.closest("[data-act]");
       if (el?.dataset.act === "title") this.start();
       if (el?.dataset.act === "board") this.renderLeaderboards(el.dataset.board);
+      const row = e.target.closest("li[data-uid]");
+      if (row && !el) this.playerProfile(this.boardPlayers.get(row.dataset.uid)); // a click on a player opens their profile
     };
     if (boardId === "hof" || boardId === "challenges") {
       let players;
@@ -282,14 +292,15 @@ export class RunUI {
             <b>${done.length}<small> / ${players.length}</small></b></li>`;
         };
         box.innerHTML = `<li class="ch-head"><b>${CHALLENGES.filter((c) => mine.has(c.id)).length} of ${CHALLENGES.length}</b> beaten by you<small>Beat a challenge in a winning run. Most count in any run; a rule challenge needs its switch on before you start.</small></li>`
-          + CHALLENGES.map(row).join("")
+          + this.challengeRows(CHALLENGES, mine, row)
           + `<li class="ch-head soon"><b>Coming soon</b><small>Ideas on the list. They aren't tracked yet.</small></li>`
           + PLANNED.map((c) => `<li class="challenge-row planned"><span class="ch-check"></span><span class="who"><span class="ch-title"><strong>${c.name}</strong></span><small>${c.text}</small></span></li>`).join("");
         return;
       }
-      const entries = players.flatMap((p) => (p.hof ?? []).map((e) => ({ ...e, name: p.name ?? "Trainer", uid: p.uid }))).filter((e) => e.t?.some((m) => this.ctx.data.pokemonByKey[m.s]))
+      for (const p of players) this.boardPlayers.set(p.uid, p);
+      const entries = players.flatMap((p) => (p.hof ?? []).map((e) => ({ ...e, name: p.name ?? "Trainer", uid: p.uid, avatar: p.avatar }))).filter((e) => e.t?.some((m) => this.ctx.data.pokemonByKey[m.s]))
         .sort((a, b) => String(b.d).localeCompare(String(a.d)) || a.name.localeCompare(b.name)).slice(0, 30);
-      box.innerHTML = entries.length ? entries.map((e) => `<li class="hof-row ${e.uid === myId ? "me" : ""}"><span class="who"><strong>${escapeHtml(e.name)}</strong><small>${e.d} · Gen ${e.g} ${this.ctx.leaders[e.g]?.region ?? ""} · ${e.f ? `${e.f} fallen` : "Flawless"}</small>
+      box.innerHTML = entries.length ? entries.map((e) => `<li class="hof-row clickable ${e.uid === myId ? "me" : ""}" data-uid="${e.uid}"><span class="who"><strong>${avatarOf(e)}${escapeHtml(e.name)}</strong><small>${e.d} · Gen ${e.g} ${this.ctx.leaders[e.g]?.region ?? ""} · ${e.f ? `${e.f} fallen` : "Flawless"}</small>
           <span class="hof-mini">${e.t.filter((m) => this.ctx.data.pokemonByKey[m.s]).map((m) => { const mon = this.ctx.data.pokemonByKey[m.s]; return `<span class="mon" title="${mon.name} Lv ${m.l}"><img src="${m.sh ? mon.sprites.frontShiny : mon.sprites.front}" alt="${mon.name}"><small>Lv ${m.l}</small></span>`; }).join("")}</span></span></li>`).join("")
         : `<li class="empty-note">No champion teams yet. Win a run to start the board!</li>`;
       return;
@@ -327,7 +338,7 @@ export class RunUI {
       if (!box) return;
       const myId = cloudState().user?.uid;
       box.innerHTML = top === null ? `<li class="empty-note">Could not load the leaderboard.</li>`
-        : top.length ? top.map((p, i) => `<li class="${p.uid === myId ? "me" : ""}"><span class="rank">${i + 1}</span><span class="who">${escapeHtml(p.name ?? "Trainer")}</span><b>${board.format ? board.format(p[board.field]) : p[board.field]}${board.suffix ?? ""}</b></li>`).join("")
+        : top.length ? top.map((p, i) => { this.boardPlayers.set(p.uid, p); return `<li class="clickable ${p.uid === myId ? "me" : ""}" data-uid="${p.uid}"><span class="rank">${i + 1}</span><span class="who">${avatarOf(p)}${escapeHtml(p.name ?? "Trainer")}</span><b>${board.format ? board.format(p[board.field]) : p[board.field]}${board.suffix ?? ""}</b></li>`; }).join("")
         : `<li class="empty-note">Nobody on this board yet. Win a run to be first!</li>`;
       return;
     }
@@ -340,49 +351,286 @@ export class RunUI {
       : rows.length ? rows.map((p, i) => {
         const r = rankOf(p.score);
         const bar = r.next ? `<span class="rank-bar" title="${r.next - p.score} points to the next letter"><i style="width:${Math.round((p.score - r.from) / (r.next - r.from) * 100)}%"></i></span>` : `<span class="rank-bar top"><i style="width:100%"></i></span>`;
-        return `<li class="${p.uid === me ? "me" : ""}"><span class="rank">${i + 1}</span><span class="rank-letter">${r.letter}</span><span class="who">${escapeHtml(p.name ?? "Trainer")}${bar}</span><b>${p.score}<small> pts</small></b></li>`;
+        this.boardPlayers.set(p.uid, p);
+        return `<li class="clickable ${p.uid === me ? "me" : ""}" data-uid="${p.uid}"><span class="rank">${i + 1}</span><span class="rank-letter">${r.letter}</span><span class="who">${avatarOf(p)}${escapeHtml(p.name ?? "Trainer")}${bar}</span><b>${p.score}<small> pts</small></b></li>`;
       }).join("")
       : `<li class="empty-note">Nobody here yet. Win a run to be first!</li>`;
   }
 
-  renderUpgrades() {
+  // ===============================
+  // PROFILE & STATS
+  // ===============================
+
+  // Everything the profile header needs: the trainer avatar, the name, the rank
+  myProfile(meta) {
+    const hof = store.get(HOF_KEY) ?? [];
+    const unlocks = this.ctx.rules.characterUnlocks ?? {};
+    const open = CHARACTERS.filter((c) => isUnlocked(meta, unlocks[c.id]));
+    const avatar = open.find((c) => c.id === meta.profile?.avatar) ?? characterById(meta.character);
+    const line = { best: meta.best ?? 0, wins: meta.wins ?? 0, cleanWins: meta.cleanWins ?? 0, badges: (meta.badges ?? []).length, trainers: open.length };
+    return { hof, open, avatar, name: publicName(meta), tagline: cleanTagline(meta.profile?.tagline), rank: rankOf(rankScore(line)), score: rankScore(line), trainers: open.length };
+  }
+
+  // The Profile screen: Stats (everything counted) and Customize (name, line, avatar, six favourites)
+  renderProfile(tab = this.profileTab ?? "stats") {
+    this.trackView("profile");
+    this.showHub();
+    this.profileTab = tab;
+    const meta = loadMeta();
+    const me = this.myProfile(meta);
+    const { data } = this.ctx;
+    this.hub.className = "hub framed";
+    const favs = (meta.profile?.favs ?? []).filter((k) => data.pokemonByKey[k]).slice(0, 6);
+    const head = `<div class="profile-head">
+      <img class="profile-avatar" src="${me.avatar.front}" alt="">
+      <div class="profile-who"><h1>${escapeHtml(me.name)}</h1>${me.tagline ? `<p>${escapeHtml(me.tagline)}</p>` : `<p class="empty-note">No tagline yet</p>`}</div>
+      <div class="profile-rank" title="${me.score} points"><b>${me.rank.letter}</b><small>${me.score} pts</small></div>
+      <button class="btn" data-act="title">◀ Title</button></div>`;
+    const tabs = `<div class="tabs board-tabs">${[["stats", "Stats"], ["custom", "Customize"]].map(([id, label]) => `<button class="tab ${tab === id ? "active" : ""}" data-act="ptab" data-tab="${id}">${label}</button>`).join("")}</div>`;
+    let body;
+    if (tab === "stats") {
+      const sections = buildStats(meta, me.hof, this.ctx, { trainers: me.trainers, trainersTotal: CHARACTERS.length });
+      body = `<div class="stat-sections">${sections.map((sec) => `<section class="stat-section"><h3>${sec.title}</h3>
+        <div class="stat-grid">${sec.rows.map((r) => `<div class="stat ${r.wide ? "wide" : ""}"><span>${r.label}</span><b>${escapeHtml(String(r.value))}</b>${r.hint ? `<small>${escapeHtml(r.hint)}</small>` : ""}</div>`).join("")}</div></section>`).join("")}</div>`;
+    } else {
+      body = `<div class="profile-edit">
+        <label class="field"><span>Name on the leaderboards</span><input data-field="username" maxlength="16" value="${escapeHtml(meta.username ?? "")}" placeholder="${escapeHtml(me.name)}"><small>Up to 16 characters. Empty uses your Google first name.</small></label>
+        <label class="field"><span>Tagline</span><input data-field="tagline" maxlength="40" value="${escapeHtml(meta.profile?.tagline ?? "")}" placeholder="A short line under your name"><small>Up to 40 characters.</small></label>
+        <div class="field"><span>Avatar</span><div class="avatar-grid">${me.open.map((c) => `<button class="avatar-pick ${c.id === me.avatar.id ? "selected" : ""}" data-act="avatar" data-id="${c.id}" title="${c.name}"><img src="${c.front}" alt=""><small>${c.name}</small></button>`).join("")}</div>
+          <small>The trainers you have unlocked. ${me.open.length} of ${CHARACTERS.length}.</small></div>
+        <div class="field"><span>Favourite team</span><div class="fav-slots">${Array.from({ length: 6 }, (_, i) => {
+          const k = favs[i];
+          return k ? `<button class="fav-slot filled" data-act="fav" data-i="${i}" title="Change ${data.pokemonByKey[k].name}"><img src="${data.pokemonByKey[k].sprites.front}" alt=""><small>${data.pokemonByKey[k].name}</small></button>`
+            : `<button class="fav-slot" data-act="fav" data-i="${i}"><span>+</span><small>Pick</small></button>`;
+        }).join("")}</div><small>Six Pokémon you have had. Everyone sees them on your profile${cloudAvailable() ? " in the leaderboards" : ""}.</small></div>
+        ${favs.length ? `<button class="link-btn" data-act="clear-favs">Clear the team</button>` : ""}
+      </div>`;
+    }
+    this.hub.innerHTML = `${head}${tabs}${body}`;
+    // Typing saves when you leave the field
+    this.hub.onchange = (e) => {
+      const f = e.target.dataset?.field;
+      if (!f) return;
+      const m = loadMeta();
+      if (f === "username") m.username = cleanUsername(e.target.value);
+      if (f === "tagline") (m.profile ??= {}).tagline = cleanTagline(e.target.value);
+      saveMeta(m);
+      this.renderProfile("custom");
+    };
+    this.hub.onclick = async (e) => {
+      const el = e.target.closest("[data-act]");
+      const act = el?.dataset.act;
+      if (act === "title") { this.hub.onchange = null; this.start(); return; }
+      if (act === "ptab") { this.renderProfile(el.dataset.tab); return; }
+      const m = loadMeta();
+      if (act === "avatar") { (m.profile ??= {}).avatar = el.dataset.id; saveMeta(m); this.renderProfile("custom"); }
+      if (act === "clear-favs") { (m.profile ??= {}).favs = []; saveMeta(m); this.renderProfile("custom"); }
+      if (act === "fav") {
+        const key = await this.speciesPicker(ownedSpecies(m, me.hof, this.ctx), m.profile?.favs ?? []);
+        if (key === undefined) return;
+        const list = [...(m.profile?.favs ?? [])].filter((k) => data.pokemonByKey[k]);
+        const i = Number(el.dataset.i);
+        if (key === "") list.splice(i, 1); else { const at = list.indexOf(key); if (at >= 0) list.splice(at, 1); list.splice(Math.min(i, list.length), 0, key); }
+        (m.profile ??= {}).favs = list.slice(0, 6);
+        saveMeta(m);
+        this.renderProfile("custom");
+      }
+    };
+  }
+
+  // Pick one of the Pokémon you have had (a search box and a grid). Resolves with its key, "" to empty the slot, undefined when closed
+  speciesPicker(owned, current) {
+    const { data } = this.ctx;
+    if (!owned.length) return this.modal({ title: "No Pokémon yet", body: `<p class="opt-note">Recruit a Pokémon in a run and it shows up here.</p>`, options: [], cancel: "Close" }).then(() => undefined);
+    return this.modal({
+      title: "Pick a favourite",
+      wide: true,
+      body: `<input class="species-search" placeholder="Search by name" aria-label="Search by name">
+        <div class="species-grid">${owned.map((k) => `<button class="species-pick ${current.includes(k) ? "chosen" : ""}" data-result='${JSON.stringify(k)}' data-name="${data.pokemonByKey[k].name.toLowerCase()}" title="${data.pokemonByKey[k].name}"><img src="${data.pokemonByKey[k].sprites.front}" alt=""><small>${data.pokemonByKey[k].name}</small></button>`).join("")}</div>`,
+      options: [],
+      cancel: "Cancel",
+      actions: `<button class="btn" data-result='""'>Empty this slot</button>`,
+      onOpen: (dialog) => {
+        const input = dialog.querySelector(".species-search");
+        input.addEventListener("input", () => {
+          const q = input.value.trim().toLowerCase();
+          dialog.querySelectorAll(".species-pick").forEach((b) => { b.hidden = q && !b.dataset.name.includes(q); });
+        });
+        input.focus();
+      },
+    }).then((r) => (r === null ? undefined : r));
+  }
+
+  // Another player's profile, from the leaderboards: avatar, rank, numbers, favourite team, latest champion teams, challenges
+  playerProfile(p) {
+    if (!p) return;
+    const { data } = this.ctx;
+    const avatar = CHARACTERS.find((c) => c.id === p.avatar) ?? characterById("lucas");
+    const rank = rankOf(rankScore(p));
+    const mon = (k, extra = "") => { const d = data.pokemonByKey[k]; return d ? `<span class="pp-mon" title="${escapeHtml(d.name)}"><img src="${d.sprites.front}" alt="${escapeHtml(d.name)}">${extra}</span>` : ""; };
+    const favs = (p.favs ?? []).map((k) => mon(k, `<small>${escapeHtml(data.pokemonByKey[k]?.name ?? "")}</small>`)).join("");
+    const teams = (p.hof ?? []).map((e) => `<div class="pp-team"><small>${escapeHtml(String(e.d))} · Gen ${e.g} · ${e.f ? `${e.f} fallen` : "flawless"}</small><div>${(e.t ?? []).map((m) => mon(m.s, `<small>Lv ${m.l}</small>`)).join("")}</div></div>`).join("");
+    const done = CHALLENGES.filter((c) => p.challenges?.includes(c.id));
+    const stat = (label, value) => `<div class="stat"><span>${label}</span><b>${value}</b></div>`;
+    return this.modal({
+      title: escapeHtml(p.name ?? "Trainer"),
+      variant: "player-profile",
+      body: `<div class="pp-head"><img class="profile-avatar" src="${avatar.front}" alt=""><div>${p.tagline ? `<p class="pp-tagline">${escapeHtml(p.tagline)}</p>` : ""}<p class="empty-note">${avatar.name}</p></div>
+          <div class="profile-rank"><b>${rank.letter}</b><small>${rankScore(p)} pts</small></div></div>
+        <div class="stat-grid">${stat("Champion wins", p.wins ?? 0)}${stat("Furthest battle", `${p.best ?? 0} of 14`)}${stat("Flawless wins", p.cleanWins ?? 0)}${stat("Badges", `${p.badges ?? 0} of 40`)}${stat("Trainers", `${p.trainers ?? 0} of ${CHARACTERS.length}`)}${stat("Challenges", `${done.length} of ${CHALLENGES.length}`)}</div>
+        ${favs ? `<h4 class="ch-section">Favourite team</h4><div class="pp-mons">${favs}</div>` : ""}
+        ${teams ? `<h4 class="ch-section">Latest champion teams</h4>${teams}` : ""}
+        ${done.length ? `<h4 class="ch-section">Challenges beaten</h4><div class="user-pills">${done.map((c) => `<span class="user-pill">${escapeHtml(c.name)}</span>`).join("")}</div>` : ""}`,
+      options: [],
+      cancel: "Close",
+    });
+  }
+
+  // The skill tree: one panel per arm, side by side. A panel builds upwards: the bottom row is open, every node above needs the one below
+  renderUpgrades(tab = this.treeTab) {
     this.trackView("upgrades");
     this.showHub();
     const meta = loadMeta();
-    const upgrades = this.ctx.rules.upgrades;
-    this.hub.className = "hub";
+    const nodes = this.ctx.rules.upgrades;
+    const byId = Object.fromEntries(nodes.map((n) => [n.id, n]));
+    const refund = meta.refundNote;
+    const arms = [...new Set(nodes.map((n) => n.arm))];
+    const active = arms.includes(tab) ? tab : arms[0];
+    this.treeTab = active; // the tab you were on stays after buying
+    const armProgress = (arm) => { const list = nodes.filter((n) => n.arm === arm); return `${list.reduce((a, n) => a + upgradeLevel(meta, n.id), 0)}/${list.reduce((a, n) => a + n.max, 0)}`; };
+    // Every tab has the same size: the widest and the tallest panel decide, a smaller panel sits at the bottom, centred
+    const maxCols = Math.max(...nodes.map((n) => n.pos[0] + n.span));
+    const maxRows = Math.max(...nodes.map((n) => n.pos[1])) + 1;
+    const panel = (arm) => {
+      const list = nodes.filter((n) => n.arm === arm);
+      const cols = Math.max(...list.map((n) => n.pos[0] + n.span));
+      const rows = maxRows;
+      // Empty cells of the grid are drawn as faint slots
+      const taken = new Set(list.flatMap((n) => Array.from({ length: n.span }, (_, i) => `${n.pos[0] + i},${n.pos[1]}`)));
+      const slots = [];
+      for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) if (!taken.has(`${x},${y}`)) slots.push(`<span class="tree-slot" style="grid-column:${x + 1};grid-row:${rows - y}"></span>`);
+      const spent = list.reduce((a, n) => a + upgradeLevel(meta, n.id), 0), total = list.reduce((a, n) => a + n.max, 0);
+      const html = list.map((n) => {
+        const level = upgradeLevel(meta, n.id);
+        const maxed = level >= n.max;
+        const reason = lockReason(meta, n, nodes);
+        const state = maxed ? "maxed" : reason ? "locked" : meta.tp >= nextCost(meta, n) ? "ready" : "poor";
+        const stat = /^(hp|atk|def|spa|spd|spe)-/.test(n.id) ? n.id.split("-")[0] : "";
+        const label = maxed ? "Maxed" : reason ? "🔒" : `${nextCost(meta, n)} TP`;
+        const lit = n.requires.length && n.requires.every((r) => upgradeLevel(meta, r.id) >= r.level);
+
+        return `<button class="tree-node ${state} ${level ? "owned" : ""} ${lit ? "lit" : ""} ${n.id.startsWith("final-") ? "final" : ""}" data-node="${n.id}" ${stat ? `data-stat="${stat}"` : ""}
+          style="grid-column:${n.pos[0] + 1} / span ${n.span};grid-row:${rows - n.pos[1]}" title="${escapeHtml(n.effect)}">
+          ${n.icon ? `<img src="${itemSprite(n.icon)}" alt="">` : ""}
+          <b>${escapeHtml(n.name)}</b>
+          <span class="foot"><span class="pips">${n.max > 1 ? Array.from({ length: n.max }, (_, i) => `<i class="${i < level ? "on" : ""}"></i>`).join("") : ""}</span><small>${label}</small></span></button>`;
+      }).join("");
+      return `<section class="tree-panel" data-arm="${arm}" style="--cols:${maxCols}">
+        <div class="tree-grid" data-rows="${rows}" style="grid-template-columns:repeat(${cols}, minmax(var(--node-w), 148px));grid-template-rows:repeat(${rows}, var(--node-h))">${slots.join("")}${html}</div></section>`;
+    };
+    this.hub.className = "hub framed wide";
     this.hub.innerHTML = `
       <div class="offer-head">
-        <div><h1>Trainer Upgrades</h1>
-          <p>Earn Trainer Points every run. Upgrades are permanent.</p></div>
+        <div><h1>Skill Tree</h1>
+          <p>Spend Trainer Points on permanent upgrades. Every panel builds upwards: finish a node to open the one above it.</p></div>
         <div class="row-buttons"><span class="tp-pill big">${meta.tp} TP</span><button class="btn" data-act="title">◀ Title</button></div>
       </div>
-      <div class="upgrade-grid">${upgrades.map((u) => {
-        const level = upgradeLevel(meta, u.id);
-        const maxed = level >= u.max;
-        return `<div class="upgrade-card ${maxed ? "maxed" : ""}">
-          <div class="upgrade-top"><h3>${u.name}</h3><span class="pips">${Array.from({ length: u.max }, (_, i) => `<i class="${i < level ? "on" : ""}"></i>`).join("")}</span></div>
-          <p>${u.effect}</p>
-          <button class="btn small" data-buy="${u.id}" ${canBuyUpgrade(meta, u) ? "" : "disabled"}>${maxed ? "Maxed" : `Buy · ${u.cost} TP`}</button>
-        </div>`;
-      }).join("")}</div>
+      ${refund ? `<p class="refund-note">The upgrades you had were refunded: <b>+${refund} TP</b>. Spend them in the new skill tree.</p>` : ""}
+      <div class="tabs tree-tabs">${arms.map((a) => `<button class="tab ${a === active ? "active" : ""}" data-tab="${a}" data-arm="${a}">${a}<small>${armProgress(a)}</small></button>`).join("")}</div>
+      <div class="tree-panels">${panel(active)}</div>
       <p class="empty-note">Runs so far: ${meta.runs} · TP earned in total: ${meta.earned}</p>`;
+    if (refund) { delete meta.refundNote; saveMeta(meta); } // shown once
+    // Lines between the nodes (drawn from where the nodes really are), and a hover that shows what a node needs
+    const grid = this.hub.querySelector(".tree-grid");
+    const draw = () => this.drawTreeLines(grid, nodes, meta);
+    requestAnimationFrame(draw);
+    if (this.treeResize) window.removeEventListener("resize", this.treeResize);
+    this.treeResize = draw;
+    window.addEventListener("resize", draw);
+    const mark = (id, on) => {
+      const n = byId[id];
+      if (!n) return;
+      for (const r of n.requires) grid.querySelector(`[data-node="${r.id}"]`)?.classList.toggle("needed", on); // what you have to finish first
+      grid.querySelectorAll(`path[data-to="${id}"]`).forEach((p) => p.classList.toggle("hl", on));
+      grid.querySelectorAll(`path[data-from="${id}"]`).forEach((p) => { p.classList.toggle("hl-next", on); grid.querySelector(`[data-node="${p.dataset.to}"]`)?.classList.toggle("opens", on); }); // what it opens
+    };
+    grid.onmouseover = (e) => { const id = e.target.closest("[data-node]")?.dataset.node; if (id) mark(id, true); };
+    grid.onmouseout = (e) => { const id = e.target.closest("[data-node]")?.dataset.node; if (id) mark(id, false); };
     this.hub.onclick = async (e) => {
       if (e.target.closest("[data-act]")?.dataset.act === "title") { this.start(); return; }
-      const id = e.target.closest("[data-buy]")?.dataset.buy;
+      const tabBtn = e.target.closest("[data-tab]");
+      if (tabBtn) { this.renderUpgrades(tabBtn.dataset.tab); return; }
+      const id = e.target.closest("[data-node]")?.dataset.node;
       if (!id) return;
-      const u = upgrades.find((x) => x.id === id);
-      const ok = await this.modal({
-        title: `Buy ${u.name}?`,
-        body: `<p>${u.effect}</p><p>Costs ${u.cost} TP. You have ${meta.tp} TP.</p>`,
-        options: [{ value: true, label: `Yes, buy for ${u.cost} TP` }],
-        cancel: "Not now",
-      });
+      const u = byId[id];
+      const m = loadMeta();
+      const level = upgradeLevel(m, u.id);
+      const reason = lockReason(m, u, nodes);
+      const cost = level < u.max ? nextCost(m, u) : null;
+      const canBuy = level < u.max && !reason && m.tp >= cost;
+      const STAT = { hp: "HP", atk: "Attack", def: "Defense", spa: "Sp. Atk", spd: "Sp. Def", spe: "Speed" };
+      // What one level gives, in a few words: "+2 Sp. Def" / "+2%" / the table's own text for the rest
+      const parts = u.does.split(";").map((d) => d.trim().split(":"));
+      const first = parts[0];
+      let big = u.effect, small = "", gain = null;
+      if (first[0] === "stat-flat" || first[0] === "stat-pct") {
+        const pct = first[0] === "stat-pct";
+        const each = Number(first[2]);
+        const names = parts.map((p2) => STAT[p2[1]]).join(" · ");
+        big = `+${each}${pct ? "%" : ""} ${names}`;
+        small = parts.length > 1 ? "for your whole team, in every battle" : "for every Pokémon, in every battle";
+        if (parts.length === 1) gain = `${pct ? "+" : "+"}${each * level}${pct ? "%" : ""} → +${each * Math.min(level + 1, u.max)}${pct ? "%" : ""}`;
+      } else if (first[0] === "tp-pct") {
+        big = `+${first[1]}% Trainer Points`; small = "from every run";
+        gain = `+${Number(first[1]) * level}% → +${Number(first[1]) * Math.min(level + 1, u.max)}%`;
+      }
+      const pips = Array.from({ length: u.max }, (_, i) => `<i class="${i < level ? "on" : ""}"></i>`).join("");
+      const icon = u.icon ? `<img class="node-icon" src="${itemSprite(u.icon)}" alt="">` : "";
+      const stat = /^(hp|atk|def|spa|spd|spe)-/.test(u.id) ? u.id.split("-")[0] : "";
+      const body = `<div class="nd" ${stat ? `data-stat="${stat}"` : ""}>
+        <div class="nd-top">${icon}<div><div class="nd-big">${escapeHtml(big)}</div>${small ? `<div class="nd-small">${small}</div>` : ""}</div></div>
+        <div class="nd-row"><span>Level</span><span class="nd-pips">${pips}</span><b>${level} / ${u.max}</b></div>
+        ${gain ? `<div class="nd-row"><span>This node</span><b>${gain}</b></div>` : ""}
+        ${level >= u.max ? `<div class="nd-note done">Finished</div>` : reason ? `<div class="nd-note locked">🔒 ${escapeHtml(reason)}</div>`
+          : `<div class="nd-row"><span>Your TP</span><b>${m.tp} → ${Math.max(0, m.tp - cost)}</b></div>`}
+      </div>`;
+      const buy = level >= u.max || reason ? "" : canBuy ? `<button class="btn buy" data-result="true">Buy · ${cost} TP</button>` : `<button class="btn buy" disabled>Need ${cost - m.tp} more TP</button>`;
+      const ok = await this.modal({ title: u.name, body, options: [], cancel: reason || level >= u.max ? "Close" : "Not now", actions: buy, variant: "node-modal" });
       if (!ok) return;
-      buyUpgrade(meta, u);
-      saveMeta(meta);
-      this.renderUpgrades();
+      const fresh = loadMeta();
+      buyUpgrade(fresh, u, nodes);
+      saveMeta(fresh);
+      const top = window.scrollY;
+      this.renderUpgrades(active);
+      window.scrollTo(0, top); // stay where you were
     };
+  }
+
+  // Lines from every node up to the nodes it needs: up from the one below, along the free space under the row, up into the node.
+  // Lit when that requirement is met.
+  drawTreeLines(grid, nodes, meta) {
+    if (!grid?.isConnected) return;
+    grid.querySelector("svg.tree-lines")?.remove();
+    const g = grid.getBoundingClientRect();
+    const box = (el) => { const r = el.getBoundingClientRect(); return { x: r.left - g.left + r.width / 2, top: r.top - g.top, bottom: r.bottom - g.top }; };
+    const els = Object.fromEntries([...grid.querySelectorAll("[data-node]")].map((e) => [e.dataset.node, e]));
+    const paths = [];
+    for (const n of nodes) {
+      const to = els[n.id];
+      if (!to) continue;
+      const T = box(to);
+      for (const r of n.requires) {
+        const from = els[r.id];
+        if (!from) continue;
+        const F = box(from);
+        const met = upgradeLevel(meta, r.id) >= r.level;
+        const gapY = T.bottom + 14; // the gap right under the node's row
+        const d = F.top > T.bottom ? `M${F.x} ${F.top}V${gapY}H${T.x}V${T.bottom}` : `M${F.x} ${F.top}L${T.x} ${T.bottom}`;
+        paths.push({ met, html: `<path data-from="${r.id}" data-to="${n.id}" class="${met ? "lit" : ""}" d="${d}"/>` });
+      }
+    }
+    paths.sort((a, b) => a.met - b.met); // lit lines on top
+    grid.insertAdjacentHTML("afterbegin", `<svg class="tree-lines" width="${g.width}" height="${g.height}" aria-hidden="true">${paths.map((p) => p.html).join("")}</svg>`);
   }
 
   // Debug panel option "Show locked and hidden choices": everything the progressive reveal hides is shown (and marked)
@@ -436,7 +684,9 @@ export class RunUI {
     const challengeIcon = `<img class="sc-img" src="${this.ctx.data.pokemonByKey[ICONIC[setup.gen]].sprites.front}" alt="">`;
     const spriteDir = spriteMode.id === "gen5-ani" ? "gen5-ani" : spriteMode.id === "gen4" ? "gen4" : "gen5";
     const spriteIcon = `<img class="sc-img" src="images/sprites/${spriteDir}/front/9.${spriteMode.id === "gen5-ani" ? "gif" : "png"}" alt="">`;
-    const rules = [setup.dupes !== false ? "Dupes clause" : null, setup.fixedSix === true ? "Fixed Six" : null].filter(Boolean);
+    const choices = this.runChoices(meta);
+    const MODE_NAMES = { moves: "Random moves", levels: "Random levels", mons: "Random mons", hard: "Hard mode", noitems: "No items", mono: "Mono type", opponents: "Random gyms" };
+    const rules = [setup.dupes !== false ? "Dupes clause" : null, setup.fixedSix === true ? "Fixed Six" : null, ...Object.keys(choices.modes).map((k) => MODE_NAMES[k]), Object.keys(choices.picks).length ? `${Object.keys(choices.picks).length} pick${Object.keys(choices.picks).length > 1 ? "s" : ""}` : null].filter(Boolean);
     const card = ({ act, label, body, sub, ghost = "" }) => `<button class="setup-card ${ghost ? "ghost" : ""}" data-act="${act}">
       <span class="sc-label">${label}${ghost ? ` <em class="sc-hidden" title="Hidden until you win your first badge">${ghost}</em>` : ""}</span>
       <span class="sc-body">${body}</span><span class="sc-sub">${sub}</span><span class="sc-go" aria-hidden="true">Change ▸</span></button>`;
@@ -451,7 +701,7 @@ export class RunUI {
         ${card({ act: "pick-pool", label: "Pokémon Pool",
           body: `${poolIcon}<b>${setup.pools.length === 5 ? "All generations" : `Gen ${setup.pools.join(", ")}`}</b>`, sub: "Where your recruits come from" })}
         ${card({ act: "pick-challenges", label: "Challenges",
-          body: `<span class="sc-chal ${rules.length ? "on" : ""}">${rules.length}</span><b>${rules.length ? `${rules.length} rule${rules.length > 1 ? "s" : ""} on` : "No rules on"}</b>`, sub: rules.join(", ") || "Dupes clause, Fixed Six" })}
+          body: `<span class="sc-chal ${rules.length ? "on" : ""}">${rules.length}</span><b>${rules.length ? `${rules.length} rule${rules.length > 1 ? "s" : ""} on` : "No rules on"}</b>`, sub: rules.join(", ") || "Rules, modes and picks" })}
         ${card({ act: "pick-sprites", label: "Sprites", body: `${spriteIcon}<b>${spriteMode.label}</b>`, sub: spriteMode.hint })}
       </div>
       <div class="row-buttons">
@@ -480,7 +730,7 @@ export class RunUI {
         if (id) { m.sprites = id; saveMeta(m); applySpriteMode(this.ctx.data, id); this.renderSetup(); }
       }
       if (act === "go") {
-        this.run = Run.newRun(this.ctx, { gen: m.setup.gen, pools: m.setup.pools, perks: perksFromMeta(m), character: m.character, dupes: m.setup.dupes !== false, fixedSix: m.setup.fixedSix === true, badges: caseOf(m), badgeLinks: m.badgeLinks, badgeOff: m.badgeOff ?? [] });
+        this.run = Run.newRun(this.ctx, { gen: m.setup.gen, pools: m.setup.pools, perks: perksFromMeta(m, this.ctx.rules), character: m.character, dupes: m.setup.dupes !== false, fixedSix: m.setup.fixedSix === true, ...this.runChoices(m), badges: caseOf(m), badgeLinks: m.badgeLinks, badgeOff: m.badgeOff ?? [] });
         saveMeta(m);
         this.render();
       }
@@ -594,33 +844,101 @@ export class RunUI {
     });
   }
 
+  // The run modes and Skills picks that are switched on, and that you own (a locked one in an old setup is ignored)
+  runChoices(meta) {
+    const owned = new Set(perksFromMeta(meta, this.ctx.rules).unlocked);
+    const set = meta.setup ?? {};
+    const modes = {};
+    for (const k of ["moves", "levels", "mons", "hard", "noitems"]) if (owned.has(`mode-${k}`) && set.modes?.[k]) modes[k] = true;
+    if (owned.has("mode-opponents") && ["shuffled", "mixed", "wild"].includes(set.opponents)) modes.opponents = set.opponents;
+    const monoType = owned.has("mode-mono") && TYPE_CHOICES.includes(set.monoType) ? set.monoType : "";
+    if (monoType) modes.mono = true;
+    const picks = {};
+    for (const [slot, node] of [["starter", "starter-pick"], ["encounter", "encounter-pick"], ["legend", "legend-pick"], ["mythic", "mythic-pick"]]) {
+      const key = set.picks?.[slot];
+      if (owned.has(node) && key && this.ctx.data.pokemonByKey[key]) picks[slot] = key;
+    }
+    const item = set.picks?.item;
+    if (owned.has("pick-item") && item && ITEMS[item]?.kind === "held") picks.item = item;
+    return { modes, picks, monoType };
+  }
+
+  // The challenge rows you can see: later tiers show as one "???" line each until you have beaten enough challenges
+  challengeRows(list, mine, row) {
+    const beaten = mine.size;
+    const out = [];
+    for (const tier of [...new Set(list.map((c) => c.tier))].sort()) {
+      const inTier = list.filter((c) => c.tier === tier);
+      if (isRevealed(inTier[0], beaten)) out.push(...inTier.map(row));
+      else out.push(`<li class="challenge-row hidden-tier"><span class="ch-check">?</span><span class="who"><span class="ch-title"><strong>${inTier.length} hidden challenges</strong></span><small>Beat ${REVEAL_AT[tier] - beaten} more challenge${REVEAL_AT[tier] - beaten > 1 ? "s" : ""} to reveal them.</small></span></li>`);
+    }
+    return out.join("");
+  }
+
   // Extra rules for the run: switches (changes apply at once)
   async challengesDialog(meta) {
     const mine = new Set(loadMeta().challenges ?? []);
-    const row = (key, on, title, text) => `<label class="dupes-row"><span class="switch"><input type="checkbox" data-rule="${key}" ${on ? "checked" : ""}><span class="track-dot"></span></span>
+    const owned = new Set(perksFromMeta(loadMeta(), this.ctx.rules).unlocked);
+    const { data } = this.ctx;
+    const row = (attr, key, on, title, text) => `<label class="dupes-row"><span class="switch"><input type="checkbox" ${attr}="${key}" ${on ? "checked" : ""}><span class="track-dot"></span></span>
       <span><b>${title}</b><small>${text}</small></span></label>`;
+    const modes = meta.setup.modes ?? {};
+    const picks = meta.setup.picks ?? {};
+    const options = (list, chosen) => `<option value="">Random</option>${list.map((p) => `<option value="${p.key}" ${chosen === p.key ? "selected" : ""}>${p.name} (Gen ${p.gen})</option>`).join("")}`;
+    const starters = Object.values(STARTER_LINES).flat().map((k) => data.pokemonByKey[k]).filter(Boolean);
+    const lists = {
+      starter: starters,
+      encounter: data.pokemon.filter((p) => !p.evolvesFrom && !p.isLegendary && !p.isMythical),
+      legend: data.pokemon.filter((p) => p.isLegendary && !p.isMythical),
+      mythic: data.pokemon.filter((p) => p.isMythical),
+    };
+    const pick = (slot, node, title, text) => owned.has(node) ? `<label class="pick-row"><span><b>${title}</b><small>${text}</small></span>
+      <select data-pick="${slot}">${options(lists[slot], picks[slot])}</select></label>` : "";
+    const modeRows = [["moves", "Random moves", "Recruits come with random moves."], ["levels", "Random levels", "Recruits arrive up to 5 levels above or below."], ["mons", "Random mons", "Recruit cards are random species, whatever their tier."], ["hard", "Hard mode", "Every opponent is 3 levels higher."],
+      ["noitems", "No items", "No bag, no item screens, and the shop sells only TMs."]]
+      .filter(([k]) => owned.has(`mode-${k}`)).map(([k, t, d]) => row("data-mode", k, modes[k] === true, t, d)).join("");
+    const select = (attr, key, current, title, text, options) => `<label class="pick-row"><span><b>${title}</b><small>${text}</small></span>
+      <select ${attr}="${key}">${options.map(([v, label]) => `<option value="${v}" ${current === v ? "selected" : ""}>${label}</option>`).join("")}</select></label>`;
+    const choiceRows = [
+      owned.has("mode-opponents") ? select("data-opp", "opponents", meta.setup.opponents ?? "", "Random gyms", "Which gyms stand in battles 1 to 8. Shuffled: your Challenge Gen's gyms in a random order. Mixed: gyms from every generation, no two of the same type. Wild: any 8 gyms.",
+        [["", "Off"], ["shuffled", "Shuffled order"], ["mixed", "Mixed types"], ["wild", "Wild"]]) : "",
+      owned.has("mode-mono") ? select("data-mono", "monoType", meta.setup.monoType ?? "", "Mono type", "Every recruit has this type.", [["", "Off"], ...TYPE_CHOICES.map((t) => [t, cap(t)])]) : "",
+    ].join("");
+    const heldItems = Object.entries(ITEMS).filter(([, it]) => it.kind === "held" && ["common", "uncommon"].includes(it.tier)).map(([id, it]) => ({ key: id, name: it.name })).sort((a, b) => a.name.localeCompare(b.name));
+    const pickRows = [pick("starter", "starter-pick", "Starter pick", "This starter line is always in your draft."),
+      pick("encounter", "encounter-pick", "Encounter pick", "Always on your first recruit screen."),
+      pick("legend", "legend-pick", "Legendary pick", "On the recruit screen after battle 7."),
+      pick("mythic", "mythic-pick", "Mythical pick", "On the recruit screen after battle 11."),
+      owned.has("pick-item") ? `<label class="pick-row"><span><b>Starting item</b><small>A held item you begin every run with.</small></span>
+        <select data-pick="item"><option value="">None</option>${heldItems.map((i) => `<option value="${i.key}" ${picks.item === i.key ? "selected" : ""}>${i.name}</option>`).join("")}</select></label>` : ""].join("");
     await this.modal({
       title: "Challenges",
       variant: "settings",
-      body: `<div class="note-row"><p class="opt-note">Rules change how the next run is played. A challenge is beaten by winning a run: most count in any run, a challenge with a switch needs it on before you start.</p></div>
-        <h4 class="ch-section">Run rule</h4>
-        ${row("dupes", meta.setup.dupes !== false, "Dupes clause", "A Pokémon line you had before, even a fallen one, won't be offered as a recruit again.")}
+      body: `<div class="note-row"><p class="opt-note">Rules change how the next run is played. A challenge is beaten by winning a run: most count in any run, a challenge with a switch needs it on before you start. A run with Fixed Six or a Mode on pays +${CHALLENGE_RUN_BONUS}% Trainer Points.</p></div>
+        <h4 class="ch-section">Run rules</h4>
+        ${row("data-rule", "dupes", meta.setup.dupes !== false, "Dupes clause", "A Pokémon line you had before, even a fallen one, won't be offered as a recruit again.")}
+        ${modeRows}${choiceRows}
+        ${pickRows.trim() ? `<h4 class="ch-section">Skill tree picks</h4>${pickRows}` : ""}
+        <p class="empty-note">More modes and picks unlock in the Skill Tree.</p>
         <h4 class="ch-section">Challenges <small>${CHALLENGES.filter((c) => mine.has(c.id)).length} of ${CHALLENGES.length} beaten</small></h4>
-        <ol class="board-list ch-list">${CHALLENGES.map((c) => `<li class="challenge-row ${mine.has(c.id) ? "done" : ""}"><span class="ch-check">${mine.has(c.id) ? "✓" : ""}</span>
-          <span class="who"><span class="ch-title"><strong>${c.name}</strong><em class="ch-tag ${c.toggle ? "rule" : ""}">${c.toggle ? "Needs its switch" : "Any run"}</em></span><small>${c.text}</small></span>
-          ${c.toggle ? `<span class="switch"><input type="checkbox" data-rule="${c.toggle}" ${meta.setup[c.toggle] === true ? "checked" : ""} aria-label="${c.name} on or off"><span class="track-dot"></span></span>` : ""}</li>`).join("")}</ol>
+        <ol class="board-list ch-list">${this.challengeRows(CHALLENGES, mine, (c) => `<li class="challenge-row ${mine.has(c.id) ? "done" : ""}"><span class="ch-check">${mine.has(c.id) ? "✓" : ""}</span>
+          <span class="who"><span class="ch-title"><strong>${c.name}</strong><em class="ch-tag ${c.toggle || c.rule ? "rule" : ""}">${c.toggle ? "Needs its switch" : c.rule ? "Needs a mode" : "Any run"}</em></span><small>${c.text}</small></span>
+          ${c.toggle ? `<span class="switch"><input type="checkbox" data-rule="${c.toggle}" ${meta.setup[c.toggle] === true ? "checked" : ""} aria-label="${c.name} on or off"><span class="track-dot"></span></span>` : ""}</li>`)}</ol>
         <h4 class="ch-section">Coming soon</h4>
         <ol class="board-list ch-list">${PLANNED.map((c) => `<li class="challenge-row planned"><span class="ch-check"></span><span class="who"><span class="ch-title"><strong>${c.name}</strong></span><small>${c.text}</small></span></li>`).join("")}</ol>`,
       options: [],
       cancel: "Done",
       onOpen: (dialog) => {
         dialog.addEventListener("change", (e) => {
-          const key = e.target.dataset?.rule;
-          if (!key) return;
+          const t = e.target;
           const m = loadMeta();
           m.setup ??= { gen: meta.setup.gen, pools: [...meta.setup.pools] };
-          m.setup[key] = e.target.checked;
-          meta.setup[key] = e.target.checked;
+          if (t.dataset?.rule) { m.setup[t.dataset.rule] = t.checked; meta.setup[t.dataset.rule] = t.checked; }
+          else if (t.dataset?.mode) { (m.setup.modes ??= {})[t.dataset.mode] = t.checked; meta.setup.modes = m.setup.modes; }
+          else if (t.dataset?.pick) { (m.setup.picks ??= {})[t.dataset.pick] = t.value; meta.setup.picks = m.setup.picks; }
+          else if (t.dataset?.opp) { m.setup.opponents = t.value; meta.setup.opponents = t.value; }
+          else if (t.dataset?.mono) { m.setup.monoType = t.value; meta.setup.monoType = t.value; }
+          else return;
           saveMeta(m);
         });
       },
@@ -913,7 +1231,7 @@ export class RunUI {
       const n = i + 1;
       const cls = n <= beaten ? "done" : n === beaten + 1 && run.screen === "hub" ? "current" : "";
       const sep = i === 8 || i === 12 ? `<span class="sep"></span>` : "";
-      const o = lineup[i];
+      const o = n <= 8 && run.gymPlan ? Run.leaderFor(run, this.ctx, n) : lineup[i]; // (Random gyms: the gym that really stands there)
       if (!o || n > reached) return `${sep}<span class="stop ${cls}" title="Battle ${n}">${label}</span>`;
       const rival = n === Run.FINAL_ORDER;
       const id = rival ? run.rival?.id : o.id === "tate-and-liza" ? "tate" : o.id;
@@ -1099,7 +1417,7 @@ export class RunUI {
         <div class="row-buttons">
           <button class="btn reroll-btn ${this.rerollsLeft(offer) <= 0 ? "" : "free"}" data-act="reroll" ${this.rerollsLeft(offer) <= 0 || offer.picksLeft <= 0 ? "disabled" : ""}
             title="Replaces every card you haven't locked in. Locked-in Pokémon stay.">${this.rerollsLeft(offer) <= 0 ? "No rerolls left" : `<span class="dice">🎲</span> Free reroll${this.rerollsLeft(offer) > 1 ? ` ×${this.rerollsLeft(offer)}` : ""}`}</button>
-          ${!starter && (offer.swapsUsed ?? 0) < perkParam(run, this.ctx.rules, "swap") ? `<button class="btn" data-act="swap" title="Swap badge: trade one of your Pokémon for any card, without using a pick.">🔁 Swap</button>` : ""}
+          ${!starter && (offer.swapsUsed ?? 0) < perkParam(run, this.ctx.rules, "swap") + (run.perks?.tree?.run?.swap ?? 0) ? `<button class="btn" data-act="swap" title="Swap: trade one of your Pokémon for any card, without using a pick.">🔁 Swap</button>` : ""}
           ${starter ? "" : `<button class="btn" data-act="skip" title="${offer.picksLeft < offer.picks ? "Skip the rest of your picks" : "Take nobody"}">Skip</button>`}
         </div>
       </div>
@@ -1419,7 +1737,7 @@ export class RunUI {
     this.hub.className = "hub";
     const messages = run.messages.splice(0);
     const bagEntries = Object.entries(run.bag).sort((a, b) => itemInfo(a[0]).name.localeCompare(itemInfo(b[0]).name));
-    const patches = ["ability-patch", "hidden-ability-patch"].filter((p) => run.bag[p] > 0);
+    const patches = ["ability-patch", "hidden-ability-patch", "nature-mint"].filter((p) => run.bag[p] > 0);
 
     // Detailed view: one Pokémon in the middle (the one picked in the strip above it)
     const focus = run.team.find((m) => m.uid === this.moveFocus) ?? run.team[0];
@@ -1447,7 +1765,7 @@ export class RunUI {
           <div class="mon-actions">
             <button class="btn small" data-act="item" data-uid="${m.uid}">Item</button>
             ${evo.length ? `<button class="btn small ${evoReady ? "ready" : ""}" data-act="evolve" data-uid="${m.uid}">Evolve${evoReady ? "!" : ""}</button>` : ""}
-            ${patches.length ? `<button class="btn small" data-act="patch" data-uid="${m.uid}">Ability</button>` : ""}
+            ${patches.length ? `<button class="btn small" data-act="patch" data-uid="${m.uid}">Patch / Mint</button>` : ""}
           </div>
         </div>`;
     }).join("");
@@ -1610,9 +1928,10 @@ export class RunUI {
   // The badge a gym leader gives, greyed out until you own it (a teaser in the Next battle panel)
   badgeTeaser(opp) {
     if (opp.order < 1 || opp.order > 8) return "";
-    const id = badgeId(this.run.settings.gen, opp.order);
+    const gen = opp.gen ?? this.run.settings.gen, order = opp.gymOrder ?? opp.order; // (Random gyms: the badge of the gym's own game)
+    const id = badgeId(gen, order);
     const owned = ownedBadges(loadMeta()).has(id);
-    const name = badgeName(this.run.settings.gen, opp.order);
+    const name = badgeName(gen, order);
     return `<div class="badge-teaser ${owned ? "owned" : ""}" title="${owned ? `You already have the ${name}` : `Beat ${opp.name} to win the ${name}`}">
       ${this.badgeImg(id, owned ? "" : "locked")}<span>${owned ? `${name} ✓` : `${name}`}</span></div>`;
   }
@@ -2208,7 +2527,7 @@ export class RunUI {
     const nature = mon.nature.charAt(0).toUpperCase() + mon.nature.slice(1);
     const [up, down] = NATURES[mon.nature] ?? [];
     const evo = ctx.dex.evolutionOptions(mon, run.bag);
-    const patches = ["ability-patch", "hidden-ability-patch"].some((x) => run.bag[x] > 0);
+    const patches = ["ability-patch", "hidden-ability-patch", "nature-mint"].some((x) => run.bag[x] > 0);
     const act = (value, label, { disabled = false, ready = false } = {}) =>
       `<button class="btn small ${ready ? "ready" : ""}" data-result='{"act":"${value}"}' ${disabled ? "disabled" : ""}>${label}</button>`;
     const active = DETAIL_TABS.some((t) => t.id === this.detailsTab) ? this.detailsTab : "stats";
@@ -2235,7 +2554,7 @@ export class RunUI {
         <div class="tab-panels">
         <section data-tab-panel="stats">${this.statsTable(mon)}</section>
         <section data-tab-panel="abilities">${this.abilityDetails(mon)}
-          ${patches ? `<div class="panel-actions">${act("patch", "Use an Ability Patch…")}</div>` : ""}</section>
+          ${patches ? `<div class="panel-actions">${act("patch", "Use a Patch or Mint…")}</div>` : ""}</section>
         <section data-tab-panel="evolution">${this.evolutionLine(mon)}
           ${evo.length ? `<div class="panel-actions">${act("evolve", evo.some((o) => o.ready) ? "Evolve!" : "Evolve…", { ready: evo.some((o) => o.ready) })}</div>` : ""}</section>
         <section data-tab-panel="moves">
@@ -2664,8 +2983,22 @@ export class RunUI {
       const ha = p.abilities.hidden;
       options.push({ value: "hidden-ability-patch", disabled: !ha || ha === mon.ability, html: `${this.itemImg("hidden-ability-patch")} Hidden Ability Patch <small>${ha ? `→ ${abilityName(ha)}` : "no Hidden Ability"}</small>` });
     }
-    const kind = await this.modal({ title: `Change ${p.name}'s Ability (now ${abilityName(mon.ability)})`, options });
+    if (run.bag["nature-mint"]) {
+      options.push({ value: "nature-mint", html: `${this.itemImg("nature-mint")} Nature Mint <small>now ${cap(mon.nature)}${run.bag["nature-mint"] > 1 ? ` · you have ${run.bag["nature-mint"]}` : ""}</small>` });
+    }
+    const kind = await this.modal({ title: `Use a patch or mint on ${p.name}`, options });
+    if (kind === "nature-mint") return this.mintDialog(mon);
     if (kind) Run.usePatch(run, ctx, mon.uid, kind);
+  }
+
+  // Nature Mint: pick the new Nature (one neutral one, Serious, stands for the five that change nothing)
+  async mintDialog(mon) {
+    const { run, ctx } = this;
+    const label = (n) => { const [up, down] = NATURES[n] ?? []; return up ? `+${STAT_NAMES[up]} −${STAT_NAMES[down]}` : "no stat changes"; };
+    const options = Object.keys(NATURES).filter((n) => NATURES[n] || n === "serious")
+      .map((n) => ({ value: n, disabled: n === mon.nature, html: `${cap(n)} <small>${label(n)}${n === mon.nature ? " · now" : ""}</small>` }));
+    const nature = await this.modal({ title: `${ctx.data.pokemonByKey[mon.species].name}: new Nature`, options, wide: true });
+    if (nature) Run.useNatureMint(run, ctx, mon.uid, nature);
   }
 
   // ===============================
@@ -2738,7 +3071,8 @@ export class RunUI {
       run.newUnlocks = [...(run.unlockedThisRun ?? []), ...granted];
     }
     const fresh = (run.newUnlocks ?? []).map((id) => characterById(id));
-    return `<p class="tp-earned">+${tp} Trainer Points <small>(spend them in Trainer Upgrades)</small></p>
+    const bonus = [run.perks?.tpPct ? `pay increase +${run.perks.tpPct}%` : null, isChallengeRun(run) ? `challenge run +${CHALLENGE_RUN_BONUS}%` : null].filter(Boolean).join(", ");
+    return `<p class="tp-earned">+${tp} Trainer Points <small>(${bonus ? `${bonus}; ` : ""}spend them in the Skill Tree)</small></p>
       ${fresh.length ? `<section class="card-panel"><h3>New trainers unlocked!</h3>
         <div class="characters">${fresh.map((c) => `<div class="character selected"><img src="${c.front}" alt=""><span>${c.name}</span><small class="how-unlocked"><em>How you unlocked them:</em> ${unlockText((this.ctx.rules.characterUnlocks ?? {})[c.id])}</small>${this.perkLine(c.id)}</div>`).join("")}</div></section>` : ""}`;
   }
@@ -2774,7 +3108,7 @@ export class RunUI {
       <section class="card-panel"><h3>Fallen this run</h3>
         <div class="fallen-list">${run.fallen.map((f) => `<div class="mon"><img src="${this.sprite(f)}" alt="">${f.name}<small>Lv ${f.level} · #${f.order}</small></div>`).join("")}</div>
       </section>
-      <div class="row-buttons"><button class="btn primary" data-act="new">New run</button><button class="btn" data-act="upgrades">Trainer Upgrades</button><button class="btn" data-act="title">Title</button></div>`;
+      <div class="row-buttons"><button class="btn primary" data-act="new">New run</button><button class="btn" data-act="upgrades">Skill Tree</button><button class="btn" data-act="title">Title</button></div>`;
     if (!this.preview) store.remove(RUN_KEY);
     this.hub.onclick = (e) => {
       const act = e.target.closest("[data-act]")?.dataset.act;
@@ -2812,7 +3146,7 @@ export class RunUI {
       ${tpLine}
       <div class="hof-team">${entry.team.map((m) => `<div class="mon"><img src="${this.sprite(m)}" alt="">${this.ctx.data.pokemonByKey[m.species].name}<small>Lv ${m.level}</small></div>`).join("")}</div>
       ${this.fallenMemorial(entry.fallenMons)}
-      <div class="row-buttons"><button class="btn primary" data-act="new">New run</button><button class="btn" data-act="upgrades">Trainer Upgrades</button><button class="btn" data-act="hof">Hall of Fame</button></div>`;
+      <div class="row-buttons"><button class="btn primary" data-act="new">New run</button><button class="btn" data-act="upgrades">Skill Tree</button><button class="btn" data-act="hof">Hall of Fame</button></div>`;
     this.hub.onclick = (e) => {
       const act = e.target.closest("[data-act]")?.dataset.act;
       if (act === "new") this.renderSetup();
@@ -2832,7 +3166,7 @@ export class RunUI {
     this.trackView("hof");
     this.showHub();
     const hof = store.get(HOF_KEY) ?? [];
-    this.hub.className = "hub";
+    this.hub.className = "hub framed";
     this.hub.innerHTML = `
       <div class="offer-head"><h1>Hall of Fame</h1><button class="btn" data-act="title">◀ Title</button></div>
       ${hof.map((e) => `

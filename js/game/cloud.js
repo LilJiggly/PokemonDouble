@@ -10,6 +10,7 @@
 // =====================================================
 
 import { firebaseConfig } from "../firebase-config.js";
+import { migrateMeta } from "./meta.js";
 
 const SDK = "https://www.gstatic.com/firebasejs/10.12.2";
 const KEYS = { meta: "pd.meta", hof: "pd.hallOfFame", run: "pd.run" };
@@ -82,6 +83,8 @@ export const summary = (s) => `${s.meta?.runs ?? 0} runs, ${s.meta?.wins ?? 0} w
 
 // Public name on the leaderboard: the username the player chose, else the first name of the Google account
 export const cleanUsername = (t) => String(t ?? "").replace(/[\u0000-\u001f<>&"']/g, "").replace(/\s+/g, " ").trim().slice(0, 16);
+// The short line under the name on the public profile
+export const cleanTagline = (t) => String(t ?? "").replace(/[\u0000-\u001f<>&"']/g, "").replace(/\s+/g, " ").trim().slice(0, 40);
 export const publicName = (meta = read(KEYS.meta)) => cleanUsername(meta?.username) || (user?.displayName ?? "Trainer").split(/\s+/)[0].slice(0, 20);
 // The screens register how to count what only they know (unlocked trainers need the character list and rules)
 let extraStats = () => ({});
@@ -99,6 +102,8 @@ function publicLine(meta, hof) {
   return {
     name: publicName(meta), wins: meta?.wins ?? 0, best: meta?.best ?? 0, cleanWins: meta?.cleanWins ?? 0,
     trainers: extraStats(meta).trainers ?? 1, badges: meta?.badges?.length ?? 0, used: usedFrom(hof), hof: recentHof(hof), challenges: (meta?.challenges ?? []).slice(0, 40), updatedAt: Date.now(),
+    // The profile the player made: trainer avatar, six favourite Pokémon and a short line
+    avatar: String(meta?.profile?.avatar ?? "").slice(0, 24), favs: (meta?.profile?.favs ?? []).filter(Boolean).slice(0, 6).map(String), tagline: cleanTagline(meta?.profile?.tagline),
   };
 }
 
@@ -126,7 +131,7 @@ function applyCloud(d) {
 // ---- combining two saves (first login on a device that already has progress) ----
 // Counters of finished runs add up; "best" style numbers and per-key counters keep the higher one;
 // lists (badges, unlocks…) are joined; everything else (character, case layout, settings) stays as on this device.
-const SUMMED = new Set(["tp", "earned", "runs", "wins", "cleanWins"]);
+const SUMMED = new Set(["tp", "earned", "runs", "wins", "cleanWins", "battlesWon", "battlesLost", "battleTurns", "battleTurnCount", "pokemonLost", "recruited", "shiniesFound", "evolutionsDone", "rerollsDone", "playMs"]);
 function mergeValue(a, b, key, top) {
   if (a === undefined || a === null) return b;
   if (b === undefined || b === null) return a;
@@ -143,6 +148,7 @@ function mergeValue(a, b, key, top) {
   return a;
 }
 export function mergeSaves(local, cloud) {
+  for (const side of [local, cloud]) if (side.meta) migrateMeta(side.meta); // old upgrades are refunded before the saves are combined
   const meta = {};
   for (const k of new Set([...Object.keys(local.meta ?? {}), ...Object.keys(cloud.meta ?? {})])) meta[k] = mergeValue(local.meta?.[k], cloud.meta?.[k], k, true);
   // The two lists keep a case layout that is valid on its own: the one from this device

@@ -101,6 +101,7 @@ export const ITEMS = {
   ...Object.fromEntries(["fire-stone", "water-stone", "thunder-stone", "leaf-stone", "moon-stone", "sun-stone",
     "shiny-stone", "dusk-stone", "dawn-stone", "ice-stone"].map((id) => [id, evo("rare", titleCase(id), "Evolves certain Pokémon. Not used up upon evolution.")])),
   "link-cable": evo("rare", "Link Cable", "Triggers trade evolutions. Not used up upon evolution.", { sprite: "linking-cord" }),
+  "nature-mint": { kind: "patch", tier: "rare", name: "Nature Mint", desc: "Changes a Pokémon's Nature to any Nature you pick (its stats change with it). Single use: lost once applied.", svg: true },
   "ability-patch": { kind: "patch", tier: "rare", name: "Ability Patch", desc: "Switches a Pokémon to its other normal Ability. Single use: lost once applied.", sprite: "ability-capsule" },
 
   // ---------- Epic ----------
@@ -121,8 +122,14 @@ export const ITEMS = {
   "deep-sea-scale": held("rare", "DeepSeaScale", "Doubles Clamperl's Sp. Def. Trade evolution: Clamperl → Gorebyss.", { species: ["clamperl"] }),
 };
 
+// Retired items: berries and healing items are no longer found, bought or given at the start (a Nuzlocke has no healing in battle, and
+// berries were hardly used). They stay in the catalog so a saved run that still holds them keeps working, and opponents may still hold berries.
+const HEALING = ["potion", "super-potion", "hyper-potion", "max-potion", "full-restore", "full-heal", "antidote", "paralyze-heal", "burn-heal", "awakening", "ice-heal"];
+for (const [id, item] of Object.entries(ITEMS)) if (id.endsWith("-berry") || HEALING.includes(id)) item.retired = true;
+export const isRetired = (id) => !!ITEMS[id]?.retired;
+
 export function itemSprite(id) {
-  return `images/items/${id}.png`;
+  return `images/items/${id}.${ITEMS[id]?.svg ? "svg" : "png"}`;
 }
 
 export function itemInfo(id) {

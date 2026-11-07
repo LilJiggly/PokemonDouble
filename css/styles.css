@@ -1717,7 +1717,7 @@ the 24 px of
 .title-screen .menu-list .btn[data-act="new"]:first-child { grid-column: 1 / -1;
 }
 
-.title-screen .menu-list .btn[data-act="upgrades"] { grid-column: 1 / -1;
+.title-screen .menu-list .btn[data-act="upgrades"], .title-screen .menu-list .btn[data-act="profile"] { grid-column: span 3;
 }
 
 .title-screen .menu-list .btn[data-act="hof"], .title-screen .menu-list .btn[data-act="leaderboards"] { grid-column: span 3;
@@ -1750,6 +1750,9 @@ the 24 px of
 }
 
 .title-screen .menu-list .btn[data-act="hof"] { --c: #4a82d8;
+}
+
+.title-screen .menu-list .btn[data-act="profile"] { --c: #2fa896;
 }
 
 .title-screen .menu-list .btn[data-act="leaderboards"] { --c: #9a64d0;
@@ -6299,4 +6302,635 @@ img[src*="/sprites/"] { object-fit: contain;
 
 .ch-list { margin: 0;
   padding: 0;
+}
+
+/* Skill tree */
+.refund-note { margin: 8px 0;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: rgba(255, 180, 84, 0.16);
+  border: 1px solid rgba(255, 180, 84, 0.5);
+}
+
+/* One panel at a time, picked with the tabs */
+.tree-panels { display: block;
+  --node-w: 104px;
+}
+
+/* The tabs stick to the panel like folder tabs, in the panel's colour */
+.tree-tabs { align-items: flex-end;
+  gap: 4px;
+  margin: 12px 0 0;
+}
+
+.tree-tabs .tab { --tc: #8a94b8;
+  position: relative;
+  z-index: 1;
+  margin-bottom: -2px;
+  padding: 6px 12px;
+  border-color: color-mix(in srgb, var(--tc) 55%, #000);
+  border-radius: 10px 10px 0 0;
+}
+
+.tree-tabs .tab[data-arm="Defense"] { --tc: #5cae6a; }
+.tree-tabs .tab[data-arm="Attack"] { --tc: #e0663c; }
+.tree-tabs .tab[data-arm="Economy"] { --tc: #e0b040; }
+.tree-tabs .tab[data-arm="Extras"] { --tc: #40d0b8; }
+.tree-tabs .tab[data-arm="Skills"] { --tc: #b080f0; }
+.tree-tabs .tab[data-arm="Modes"] { --tc: #f07070; }
+
+.tree-tabs .tab.active { padding-bottom: 8px;
+  background: color-mix(in srgb, var(--tc) 10%, #10131f);
+  border-bottom-color: color-mix(in srgb, var(--tc) 10%, #10131f);
+  color: var(--tc);
+  transform: none;
+}
+
+.tree-tabs .tab small { margin-left: 6px;
+  opacity: 0.7;
+  font-size: 11px;
+}
+
+.tree-panel { --a: #8a94b8;
+  min-width: 0;
+  width: 100%;
+  margin: 0;
+  overflow-x: auto;
+  padding: 18px 16px 22px;
+  border: 2px solid color-mix(in srgb, var(--a) 55%, #000);
+  border-radius: 0 14px 14px 14px; /* the tabs sit on the top left corner */
+  background: linear-gradient(180deg, color-mix(in srgb, var(--a) 10%, #10131f), color-mix(in srgb, var(--a) 32%, #10131f));
+}
+
+.tree-panel[data-arm="Defense"] { --a: #5cae6a; }
+.tree-panel[data-arm="Attack"] { --a: #e0663c; }
+.tree-panel[data-arm="Economy"] { --a: #e0b040; }
+.tree-panel[data-arm="Skills"] { --a: #b080f0; }
+.tree-panel[data-arm="Extras"] { --a: #40d0b8; }
+.tree-panel[data-arm="Modes"] { --a: #f07070; }
+
+.tree-panel h3 { display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 2px 8px;
+  margin: 0 0 14px;
+  color: var(--a);
+  font-size: 15px;
+}
+
+.tree-panel h3 small { color: var(--text-soft);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.tree-panels { --node-h: 108px;
+}
+
+.tree-grid { position: relative;
+  display: grid;
+  justify-content: center;
+  gap: 28px 10px;
+}
+
+.tree-lines { position: absolute;
+  left: 0;
+  top: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.tree-lines path { fill: none;
+  stroke: rgba(255, 255, 255, 0.16);
+  stroke-width: 3;
+  stroke-linejoin: round;
+}
+
+.tree-lines path.lit { stroke: var(--a, #fff);
+  stroke-opacity: 0.85;
+}
+
+.tree-lines path.hl { stroke: #fff;
+  stroke-opacity: 1;
+  stroke-width: 4;
+}
+
+.tree-lines path.hl-next { stroke: var(--a, #fff);
+  stroke-opacity: 1;
+  stroke-width: 4;
+  stroke-dasharray: 6 5;
+}
+
+.tree-slot { border: 2px dashed rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+}
+
+.tree-node.needed { z-index: 3;
+  opacity: 1;
+  filter: none;
+  box-shadow: 0 0 0 3px #fff, 0 0 16px rgba(255, 255, 255, 0.6);
+}
+
+.tree-node.opens { box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 70%, #fff);
+}
+
+.tree-node { --c: #8a94b8;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  justify-self: center;
+  width: var(--node-w);
+  padding: 6px 5px 7px;
+  border: 3px solid var(--c);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--c) 20%, #161b2a);
+  color: var(--text, #fff);
+  font: inherit;
+  line-height: 1.1;
+  text-align: center;
+  cursor: pointer;
+}
+
+.tree-node img { flex: none;
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.tree-node b { flex: none;
+  max-width: 100%;
+  font-size: 11px;
+  line-height: 1.2;
+  overflow-wrap: break-word;
+}
+
+.tree-node .foot { flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+.tree-node small { color: var(--text-soft);
+  font-size: 11px;
+}
+
+.tree-node.final { border-width: 3px;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.25);
+}
+
+.tree-node.locked { opacity: 0.45;
+  filter: grayscale(0.7);
+}
+
+.tree-node.poor { opacity: 0.8;
+}
+
+.tree-node.ready { box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 45%, transparent), 0 0 14px color-mix(in srgb, var(--c) 60%, transparent);
+}
+
+.tree-node.maxed { background: var(--c);
+  color: #1a1a1a;
+}
+
+.tree-node.maxed small { color: #1a1a1a;
+}
+
+.tree-node .pips { display: flex;
+  gap: 3px;
+  min-height: 8px;
+}
+
+.tree-node .pips i { width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.tree-node .pips i.on { background: #fff;
+}
+
+.tree-node.maxed .pips i { background: rgba(0, 0, 0, 0.35);
+}
+
+.tree-node[data-stat="hp"] { --c: #ff5a5a; }
+.tree-node[data-stat="atk"] { --c: #f08030; }
+.tree-node[data-stat="def"] { --c: #f8d030; }
+.tree-node[data-stat="spa"] { --c: #6890f0; }
+.tree-node[data-stat="spd"] { --c: #78c850; }
+.tree-node[data-stat="spe"] { --c: #f85888; }
+.tree-panel[data-arm="Economy"] .tree-node { --c: #e0b040; }
+.tree-panel[data-arm="Skills"] .tree-node { --c: #b080f0; }
+.tree-panel[data-arm="Extras"] .tree-node { --c: #40d0b8; }
+.tree-panel[data-arm="Modes"] .tree-node { --c: #f07070; }
+.tree-node.final { --c: #e8e8e8; }
+
+.node-detail { display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.node-icon { width: 48px;
+  height: 48px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.lock-note { color: #ffb454;
+}
+
+.pick-row { display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: space-between;
+  margin: 6px 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--surface-sunken);
+}
+
+.pick-row small { display: block;
+  color: var(--text-soft);
+}
+
+.pick-row select { max-width: 45%;
+  padding: 6px;
+  border-radius: 6px;
+  background: var(--surface);
+  color: inherit;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Skill tree: hover */
+.tree-node { transition: transform 0.12s, filter 0.12s, box-shadow 0.12s;
+}
+
+.tree-node:hover, .tree-node:focus-visible { z-index: 3;
+  transform: translateY(-3px);
+  filter: brightness(1.25);
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 70%, #fff), 0 8px 16px rgba(0, 0, 0, 0.45);
+}
+
+.tree-node.locked:hover { filter: grayscale(0.4) brightness(1.2);
+  opacity: 0.8;
+}
+
+.tree-node:active { transform: translateY(0);
+}
+
+/* Skill tree: the buy window. Short and quick to read: what you get, how far you are, what it costs */
+.modal-backdrop.node-modal .modal { width: min(100%, 340px);
+}
+
+.node-modal .modal-body { gap: 0;
+}
+
+.nd { --c: #e8e8e8;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.nd[data-stat="hp"] { --c: #ff5a5a; }
+.nd[data-stat="atk"] { --c: #f08030; }
+.nd[data-stat="def"] { --c: #f8d030; }
+.nd[data-stat="spa"] { --c: #6890f0; }
+.nd[data-stat="spd"] { --c: #78c850; }
+.nd[data-stat="spe"] { --c: #f85888; }
+
+.nd-top { display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.nd-big { color: var(--c);
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.nd-small { margin-top: 4px;
+  color: var(--text-soft);
+  font-size: 11px;
+}
+
+.nd-row { display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: var(--surface-sunken);
+  font-size: 12px;
+}
+
+.nd-row span:first-child { color: var(--text-soft);
+}
+
+.nd-row b { margin-left: auto;
+}
+
+.nd-pips { display: flex;
+  gap: 4px;
+}
+
+.nd-pips i { width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.nd-pips i.on { background: var(--c);
+}
+
+.nd-note { padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+.nd-note.locked { background: rgba(255, 180, 84, 0.15);
+  color: #ffb454;
+}
+
+.nd-note.done { background: rgba(120, 200, 80, 0.15);
+  color: #78c850;
+}
+
+/* Buy on the right (green), the way out on the left (grey) */
+.node-modal .modal-foot { justify-content: space-between;
+}
+
+.node-modal .modal-foot [data-cancel] { background: var(--surface-sunken);
+  border-color: rgba(255, 255, 255, 0.18);
+  color: var(--text-soft);
+}
+
+.node-modal .modal-foot .btn.buy { margin-left: auto;
+  background: #4caf6a;
+  border-color: #2f7a46;
+  color: #fff;
+}
+
+.node-modal .modal-foot .btn.buy:disabled { background: #3a4254;
+  border-color: #2a3040;
+  color: var(--text-soft);
+}
+
+/* Skill tree, Hall of Fame and Leaderboards: one framed, centred card instead of the full page width */
+.hub.framed { align-self: center;
+  width: min(100%, 880px);
+  max-width: none;
+  padding: 26px 30px 32px;
+  background: var(--surface);
+  border: 4px solid var(--border-strong);
+  border-radius: 22px;
+  box-shadow: 0 8px 0 rgba(0, 0, 0, 0.25);
+}
+
+.hub.framed.wide { width: min(100%, 1100px);
+}
+
+@media (max-width: 700px) {
+  .hub.framed { padding: 16px 12px 22px;
+    border-width: 3px;
+    border-radius: 16px;
+  }
+}
+
+/* Hidden challenge tiers */
+.challenge-row.hidden-tier { opacity: 0.6;
+}
+
+.challenge-row.hidden-tier .ch-check { border-style: dotted;
+  color: var(--text-soft);
+}
+
+/* Profile: header, stats, customize */
+.profile-head, .pp-head { display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.profile-head { flex-wrap: wrap;
+}
+
+.profile-avatar { width: 72px;
+  height: 72px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  background: var(--surface-sunken);
+  border-radius: 14px;
+  padding: 4px;
+}
+
+.profile-who { flex: 1;
+  min-width: 160px;
+}
+
+.profile-who h1 { margin: 0;
+}
+
+.profile-who p, .pp-tagline { margin: 4px 0 0;
+}
+
+.profile-rank { display: grid;
+  place-items: center;
+  min-width: 64px;
+  padding: 6px 10px;
+  border-radius: 12px;
+  background: var(--accent);
+  color: #fff;
+}
+
+.profile-rank b { font-size: 26px;
+  line-height: 1;
+}
+
+.profile-rank small { font-size: 10px;
+}
+
+.stat-sections { display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.stat-section h3 { margin: 0 0 8px;
+  font-size: 14px;
+}
+
+.stat-grid { display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px;
+}
+
+.stat { display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--surface-sunken);
+}
+
+.stat.wide { grid-column: 1 / -1;
+}
+
+.stat span { color: var(--text-soft);
+  font-size: 11px;
+}
+
+.stat b { font-size: 16px;
+}
+
+.stat small { color: var(--text-soft);
+  font-size: 10px;
+}
+
+.profile-edit { display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.field { display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field > span { font-size: 13px;
+}
+
+.field small { color: var(--text-soft);
+  font-size: 11px;
+}
+
+.field input { padding: 9px 12px;
+  border-radius: 8px;
+  border: 2px solid var(--border);
+  background: var(--surface-sunken);
+  color: inherit;
+  font: inherit;
+}
+
+.avatar-grid, .fav-slots { display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.avatar-pick, .fav-slot, .species-pick { display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 84px;
+  padding: 6px 4px;
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-sunken);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.avatar-pick img, .fav-slot img, .species-pick img { width: 56px;
+  height: 56px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.avatar-pick small, .fav-slot small, .species-pick small { font-size: 9px;
+  text-align: center;
+  line-height: 1.1;
+}
+
+.avatar-pick:hover, .fav-slot:hover, .species-pick:hover { border-color: var(--accent);
+}
+
+.avatar-pick.selected { border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 25%, var(--surface-sunken));
+}
+
+.fav-slot { width: 96px;
+  min-height: 92px;
+  justify-content: center;
+}
+
+.fav-slot:not(.filled) { border-style: dashed;
+}
+
+.fav-slot span { font-size: 26px;
+  color: var(--text-soft);
+}
+
+.species-search { width: 100%;
+  margin-bottom: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 2px solid var(--border);
+  background: var(--surface-sunken);
+  color: inherit;
+  font: inherit;
+}
+
+.species-grid { display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+}
+
+.species-pick { width: 78px;
+}
+
+.species-pick[hidden] { display: none;
+}
+
+.species-pick.chosen { border-color: var(--accent);
+}
+
+/* Leaderboards: clickable players, avatars, and the profile window */
+.board-list li.clickable { cursor: pointer;
+}
+
+.board-list li.clickable:hover { background: color-mix(in srgb, var(--accent) 15%, var(--surface-sunken));
+}
+
+.board-avatar { width: 28px;
+  height: 28px;
+  margin-right: 6px;
+  vertical-align: middle;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.modal-backdrop.player-profile .modal { width: min(100%, 460px);
+}
+
+.pp-mons { display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.pp-mon { display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 64px;
+}
+
+.pp-mon img { width: 52px;
+  height: 52px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.pp-mon small { font-size: 9px;
+  text-align: center;
+}
+
+.pp-team { margin: 6px 0;
+  padding: 6px 8px;
+  border-radius: 10px;
+  background: var(--surface-sunken);
+}
+
+.pp-team div { display: flex;
+  flex-wrap: wrap;
 }

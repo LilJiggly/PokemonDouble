@@ -57,6 +57,23 @@ export function levelUpMovesAt(species, level, data) {
   return lastFour;
 }
 
+// Random moves (run mode): four different moves from everything the species can learn, with at least one attack,
+// none stronger than a level-up move may be at that level
+export function randomMovesAt(species, level, data, rand = Math.random) {
+  if (species.key === "smeargle") return levelUpMovesAt(species, level, data);
+  const cap = maxMovePowerAt(level);
+  const all = [...new Set([...species.learnset.levelUp.map(([, m]) => m), ...species.learnset.machine, ...species.learnset.tutor])]
+    .filter((m) => data.moves[m] && (data.moves[m].power ?? 0) <= cap);
+  const attacks = all.filter((m) => (data.moves[m].power ?? 0) > 0);
+  if (!attacks.length) return levelUpMovesAt(species, level, data);
+  const picked = [pickFrom(attacks, rand)];
+  while (picked.length < 4 && picked.length < all.length) {
+    const m = pickFrom(all, rand);
+    if (!picked.includes(m)) picked.push(m);
+  }
+  return picked;
+}
+
 // chances: { hidden, shiny } (Trainer upgrades can raise them)
 export function createRecruit(data, speciesKey, level, rand = Math.random, chances = {}) {
   const species = data.pokemonByKey[speciesKey];
@@ -65,7 +82,9 @@ export function createRecruit(data, speciesKey, level, rand = Math.random, chanc
   const gender = species.genderRate === -1 ? null : rand() < species.genderRate / 8 ? "F" : "M";
   const moves = levelUpMovesAt(species, level, data);
   // Each stat's IV is 15–31, so recruits differ a little (and Hidden Power gets a different type)
-  const ivs = Object.fromEntries(["hp", "atk", "def", "spa", "spd", "spe"].map((s) => [s, 15 + Math.floor(rand() * 17)]));
+  // (the IV floor from the skill tree raises the bottom of that range)
+  const low = Math.min(31, 15 + (chances.ivFloor ?? 0));
+  const ivs = Object.fromEntries(["hp", "atk", "def", "spa", "spd", "spe"].map((s) => [s, low + Math.floor(rand() * (32 - low))]));
   return {
     species: speciesKey,
     nickname: pickFrom(NICKNAMES, rand),
