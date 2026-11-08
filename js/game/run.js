@@ -23,6 +23,17 @@ import { hasPerk as badgeHasPerk, perkParam, battleBonus, EFFECTS } from "./badg
 // Held items that trigger once per battle and are back afterwards
 const RESTORED_AFTER_BATTLE = new Set(["focus-sash"]);
 export const FINAL_ORDER = 14;
+
+// The Gauntlet (a final path): the five generations back to back, a chapter each. A chapter is the Elite Four, the Champion and the rival
+// (battles 9 to 14 of that generation), so run.order cycles 9 to 14 and run.chapter counts 0 to 4. Everything is carried over, the team
+// is levelled to the next foe as always, and every chapter is GAUNTLET_BUMP levels harder than the one before.
+export const GAUNTLET_FIRST = 9;
+export const GAUNTLET_CHAPTERS = 5;
+export const GAUNTLET_BUMP = 6;
+export const isGauntlet = (run) => run.settings?.path === "gauntlet";
+export const chapterBump = (run) => (isGauntlet(run) ? (run.chapter ?? 0) * GAUNTLET_BUMP : 0);
+export const nextOrder = (run) => (isGauntlet(run) && (run.order === FINAL_ORDER || run.order === 0) ? GAUNTLET_FIRST : run.order + 1);
+export const gauntletBattles = () => GAUNTLET_CHAPTERS * (FINAL_ORDER - GAUNTLET_FIRST + 1);
 export const REPLACEMENT_PICK_CAP = 2;
 // Hard mode: foes are 2 levels higher, bring one more Pokémon from battle 3 (never more than 6),
 // have perfect IVs, a fitting Nature and a held item
@@ -122,16 +133,25 @@ export function newRun(ctx, { gen, pools, seed = Math.floor(Math.random() * 2 **
   // Random gyms (mixed or wild) and Rainbow (your generation's 8 gyms in a random order); the evil paths have their own order
   if (path === "mixed") run.gymPlan = makeMixedPlan(run, ctx, !!modes.rainbow); // Mixed Gens: every leader from a different game
   else if ((modes.opponents || modes.rainbow) && path !== "evil") run.gymPlan = makeGymPlan(run, ctx, modes.opponents || "shuffled");
+  if (path === "gauntlet") { // chapter by chapter, Kanto to Unova (Rainbow: a random order)
+    const gens = [1, 2, 3, 4, 5];
+    if (modes.rainbow) for (let i = gens.length - 1; i > 0; i--) { const j = Math.floor(nextRandom(run) * (i + 1)); [gens[i], gens[j]] = [gens[j], gens[i]]; }
+    run.chapter = 0;
+    run.chapterGens = gens;
+    run.settings.gen = gens[0];
+  }
   const rivalEntry = leaderFor(run, ctx, FINAL_ORDER);
   run.rival = pickOne(run, rivalEntry.options);
-  run.nextOpponent = chooseOpponent(run, ctx, 1);
+  run.nextOpponent = chooseOpponent(run, ctx, path === "gauntlet" ? GAUNTLET_FIRST : 1);
 
   run.charFx = parseCharacterEffects(ctx.rules.characterUnlocks?.[run.character]?.effect);
   run.perks.scout += run.charFx.scout ?? 0; // Mira: one more card on every recruit screen
   run.perks.dice += run.charFx.dice ?? 0; // Dawn: one more reroll on every recruit screen
-  const row = ctx.rules.progression.find((r) => r.order === 0);
-  const level = playerLevelFor(ctx, 1);
-  run.offer = makeRecruitOffer(run, ctx, { count: (fixedSix ? 12 : row.recruitOptions) + run.perks.scout + (run.charFx["starter-card"] ?? 0), picks: fixedSix ? 6 : row.recruitPicks, odds: row.odds, level, starter: true });
+  const gauntlet = path === "gauntlet"; // the Gauntlet starts with a draft of six at the level of the Elite Four
+  const row = ctx.rules.progression.find((r) => r.order === (gauntlet ? GAUNTLET_FIRST : 0));
+  const level = playerLevelFor(ctx, gauntlet ? GAUNTLET_FIRST : 1);
+  run.offer = makeRecruitOffer(run, ctx, { count: (fixedSix || gauntlet ? 12 : row.recruitOptions) + run.perks.scout + (run.charFx["starter-card"] ?? 0), picks: fixedSix || gauntlet ? 6 : row.recruitPicks, odds: row.odds, level, starter: !gauntlet });
+  if (gauntlet) run.offer.starter = true; // (it is the starting draft, even though the cards are fully evolved)
   applyCharacterPerk(run, ctx);
   if (picks.starter) guaranteeOption(run, ctx, picks.starter); // Skills: Starter pick
   run.offer.rerollsLeft += run.perks.starterReroll ?? 0; // Skills: Starter reroll
@@ -218,14 +238,14 @@ function guaranteeOption(run, ctx, speciesKey) {
 }
 
 // Opponent's level for a battle
-export function levelFor(ctx, order) {
-  return ctx.rules.progression.find((r) => r.order === order)?.level ?? 50;
+export function levelFor(ctx, order, bump = 0) {
+  return (ctx.rules.progression.find((r) => r.order === order)?.level ?? 50) + bump;
 }
 
 // The player's level for a battle: enemy level + Level bonus (§3a)
-export function playerLevelFor(ctx, order) {
+export function playerLevelFor(ctx, order, bump = 0) {
   const row = ctx.rules.progression.find((r) => r.order === order);
-  return (row?.level ?? 50) + (row?.levelBonus ?? 0);
+  return (row?.level ?? 50) + (row?.levelBonus ?? 0) + bump;
 }
 
 export function rowFor(ctx, order) {
@@ -246,7 +266,7 @@ export function leaderFor(run, ctx, order) {
 }
 
 // The name of the place you play in ("Kanto", or "Kanto · Team Rocket" on a Team path)
-export const regionOf = (run, ctx) => (run.settings.path === "mixed" ? "All regions" : run.settings.path === "evil" ? ctx.evil[run.settings.gen].region : ctx.leaders[run.settings.gen].region);
+export const regionOf = (run, ctx) => (run.settings.path === "mixed" ? "All regions" : run.settings.path === "gauntlet" ? "Gauntlet" : run.settings.path === "evil" ? ctx.evil[run.settings.gen].region : ctx.leaders[run.settings.gen].region);
 
 // Random gyms (mode): which gym stands in each of the first 8 battles. Every leader is { gen, order } (their place in their own game).
 //   shuffled (the Rainbow mode): the 8 gyms of your Challenge Gen, in a random order
@@ -295,6 +315,20 @@ function teamLines(run, ctx, strict = false) {
   return lines;
 }
 
+// Mono type (mode): a Pokémon that is not of the type yet but evolves into it ("Onix" in a Steel run) can be recruited. It waits on
+// the bench, out of battle, until it has evolved into the type (see benched()).
+export function eventuallyType(ctx, key, type) {
+  const seen = new Set();
+  const walk = (k) => {
+    if (seen.has(k)) return false;
+    seen.add(k);
+    if (ctx.data.pokemonByKey[k]?.types.includes(type)) return true;
+    return (ctx.dex.evolvesTo[k] ?? []).some((e) => walk(e.to));
+  };
+  return walk(key);
+}
+export const benched = (run, ctx, mon) => !!run.settings?.monoType && !ctx.data.pokemonByKey[mon.species].types.includes(run.settings.monoType);
+
 // Candidate lines grouped by tier
 function candidateLines(run, ctx, { level, starter, strict = false }) {
   const { dex, data } = ctx;
@@ -318,12 +352,15 @@ function candidateLines(run, ctx, { level, starter, strict = false }) {
       if (!species.length) continue;
     }
     // Mono type (mode): only Pokémon of the chosen type
+    let pending = false;
     if (run.settings?.monoType) {
-      species = species.filter((k) => data.pokemonByKey[k].types.includes(run.settings.monoType));
-      if (!species.length) continue;
+      const typed = species.filter((k) => data.pokemonByKey[k].types.includes(run.settings.monoType));
+      if (typed.length) species = typed;
+      else if (!starter && species.some((k) => eventuallyType(ctx, k, run.settings.monoType))) pending = true; // not the type yet, but it will be
+      else continue;
     }
     const tier = dex.tier(root);
-    (byTier[tier] ??= []).push({ root, species });
+    (byTier[tier] ??= []).push({ root, species, pending });
   }
   return byTier;
 }
@@ -349,7 +386,7 @@ export function makeRecruitOffer(run, ctx, { count, picks, odds, level, starter 
     usedRoots.add(pick.root);
     const species = pickOne(run, pick.species);
     const spec = newSpec(run, ctx, species, level);
-    options.push({ spec, tier: tier ?? ctx.dex.tier(pick.root), taken: false });
+    options.push({ spec, tier: tier ?? ctx.dex.tier(pick.root), taken: false, ...(pick.pending ? { pending: true } : {}) });
   }
   // Type Magnet (skill tree, the favoured type of the Rules window): every recruit screen has this many cards of that type, when any can be offered.
   // The cards come from the same lines as the others (the dupes clause and the level still decide), and replace cards of other types.
@@ -480,7 +517,7 @@ function finishOffer(run, ctx) {
   if (offer.kind === "recruit") {
     startItemOffer(run, ctx);
   } else {
-    enterHub(run, ctx, run.order + 1);
+    enterHub(run, ctx, nextOrder(run));
   }
 }
 
@@ -491,7 +528,7 @@ function finishOffer(run, ctx) {
 function startItemOffer(run, ctx) {
   const row = rowFor(ctx, run.order);
   if (!row?.itemOptions || run.settings.modes?.noitems) { // (No items mode: no item screens)
-    enterHub(run, ctx, run.order + 1);
+    enterHub(run, ctx, nextOrder(run));
     return;
   }
   const odds = itemOddsFor(ctx.rules, run.order);
@@ -547,7 +584,7 @@ function removeFromBag(run, id, n = 1) {
 export function enterHub(run, ctx, order) {
   run.order = order;
   run.screen = "hub";
-  levelTeam(run, ctx, playerLevelFor(ctx, order));
+  levelTeam(run, ctx, playerLevelFor(ctx, order, chapterBump(run)));
   // The next opponent is usually already known (revealed after the previous win)
   run.opponent = run.nextOpponent?.order === order ? run.nextOpponent : chooseOpponent(run, ctx, order);
   run.nextOpponent = null;
@@ -910,10 +947,11 @@ export function chooseOpponent(run, ctx, order) {
   const baseRow = rowFor(ctx, order);
   const hard = !!run.settings?.modes?.hard;
   const evilLevels = run.settings?.path === "evil" ? EVIL_LEVELS : 0;
-  const row = hard || evilLevels ? { ...baseRow, level: baseRow.level + (hard ? HARD_MODE_LEVELS : 0) + evilLevels, teamSize: hard && order >= HARD_MODE_EXTRA_FROM && order < FINAL_ORDER ? Math.min(6, baseRow.teamSize + 1) : baseRow.teamSize } : baseRow; // Hard mode (see HARD_MODE_LEVELS)
+  const bump = chapterBump(run); // the Gauntlet: every chapter is harder
+  const row = hard || evilLevels || bump ? { ...baseRow, level: baseRow.level + (hard ? HARD_MODE_LEVELS : 0) + evilLevels + bump, teamSize: hard && order >= HARD_MODE_EXTRA_FROM && order < FINAL_ORDER ? Math.min(6, baseRow.teamSize + 1) : baseRow.teamSize } : baseRow; // Hard mode (see HARD_MODE_LEVELS)
   const name = order === FINAL_ORDER ? run.rival.name : entry.name;
   const base = { order, id: entry.id, sprites: entry.sprites, gen: entry.gen, gymOrder: entry.gymOrder, name, title: entry.title, theme: entry.theme, level: row.level,
-    playerLevel: baseRow.level + (baseRow.levelBonus ?? 0), teamSize: row.teamSize };
+    playerLevel: baseRow.level + (baseRow.levelBonus ?? 0) + bump, teamSize: row.teamSize };
   // Team pools (§5) take priority over handcrafted sets
   const pool = run.settings.path === "evil" ? null : ctx.rules.teamPools?.[entry.gen ?? run.settings.gen]?.[order === FINAL_ORDER ? `rival-${run.rival.id}` : entry.id];
   if (pool?.some((g) => g?.length)) return { ...base, pooled: true, team: poolTeam(run, ctx, entry, row, pool) };
@@ -1029,29 +1067,35 @@ export function poolTeam(run, ctx, entry, row, groups) {
 }
 
 // Until a leader has a pool or handmade sets: a random team that fits their type theme
-// An evil team's grunt, admin or executive (the path files in data/leaders/evil*.json): the character's signature Pokémon come first,
-// then the team's own Pokémon, whatever their type, then, only if that is not enough, any Pokémon of the arena type.
+// An evil team's grunt, admin, executive or boss (the path files in data/leaders/evil*.json): a boss's anchors are always there, then the character's signature Pokémon,
+// then the team's own Pokémon (half of them of the battle's type, when the pool has them), then, only if that is not enough, any Pokémon of the arena type.
 function personalTeam(run, ctx, entry, row) {
   const { dex, data } = ctx;
   const level = row.level;
-  const stageOf = (key) => {
+  const stageOf = (key, allowLegend = false) => {
     const stages = dex.highestLegalStages(dex.lineOf[key] ?? key, level);
     const p = stages.length && data.pokemonByKey[stages[Math.floor(nextRandom(run) * stages.length)]];
-    return p && !p.isLegendary && !p.isMythical ? p.key : null;
+    return p && (allowLegend || (!p.isLegendary && !p.isMythical)) ? p.key : null;
   };
   const shuffle = (list) => { const a = [...list]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(nextRandom(run) * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
   const lines = new Set();
   const team = [];
-  const add = (key) => {
+  const add = (key, allowLegend = false, onlyTheme = false) => {
     const line = dex.lineOf[key] ?? key;
     if (!key || lines.has(line) || team.length >= row.teamSize) return;
-    const species = stageOf(key);
-    if (!species) return;
+    const species = stageOf(key, allowLegend);
+    if (!species || (onlyTheme && !data.pokemonByKey[species].types.includes(entry.theme))) return;
     lines.add(line);
     team.push(opponentMon(run, ctx, species, level, row.order));
   };
-  for (const key of shuffle(entry.signature ?? []).slice(0, Math.max(1, row.teamSize - 2))) add(key);
-  for (const k of shuffle(entry.pool)) add(k); // (not tied to the battle's type: the arena type only matters for the rewards)
+  const anchors = entry.anchor ?? []; // a boss's legendary Pokémon: always there
+  for (const key of anchors) add(key, true);
+  for (const key of shuffle(entry.signature ?? []).slice(0, Math.max(1, row.teamSize - anchors.length - 2))) add(key);
+  // The battle's type tag is honest: half the team (rounded up) is of that type when the pool has the Pokémon, the rest is anything from the pool
+  const pool = shuffle(entry.pool);
+  const isTheme = (m) => data.pokemonByKey[m.species].types.includes(entry.theme);
+  if (entry.theme && row.order <= 12) for (const k of pool) if (team.filter(isTheme).length < Math.ceil(row.teamSize / 2)) add(k, false, true);
+  for (const k of pool) add(k);
   if (team.length < row.teamSize) {
     for (const mon of placeholderTeam(run, ctx, entry, { ...row, teamSize: row.teamSize + team.length })) {
       if (team.length >= row.teamSize) break;
@@ -1104,11 +1148,15 @@ export function startBattle(run, ctx) {
     if (item?.kind === "bag" && item.battle) bag[id] = { name: item.name, count, effect: item.effect };
   }
   const title = run.opponent.title === "Rival" ? "Rival" : run.opponent.title;
+  // Mono type: Pokémon that are not of the type yet stay on the bench (unless that would leave nobody to fight)
+  let roster = run.team.filter((m) => !benched(run, ctx, m));
+  if (!roster.length) roster = [...run.team];
+  run.battleUids = roster.map((m) => m.uid);
   const battle = Battle.create(ctx.data, {
     seed: Math.floor(nextRandom(run) * 2 ** 32),
     terrain: run.opponent.theme ?? "normal", // Camouflage turns into the arena's type
     sides: [
-      { name: "You", isPlayer: true, team: run.team.map((m) => ({ ...m, level: m.level + levelBump(run) })), bag, badge: withTrainerEffects(battleBonus(run, ctx.rules), run), bonus: run.perks?.tree },
+      { name: "You", isPlayer: true, team: roster.map((m) => ({ ...m, level: m.level + levelBump(run) })), bag, badge: withTrainerEffects(battleBonus(run, ctx.rules), run), bonus: run.perks?.tree },
       { name: `${title} ${run.opponent.name}`, team: foe.team, script: foe.script },
     ],
   });
@@ -1146,8 +1194,10 @@ export function finishBattle(run, ctx) {
   const won = st.winner === 0;
   const side = st.sides[0];
   const survivors = [];
+  const roster = (run.battleUids ?? run.team.map((m) => m.uid)).map((uid) => run.team.find((m) => m.uid === uid));
+  const bench = run.team.filter((m) => !roster.includes(m)); // (Mono type: waiting for their type)
   side.team.forEach((bm, i) => {
-    const mon = run.team[i];
+    const mon = roster[i];
     // Items that are only used up for the length of the battle (the Focus Sash)
     const keeps = RESTORED_AFTER_BATTLE.has(bm.consumedItem) && !bm.item ? bm.consumedItem : null;
     const saves = (run.charFx?.revive ?? 0) + (run.perks?.revive ?? 0); // Kris, and the tree's Second Chance
@@ -1174,7 +1224,9 @@ export function finishBattle(run, ctx) {
     // (knocked off / swapped away items come back after battle)
     survivors.push(mon);
   });
-  run.team = survivors;
+  const alive = new Set(survivors);
+  run.team = run.team.filter((m) => alive.has(m) || bench.includes(m)); // (keeps the team order)
+  delete run.battleUids;
   for (const [id, n] of Object.entries(side.usedItems ?? {})) removeFromBag(run, id, n);
   run.lastBattle = { won, order: run.order, opponent: run.opponent.name, fallen: run.fallen.filter((f) => f.order === run.order) };
   if (run.revivedNow) { run.lastBattle.revived = run.revivedNow; delete run.revivedNow; } // Kris saved someone
@@ -1202,21 +1254,32 @@ export function finishBattle(run, ctx) {
       if (t && !run.tms.includes(t)) { run.tms.push(t); extraTms.push(t); }
     }
     run.lastBattle.rewards = { money: prize, interest, flawless, tm, extraTms, badge };
+    // The Gauntlet: the rival of a chapter is beaten, on to the next region (its leaders, its rival, 6 levels more)
+    if (isGauntlet(run) && run.order >= FINAL_ORDER && run.chapter < GAUNTLET_CHAPTERS - 1 && run.team.length) {
+      const done = ctx.leaders[run.settings.gen].region;
+      run.chapter += 1;
+      run.settings.gen = run.chapterGens[run.chapter];
+      run.rival = pickOne(run, leaderFor(run, ctx, FINAL_ORDER).options);
+      run.chapterJustEnded = true;
+      (run.messages ??= []).push(`Chapter ${run.chapter} of ${GAUNTLET_CHAPTERS} cleared: ${done}! Next up: ${ctx.leaders[run.settings.gen].region}.`);
+    }
     // Reveal who's next, so recruit choices can be based on it
-    if (run.order < FINAL_ORDER && run.team.length) run.nextOpponent = chooseOpponent(run, ctx, run.order + 1);
+    if ((run.order < FINAL_ORDER || run.chapterJustEnded) && run.team.length) run.nextOpponent = chooseOpponent(run, ctx, nextOrder(run));
   }
 
   if (!won || !run.team.length) {
     run.screen = "over";
     return;
   }
-  if (run.order >= FINAL_ORDER) {
+  const chapterEnded = !!run.chapterJustEnded; // (the Gauntlet goes on)
+  delete run.chapterJustEnded;
+  if (run.order >= FINAL_ORDER && !chapterEnded) {
     run.screen = "won";
     return;
   }
-  const row = rowFor(ctx, run.order);
+  const row = chapterEnded ? rowFor(ctx, 13) : rowFor(ctx, run.order); // (the rival's row has no recruit screen)
   if (row.recruitOptions > 0 && !run.settings.fixedSix) { // Fixed Six: no recruit screens after the draft
-    const level = playerLevelFor(ctx, run.order + 1);
+    const level = playerLevelFor(ctx, nextOrder(run), chapterBump(run));
     // Replacement picks: +1 pick and +1 card per Pokémon lost this battle (DESIGN.md §3a)
     const lost = run.lastBattle.fallen.length;
     const bonus = Math.min(REPLACEMENT_PICK_CAP, lost, Math.max(0, 6 - run.team.length));

@@ -68,6 +68,7 @@ export const CHALLENGES = [
   { id: "noitems-win", tier: 5, name: "No items", text: "Win with No items on.", rule: "Needs the No items rule", check: (team, run) => !!run.settings?.modes?.noitems },
   // The final path (opens when all five generations are won)
   { id: "mixed-win", tier: 5, name: "Mixed Gens", text: "Win the Mixed Gens path.", rule: "Needs Mixed Gens (win all 5 generations first)", check: (t, run) => run.settings?.path === "mixed" },
+  { id: "gauntlet-win", tier: 5, name: "Gauntlet", text: "Win the Gauntlet: all five regions back to back.", rule: "Needs the Gauntlet (win all 5 generations first)", check: (t, run) => run.settings?.path === "gauntlet" },
   { id: "mixed-hard", tier: 5, name: "Mixed and hard", text: "Win Mixed Gens with Hard mode on.", rule: "Needs Mixed Gens and the Hard mode rule", check: (t, run) => run.settings?.path === "mixed" && !!run.settings?.modes?.hard },
   // Secret: super hard, only listed once you have beaten most of the others (or one of them by accident)
   { id: "secret-perfect", secret: true, tier: 5, name: "Perfect champion", text: "Win with Hard mode on and nobody falling.", rule: "Needs the Hard mode rule",
@@ -94,7 +95,7 @@ export const PLANNED = [
 
 // Older Hall of Fame entries: challenges that only depend on the winning team, its fallen Pokémon and the saved run rules.
 // Re-checked at start up so a win from before a challenge existed still counts (and nothing is lost if the tick was missed).
-const BACKFILL = new Set(["flawless", "fully-evolved", "shiny", "starters", "legend", "fixed-six", "mixed-win", "mixed-hard", "evil-1", "evil-2", "evil-3", "evil-4", "evil-5", "hard-win", "gyms-win", "mono-win", "noitems-win", "secret-perfect", "secret-pure", "secret-iron", ...MONO_TYPES.map((m) => m.id)]);
+const BACKFILL = new Set(["flawless", "fully-evolved", "shiny", "starters", "legend", "fixed-six", "mixed-win", "gauntlet-win", "mixed-hard", "evil-1", "evil-2", "evil-3", "evil-4", "evil-5", "hard-win", "gyms-win", "mono-win", "noitems-win", "secret-perfect", "secret-pure", "secret-iron", ...MONO_TYPES.map((m) => m.id)]);
 export function backfillChallenges(meta, hof, ctx) {
   const done = new Set(meta.challenges ?? []);
   const before = done.size;

@@ -12,7 +12,7 @@ import { startTitleBanner } from "./title-banner.js";
 import { terrainFor } from "./terrain.js";
 import { CHARACTERS, GEN_LABELS, characterById } from "../game/characters.js";
 import { SPRITE_MODES, applySpriteMode } from "../game/sprite-mode.js";
-import { isUnlocked, HIDDEN_TRAINERS, unlockText, unlockedIds, grantUnlocks, nextHint as nextUnlockHint, MAX_UNLOCKS_PER_RUN } from "../game/unlocks.js";
+import { isUnlocked, HIDDEN_TRAINERS, unlockText, unlockedIds, grantUnlocks, nextHint as nextUnlockHint, ruleProgressText, MAX_UNLOCKS_PER_RUN } from "../game/unlocks.js";
 import { noteBattleWon, STARTER_LINES } from "../game/progress.js";
 import { sceneHtml, alignScene } from "./title-banner.js";
 import { CASE_SIZE, badgeId, badgeImage, badgeName, caseOf, caseStrengths, ownedBadges, randomZones, validZones, SLOT_UNLOCKS, slotUnlocked, unlockedSlotCount, statOfBadge, badgeStatBoost, STAT_NAME, parseBadgeId, perkInfo, perkOfBadge, perkParam, placeBadge, removeBadge, setBonus, unlockBadge } from "../game/badges.js";
@@ -22,8 +22,8 @@ import { play as playMusic } from "../game/music.js";
 import { CHALLENGES, MONO_TYPES, PLANNED, secretAt, secretRevealed } from "../game/challenges.js";
 import { VERSION } from "../version.js";
 import * as Run from "../game/run.js";
-import { loadMeta, saveMeta, buyUpgrade, canBuyUpgrade, upgradeLevel, lockReason, nextCost, perksFromMeta, unlockedRules, winsInGen, MONO_UNLOCK, monoChallengesDone, spentOnTree, respecTree, RESPEC_FEE, trainerPointsFor, recordRun, noteSave } from "../game/meta.js";
-import { cloudAvailable, state as cloudState, onCloudChange, signIn, signOutUser, allPlayers, topPlayers, LEADERBOARDS, publicName, cleanUsername, cleanTagline, setSyncChooser, setPublicStats } from "../game/cloud.js";
+import { loadMeta, saveMeta, buyUpgrade, canBuyUpgrade, upgradeLevel, lockReason, nextCost, perksFromMeta, unlockedRules, winsInGen, tpCheck, restoreTp, MONO_TRIALS_NEEDED, monoTrials, monoTrialsDone, spentOnTree, respecTree, RESPEC_FEE, trainerPointsFor, recordRun, noteSave } from "../game/meta.js";
+import { cloudAvailable, state as cloudState, onCloudChange, signIn, signOutUser, allPlayers, publicName, cleanUsername, cleanTagline, setSyncChooser, setPublicStats } from "../game/cloud.js";
 import { buildStats, ownedSpecies } from "../game/stats.js";
 import { ITEMS, POCKETS, pocketOf, itemInfo, itemSprite } from "../game/item-catalog.js";
 import { itemLabel } from "../game/pokedex.js";
@@ -59,7 +59,9 @@ const DETAIL_TABS = [
   { id: "moves", label: "Moves", icon: "tm-normal" },
 ];
 // Which generation's wins open the run rules (Mixed Gens counts your best generation)
-const ruleGen = (meta) => (meta.setup?.path === "mixed" ? "m" : meta.setup?.gen);
+const ruleGen = (meta) => (["mixed", "gauntlet"].includes(meta.setup?.path) ? "m" : meta.setup?.gen);
+// The colour of a progress text: nothing yet, on the way, nearly there
+const progressClass = (share) => (share >= 0.75 ? "near" : share > 0 ? "some" : "none");
 const TYPE_CHOICES = ["normal", "fire", "water", "electric", "grass", "ice", "fighting", "poison", "ground", "flying", "psychic", "bug", "rock", "ghost", "dragon", "dark", "steel"];
 const cap = (t) => t.charAt(0).toUpperCase() + t.slice(1);
 const STOP_LABELS = ["1", "2", "3", "4", "5", "6", "7", "8", "E1", "E2", "E3", "E4", "C", "R"];
@@ -263,7 +265,10 @@ export class RunUI {
     this.hub.className = "hub framed";
     this.hub.innerHTML = `
       <div class="offer-head"><h1>Leaderboards</h1><button class="btn" data-act="title">◀ Title</button></div>
-      <div class="tabs board-tabs">${[{ id: "ranks", label: "Ranks" }, ...LEADERBOARDS, { id: "hof", label: "Hall of Fame" }, { id: "challenges", label: "Challenges" }, { id: "pokemon", label: "Most used" }].map((b) => `<button class="tab ${b.id === boardId ? "active" : ""}" data-act="board" data-board="${b.id}">${b.label}</button>`).join("")}</div>
+      <div class="tabs board-tabs">
+        ${[{ id: "ranks", label: "Players" }, { id: "challenges", label: "Challenges" }].map((b) => `<button class="tab ${b.id === boardId ? "active" : ""}" data-act="board" data-board="${b.id}">${b.label}</button>`).join("")}
+        <span class="tab-group" role="group" aria-label="Long lists"><em>Lists</em>${[{ id: "hof", label: "Hall of Fame" }, { id: "pokemon", label: "Most used" }].map((b) => `<button class="tab ${b.id === boardId ? "active" : ""}" data-act="board" data-board="${b.id}">${b.label}</button>`).join("")}</span>
+      </div>
       ${boardId === "hof" ? `<p class="rank-note">The latest winning teams of all players, newest first.</p>` : ""}
       ${boardId === "challenges" ? `<p class="rank-note">Special goals for a winning run. Beat one in any run to put your name on it.</p>` : ""}
       ${boardId === "pokemon" ? `<p class="rank-note">The Pokémon that were in the most winning Hall of Fame teams, across all players.</p>` : ""}
@@ -271,7 +276,9 @@ export class RunUI {
       ${boardId === "ranks" ? `<p class="rank-note">Everyone starts at Z. Climb towards A: points for your furthest run, every Champion win and flawless win, every badge and every trainer you unlock.</p>` : ""}
       <section class="card-panel"><ol class="board-list" data-board-list><li class="empty-note">Loading…</li></ol></section>`;
     this.boardPlayers = new Map(); // uid → the line, for the profile window
-    const avatarOf = (p) => { const c = CHARACTERS.find((x) => x.id === p.avatar); return c ? `<img class="board-avatar" src="${c.front}" alt="">` : ""; };
+    const avatarOf = (p) => { const c = CHARACTERS.find((x) => x.id === p.avatar); return c ? `<img class="board-avatar" src="${c.front}" alt="">` : `<img class="board-avatar default" src="images/ui/ball.png" alt="" title="No trainer picked yet">`; };
+    const stagger = (box) => box.querySelectorAll(":scope > li").forEach((li, i) => li.style.setProperty("--i", Math.min(i, 24)));
+    const favOf = (p) => { const list = (p.favs ?? []).filter((k) => this.ctx.data.pokemonByKey[k]); const mon = list.length ? this.ctx.data.pokemonByKey[list[Math.floor(Math.random() * list.length)]] : null; return mon ? `<img class="rc-fav" src="${mon.sprites.front}" alt="${escapeHtml(mon.name)}" title="${escapeHtml(mon.name)}">` : ""; };
     this.hub.onclick = (e) => {
       const el = e.target.closest("[data-act]");
       if (el?.dataset.act === "title") this.start();
@@ -281,7 +288,7 @@ export class RunUI {
     };
     if (boardId === "hof" || boardId === "challenges") {
       let players;
-      try { players = await allPlayers(); } catch (err) { console.error(err); players = null; }
+      try { players = this.patchMine(await allPlayers()); } catch (err) { console.error(err); players = null; }
       const box = this.hub.querySelector("[data-board-list]");
       if (!box) return;
       const myId = cloudState().user?.uid;
@@ -292,9 +299,9 @@ export class RunUI {
         const total = Math.max(1, players.length);
         const row = (c) => {
           const done = players.filter((p) => p.challenges?.includes(c.id)).sort((a, b) => String(a.name).localeCompare(String(b.name)));
-          const pills = done.slice(0, 10).map((p) => `<span class="user-pill clickable ${p.uid === myId ? "me" : ""}" data-uid="${p.uid}">${escapeHtml(p.name ?? "Trainer")}</span>`).join("") + (done.length > 10 ? `<span class="user-pill more">+${done.length - 10} more</span>` : "");
+          const pills = done.slice(0, 10).map((p) => `<span class="user-pill clickable ${p.uid === myId ? "me" : ""}" data-uid="${p.uid}">${avatarOf(p).replace("board-avatar", "pill-avatar")}${escapeHtml(p.name ?? "Trainer")}</span>`).join("") + (done.length > 10 ? `<span class="user-pill more">+${done.length - 10} more</span>` : "");
           return `<li class="challenge-row ${mine.has(c.id) ? "done" : ""}"><span class="ch-check" title="${mine.has(c.id) ? "You beat this one" : "Not beaten yet"}">${mine.has(c.id) ? "✓" : ""}</span>
-            <span class="who"><span class="ch-title"><strong>${c.name}</strong><em class="ch-tag ${c.rule ? "rule" : ""}">${c.rule ? `Rule: ${c.rule}` : "Any run"}</em></span><small>${c.text}${c.hint ? ` <em class="ch-hint">${c.hint}</em>` : ""}</small>
+            <span class="who"><span class="ch-title"><strong>${c.name}</strong><em class="ch-tag ${c.rule ? "rule" : ""}">${c.rule ? `Rule: ${c.rule}` : "Any run"}</em>${mine.has(c.id) ? `<em class="ch-done-tag">Done</em>` : ""}</span><small>${c.text}${c.hint ? ` <em class="ch-hint">${c.hint}</em>` : ""}</small>
             <span class="ch-bar" title="${done.length} of ${players.length} players"><i style="width:${Math.round(done.length / total * 100)}%"></i></span>
             ${done.length ? `<span class="user-pills">${pills}</span>` : ""}</span>
             <b>${done.length}<small> / ${players.length}</small></b></li>`;
@@ -303,6 +310,7 @@ export class RunUI {
           + this.challengeRows(CHALLENGES, mine, row)
           + `<li class="ch-head soon"><b>Coming soon</b><small>Ideas on the list. They aren't tracked yet.</small></li>`
           + PLANNED.map((c) => `<li class="challenge-row planned"><span class="ch-check"></span><span class="who"><span class="ch-title"><strong>${c.name}</strong></span><small>${c.text}${c.hint ? ` <em class="ch-hint">${c.hint}</em>` : ""}</small></span></li>`).join("");
+        stagger(box);
         return;
       }
       for (const p of players) this.boardPlayers.set(p.uid, p);
@@ -311,11 +319,12 @@ export class RunUI {
       box.innerHTML = entries.length ? entries.map((e) => `<li class="hof-row clickable ${e.uid === myId ? "me" : ""}" data-uid="${e.uid}"><span class="who"><strong>${avatarOf(e)}${escapeHtml(e.name)}</strong><small>${e.d} · Gen ${e.g} ${this.ctx.leaders[e.g]?.region ?? ""} · ${e.f ? `${e.f} fallen` : "Flawless"}</small>
           <span class="hof-mini">${e.t.filter((m) => this.ctx.data.pokemonByKey[m.s]).map((m) => { const mon = this.ctx.data.pokemonByKey[m.s]; return `<span class="mon" title="${mon.name} Lv ${m.l}"><img src="${m.sh ? mon.sprites.frontShiny : mon.sprites.front}" alt="${mon.name}"><small>Lv ${m.l}</small></span>`; }).join("")}</span></span></li>`).join("")
         : `<li class="empty-note">No champion teams yet. Win a run to start the board!</li>`;
+      stagger(box);
       return;
     }
     if (boardId === "pokemon") {
       let players;
-      try { players = await allPlayers(); } catch (err) { console.error(err); players = null; }
+      try { players = this.patchMine(await allPlayers()); } catch (err) { console.error(err); players = null; }
       const box = this.hub.querySelector("[data-board-list]");
       if (!box) return;
       const totals = {};
@@ -330,40 +339,55 @@ export class RunUI {
       }
       const pills = (k) => {
         const list = users[k].sort((a, b) => b.n - a.n || a.name.localeCompare(b.name));
-        return `<span class="user-pills">${list.slice(0, 6).map((u) => `<span class="user-pill clickable" data-uid="${u.uid}">${escapeHtml(u.name)}${u.n > 1 ? ` x ${u.n}` : ""}</span>`).join("")}${list.length > 6 ? `<span class="user-pill more">+${list.length - 6} more</span>` : ""}</span>`;
+        return `<span class="user-pills">${list.slice(0, 6).map((u) => `<span class="user-pill clickable" data-uid="${u.uid}">${avatarOf(this.boardPlayers.get(u.uid) ?? {}).replace("board-avatar", "pill-avatar")}${escapeHtml(u.name)}${u.n > 1 ? ` x ${u.n}` : ""}</span>`).join("")}${list.length > 6 ? `<span class="user-pill more">+${list.length - 6} more</span>` : ""}</span>`;
       };
       const top = Object.entries(totals).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 20);
       box.innerHTML = players === null ? `<li class="empty-note">Could not load the leaderboard.</li>`
         : top.length ? top.map(([k, n], i) => { const mon = this.ctx.data.pokemonByKey[k];
           return `<li><span class="rank">${i + 1}</span><img class="board-mon" src="${mon.sprites.front}" alt=""><span class="who">${escapeHtml(mon.name)}${pills(k)}</span><b>${n}<small> ${n === 1 ? "win" : "wins"}</small></b></li>`; }).join("")
         : `<li class="empty-note">No champion teams yet. Win a run to start the list!</li>`;
+      stagger(box);
       return;
     }
-    if (boardId !== "ranks") {
-      const board = LEADERBOARDS.find((b) => b.id === boardId) ?? LEADERBOARDS[0];
-      let top;
-      try { top = await topPlayers(board); } catch (err) { console.error(err); top = null; }
-      const box = this.hub.querySelector("[data-board-list]");
-      if (!box) return;
-      const myId = cloudState().user?.uid;
-      box.innerHTML = top === null ? `<li class="empty-note">Could not load the leaderboard.</li>`
-        : top.length ? top.map((p, i) => { this.boardPlayers.set(p.uid, p); return `<li class="clickable ${p.uid === myId ? "me" : ""}" data-uid="${p.uid}"><span class="rank">${i + 1}</span><span class="who">${avatarOf(p)}${escapeHtml(p.name ?? "Trainer")}</span><b>${board.format ? board.format(p[board.field]) : p[board.field]}${board.suffix ?? ""}</b></li>`; }).join("")
-        : `<li class="empty-note">Nobody on this board yet. Win a run to be first!</li>`;
-      return;
-    }
+    // One table for the players: rank, Champion wins, trainers unlocked and badges. Click a heading to sort by it.
     let rows;
-    try { rows = (await allPlayers()).map((p) => ({ ...p, score: rankScore(p) })).sort((a, b) => b.score - a.score || (b.wins ?? 0) - (a.wins ?? 0) || String(a.name).localeCompare(String(b.name))); } catch (err) { console.error(err); rows = null; }
+    try { rows = this.patchMine(await allPlayers()).map((p) => ({ ...p, score: rankScore(p) })); } catch (err) { console.error(err); rows = null; }
     const list = this.hub.querySelector("[data-board-list]");
     if (!list) return; // left the screen meanwhile
     const me = cloudState().user?.uid;
-    list.innerHTML = rows === null ? `<li class="empty-note">Could not load the ranks.</li>`
-      : rows.length ? rows.map((p, i) => {
+    if (rows === null) { list.innerHTML = `<li class="empty-note">Could not load the ranks.</li>`; return; }
+    if (!rows.length) { list.innerHTML = `<li class="empty-note">Nobody here yet. Win a run to be first!</li>`; return; }
+    this.boardSort ??= "score";
+    const COLUMNS = [["score", "Rank"], ["wins", "Champion wins"], ["trainers", "Trainers"], ["badges", "Badges"]];
+    const favs = new Map(rows.map((p) => [p.uid, favOf(p)])); // (the same Pokémon while you sort)
+    const draw = () => {
+      const key = this.boardSort;
+      const sorted = [...rows].sort((a, b) => (b[key] ?? 0) - (a[key] ?? 0) || b.score - a.score || String(a.name).localeCompare(String(b.name)));
+      const head = `<li class="board-head"><span></span><span></span><span class="bh-player">Player</span>${COLUMNS.map(([k, label]) => `<button class="bh-col ${k === key ? "on" : ""}" data-act="sort" data-sort="${k}">${label}${k === key ? " ▾" : ""}</button>`).join("")}</li>`;
+      list.innerHTML = head + sorted.map((p, i) => {
         const r = rankOf(p.score);
         const bar = r.next ? `<span class="rank-bar" title="${r.next - p.score} points to the next letter"><i style="width:${Math.round((p.score - r.from) / (r.next - r.from) * 100)}%"></i></span>` : `<span class="rank-bar top"><i style="width:100%"></i></span>`;
         this.boardPlayers.set(p.uid, p);
-        return `<li class="clickable ${p.uid === me ? "me" : ""}" data-uid="${p.uid}"><span class="rank">${i + 1}</span><span class="rank-letter">${r.letter}</span><span class="who">${avatarOf(p)}${escapeHtml(p.name ?? "Trainer")}${bar}</span><b>${p.score}<small> pts</small></b></li>`;
-      }).join("")
-      : `<li class="empty-note">Nobody here yet. Win a run to be first!</li>`;
+        const t = (25 - (r.letter.charCodeAt(0) - 65)) / 25; // 0 for Z, 1 for A: from a dull blue to gold
+        const colour = `hsl(${Math.round(215 - 165 * t)} ${Math.round(25 + 65 * t)}% ${Math.round(48 + 14 * t)}%)`;
+        const cell = (k, v, small = "") => `<b class="bh-val ${k === key ? "on" : ""}">${v}${small ? `<small>${small}</small>` : ""}</b>`;
+        return `<li class="rank-card player-row clickable ${p.uid === me ? "me" : ""} ${i < 3 ? `podium p${i + 1}` : ""}" data-uid="${p.uid}" style="--lc:${colour}">
+          <span class="rank-pos">${["🥇", "🥈", "🥉"][i] ?? i + 1}</span>
+          <span class="rank-letter" style="background:${colour}">${r.letter}</span>
+          <span class="pr-player">${avatarOf(p).replace("board-avatar", "rc-avatar")}<span class="rc-main"><b class="rc-name">${escapeHtml(p.name ?? "Trainer")}</b><small>${p.tagline ? escapeHtml(p.tagline) : `${p.score} pts`}</small>${bar}</span>${favs.get(p.uid)}</span>
+          ${cell("score", p.score, " pts")}${cell("wins", p.wins ?? 0)}${cell("trainers", p.trainers ?? 1)}${cell("badges", p.badges ?? 0, " / 40")}</li>`;
+      }).join("");
+      stagger(list);
+    };
+    this.boardSort = COLUMNS.some(([k]) => k === this.boardSort) ? this.boardSort : "score";
+    draw();
+    list.onclick = (e) => {
+      const b = e.target.closest("[data-act='sort']");
+      if (!b) return;
+      e.stopPropagation();
+      this.boardSort = b.dataset.sort;
+      draw();
+    };
   }
 
   // ===============================
@@ -371,6 +395,15 @@ export class RunUI {
   // ===============================
 
   // Everything the profile header needs: the trainer avatar, the name, the rank
+  // Your own line on the boards always shows your current trainer, tagline and favourites (the saved line can be older)
+  patchMine(list) {
+    const uid = cloudState().user?.uid;
+    if (!uid) return list;
+    const meta = loadMeta();
+    const me = this.myProfile(meta);
+    return list.map((p) => (p.uid === uid ? { ...p, avatar: me.avatar.id, tagline: me.tagline || p.tagline, favs: (meta.profile?.favs ?? []).filter(Boolean).length ? meta.profile.favs.filter(Boolean) : p.favs } : p));
+  }
+
   myProfile(meta) {
     const hof = store.get(HOF_KEY) ?? [];
     const unlocks = this.ctx.rules.characterUnlocks ?? {};
@@ -400,7 +433,7 @@ export class RunUI {
     if (tab === "stats") {
       const sections = buildStats(meta, me.hof, this.ctx, { trainers: me.trainers, trainersTotal: CHARACTERS.length });
       body = `<div class="stat-sections">${sections.map((sec) => `<section class="stat-section"><h3>${sec.title}</h3>
-        <div class="stat-grid">${sec.rows.map((r) => `<div class="stat ${r.wide ? "wide" : ""}"><span>${r.label}</span><b>${escapeHtml(String(r.value))}</b>${r.hint ? `<small>${escapeHtml(r.hint)}</small>` : ""}</div>`).join("")}</div></section>`).join("")}</div>`;
+        ${sec.action ? `<div class="tp-restore"><p>${sec.action.text}</p><button class="btn" data-act="${sec.action.act}">${sec.action.label}</button></div>` : ""}<div class="stat-grid">${sec.rows.map((r) => `<div class="stat ${r.wide ? "wide" : ""}"><span>${r.label}</span><b>${escapeHtml(String(r.value))}</b>${r.hint ? `<small>${escapeHtml(r.hint)}</small>` : ""}</div>`).join("")}</div></section>`).join("")}</div>`;
     } else {
       body = `<div class="profile-edit">
         <label class="field"><span>Name on the leaderboards</span><input data-field="username" maxlength="16" value="${escapeHtml(meta.username ?? "")}" placeholder="${escapeHtml(me.name)}"><small>Up to 16 characters. Empty uses your Google first name.</small></label>
@@ -433,6 +466,17 @@ export class RunUI {
       if (act === "ptab") { this.renderProfile(el.dataset.tab); return; }
       const m = loadMeta();
       if (act === "avatar") { (m.profile ??= {}).avatar = el.dataset.id; saveMeta(m); this.renderProfile("custom"); }
+      if (act === "restore-tp") {
+        const c = tpCheck(m, this.ctx.rules);
+        const ok = await this.modal({
+          title: "Restore Trainer Points?",
+          body: `<p>Your wins pay at least ${c.floor} TP, but the earned total is ${c.earned}. This adds the missing ${c.missing} TP to your earned total and to the points you can spend.</p>`,
+          options: [{ value: true, label: `Restore ${c.missing} TP` }],
+          cancel: "Not now",
+        });
+        if (ok) { const fresh = loadMeta(); restoreTp(fresh, this.ctx.rules); saveMeta(fresh); this.renderProfile("stats"); }
+        return;
+      }
       if (act === "clear-favs") { (m.profile ??= {}).favs = []; saveMeta(m); this.renderProfile("custom"); }
       if (act === "fav") {
         const key = await this.speciesPicker(ownedSpecies(m, me.hof, this.ctx), m.profile?.favs ?? []);
@@ -471,25 +515,37 @@ export class RunUI {
   }
 
   // Another player's profile, from the leaderboards: avatar, rank, numbers, favourite team, latest champion teams, challenges
+  // The profile window of a player (click a row on the leaderboards): a banner in their rank colour, the numbers, the favourite team, champion teams
   playerProfile(p) {
     if (!p) return;
     const { data } = this.ctx;
-    const avatar = CHARACTERS.find((c) => c.id === p.avatar) ?? characterById("lucas");
-    const rank = rankOf(rankScore(p));
+    const avatar = CHARACTERS.find((c) => c.id === p.avatar);
+    const score = rankScore(p);
+    const rank = rankOf(score);
+    const t = (25 - (rank.letter.charCodeAt(0) - 65)) / 25; // 0 for Z, 1 for A: from a dull blue to gold
+    const colour = `hsl(${Math.round(215 - 165 * t)} ${Math.round(25 + 65 * t)}% ${Math.round(48 + 14 * t)}%)`;
+    const bar = rank.next ? Math.round((score - rank.from) / (rank.next - rank.from) * 100) : 100;
     const mon = (k, extra = "") => { const d = data.pokemonByKey[k]; return d ? `<span class="pp-mon" title="${escapeHtml(d.name)}"><img src="${d.sprites.front}" alt="${escapeHtml(d.name)}">${extra}</span>` : ""; };
-    const favs = (p.favs ?? []).map((k) => mon(k, `<small>${escapeHtml(data.pokemonByKey[k]?.name ?? "")}</small>`)).join("");
-    const teams = (p.hof ?? []).map((e) => `<div class="pp-team"><small>${escapeHtml(String(e.d))} · Gen ${e.g} · ${e.f ? `${e.f} fallen` : "flawless"}</small><div>${(e.t ?? []).map((m) => mon(m.s, `<small>Lv ${m.l}</small>`)).join("")}</div></div>`).join("");
+    const favKeys = (p.favs ?? []).filter((k) => data.pokemonByKey[k]).slice(0, 6);
+    const favs = Array.from({ length: 6 }, (_, i) => favKeys[i]
+      ? `<span class="pp-fav">${mon(favKeys[i], `<small>${escapeHtml(data.pokemonByKey[favKeys[i]].name)}</small>`)}</span>`
+      : `<span class="pp-fav empty"><span>?</span></span>`).join("");
+    const teams = (p.hof ?? []).map((e) => `<div class="pp-team"><div class="pp-team-head"><b>${escapeHtml(String(e.d))}</b><span>Gen ${e.g} · ${escapeHtml(this.ctx.leaders[e.g]?.region ?? "")}</span><em class="${e.f ? "" : "flawless"}">${e.f ? `${e.f} fallen` : "Flawless"}</em></div><div class="pp-team-mons">${(e.t ?? []).map((m) => mon(m.s, `<small>Lv ${m.l}</small>`)).join("")}</div></div>`).join("");
     const done = CHALLENGES.filter((c) => p.challenges?.includes(c.id));
-    const stat = (label, value) => `<div class="stat"><span>${label}</span><b>${value}</b></div>`;
+    const stat = (icon, label, value) => `<div class="pp-stat"><i>${icon}</i><span>${label}</span><b>${value}</b></div>`;
     return this.modal({
-      title: escapeHtml(p.name ?? "Trainer"),
+      title: "",
       variant: "player-profile",
-      body: `<div class="pp-head"><img class="profile-avatar" src="${avatar.front}" alt=""><div>${p.tagline ? `<p class="pp-tagline">${escapeHtml(p.tagline)}</p>` : ""}<p class="empty-note">${p.avatar && CHARACTERS.some((c) => c.id === p.avatar) ? avatar.name : "No trainer picked yet"}</p></div>
-          <div class="profile-rank"><b>${rank.letter}</b><small>${rankScore(p)} pts</small></div></div>
-        <div class="stat-grid">${stat("Champion wins", p.wins ?? 0)}${stat("Furthest battle", `${p.best ?? 0} of 14`)}${stat("Flawless wins", p.cleanWins ?? 0)}${stat("Badges", `${p.badges ?? 0} of 40`)}${stat("Trainers", `${p.trainers ?? 0} of ${CHARACTERS.length}`)}${stat("Challenges", `${done.length} of ${CHALLENGES.length}`)}</div>
-        <h4 class="ch-section">Favourite team</h4>${favs ? `<div class="pp-mons">${favs}</div>` : `<p class="empty-note">No favourite team picked yet.</p>`}
+      body: `<div class="pp-banner" style="--lc:${colour}">
+          <div class="pp-who"><div class="pp-avatar">${avatar ? `<img src="${avatar.front}" alt="">` : `<img class="default" src="images/ui/ball.png" alt="">`}</div>
+            <div><h2 class="pp-name">${escapeHtml(p.name ?? "Trainer")}</h2>
+              <p class="pp-tagline">${p.tagline ? escapeHtml(p.tagline) : `<span class="empty-note">${avatar ? avatar.name : "No trainer picked yet"}</span>`}</p>
+              ${p.tagline && avatar ? `<p class="pp-trainer">Plays as ${avatar.name}</p>` : ""}</div></div>
+          <div class="pp-rank"><b style="background:${colour}">${rank.letter}</b><span>${score} pts</span><i class="pp-rank-bar"><i style="width:${bar}%;background:${colour}"></i></i></div></div>
+        <div class="pp-stats">${stat("🏆", "Champion wins", p.wins ?? 0)}${stat("⚔️", "Furthest battle", `${p.best ?? 0} / 14`)}${stat("✨", "Flawless wins", p.cleanWins ?? 0)}${stat("🎖️", "Badges", `${p.badges ?? 0} / 40`)}${stat("🧢", "Trainers", `${p.trainers ?? 0} / ${CHARACTERS.length}`)}${stat("✅", "Challenges", `${done.length} / ${CHALLENGES.length}`)}</div>
+        <h4 class="ch-section">Favourite team</h4><div class="pp-favs">${favs}</div>
         ${teams ? `<h4 class="ch-section">Latest champion teams</h4>${teams}` : ""}
-        ${done.length ? `<h4 class="ch-section">Challenges beaten</h4><div class="user-pills">${done.map((c) => `<span class="user-pill">${escapeHtml(c.name)}</span>`).join("")}</div>` : ""}`,
+        ${done.length ? `<h4 class="ch-section">Challenges beaten</h4><div class="user-pills">${done.map((c) => `<span class="user-pill done">✓ ${escapeHtml(c.name)}</span>`).join("")}</div>` : ""}`,
       options: [],
       cancel: "Close",
     });
@@ -530,7 +586,7 @@ export class RunUI {
         const lit = n.requires.length && n.requires.every((r) => upgradeLevel(meta, r.id) >= r.level);
 
         return `<button class="tree-node ${state} ${level ? "owned" : ""} ${lit ? "lit" : ""} ${n.id.startsWith("final-") ? "final" : ""}" data-node="${n.id}" ${stat ? `data-stat="${stat}"` : ""}
-          style="grid-column:${n.pos[0] + 1} / span ${n.span};grid-row:${rows - n.pos[1]}" title="${escapeHtml(n.effect)}">
+          style="grid-column:${n.pos[0] + 1} / span ${n.span};grid-row:${rows - n.pos[1]}" data-tip="${escapeHtml(this.nodeHint(n, level))}">
           ${n.icon ? `<img src="${itemSprite(n.icon)}" alt="">` : ""}
           <b>${escapeHtml(n.name)}</b>
           <span class="foot"><span class="pips">${n.max > 1 ? Array.from({ length: n.max }, (_, i) => `<i class="${i < level ? "on" : ""}"></i>`).join("") : ""}</span><small>${label}</small></span></button>`;
@@ -674,10 +730,25 @@ export class RunUI {
   }
 
   // How far you got in a Challenge Gen: the pips (8 gyms, Elite Four, Champion, Final Rival) and a line of text
+  // The small hover text of a Skill Tree node: "+4 HP" (and what you have so far), or the node's effect text for the others
+  nodeHint(n, level = 0) {
+    const STAT = { hp: "HP", atk: "Attack", def: "Defense", spa: "Sp. Atk", spd: "Sp. Def", spe: "Speed" };
+    const parts = n.does.split(";").map((d) => d.trim()).filter((d) => /^(stat-flat|stat-pct|tp-pct)/.test(d));
+    const others = n.does.split(";").map((d) => d.trim()).filter((d) => d && !/^(stat-flat|stat-pct|tp-pct)/.test(d));
+    if (!parts.length || others.some((d) => !d.startsWith("unlock:"))) return n.effect; // (a node that also does something else keeps its full text)
+    const text = (part, times) => {
+      const [kind, a, b] = part.split(":");
+      const v = Number(kind === "tp-pct" ? a : b) * times;
+      return kind === "stat-flat" ? `+${v} ${STAT[a]}` : kind === "stat-pct" ? `+${v}% ${STAT[a]}` : `+${v}% Trainer Points`;
+    };
+    const gain = parts.map((p) => text(p, 1)).join(", ");
+    return `${gain}${level ? ` (you have ${parts.map((p) => text(p, level)).join(", ")})` : ""}`;
+  }
+
   genProgress(meta, g) { // g is a generation (1 to 5) or "e1" to "e5" for an evil team path
     const evil = String(g).startsWith("e");
     const beaten = Math.min(14, Math.max(0, (meta.reach?.[g] ?? 1) - 1));
-    const cleared = g === "m" ? meta.mixedWins ?? 0 : evil ? meta.evilWins?.[String(g).slice(1)] ?? 0 : meta.winGens?.[g] ?? 0;
+    const cleared = g === "m" ? meta.mixedWins ?? 0 : g === "g" ? meta.gauntletWins ?? 0 : evil ? meta.evilWins?.[String(g).slice(1)] ?? 0 : meta.winGens?.[g] ?? 0;
     const pips = Array.from({ length: 14 }, (_, i) => `<i class="${i < (cleared ? 14 : beaten) ? "done" : ""} ${i < 8 ? "gym" : i < 12 ? "e4" : "top"}"></i>`).join("");
     const text = cleared ? `Cleared ${cleared > 1 ? `×${cleared}` : "✓"}` : beaten ? `Best: ${beaten} of 14 beaten` : "Not played yet";
     return { pips: `<span class="gen-progress" aria-hidden="true">${pips}</span>`, text };
@@ -703,7 +774,8 @@ export class RunUI {
     const slots = caseOf(meta);
     const evilPath = setup.path === "evil" && !!this.ctx.evil?.[setup.gen] && this.evilOpen(meta, setup.gen);
     const mixedPath = setup.path === "mixed" && this.mixedOpen(meta);
-    const gp = this.genProgress(meta, mixedPath ? "m" : evilPath ? `e${setup.gen}` : setup.gen);
+    const gauntletPath = setup.path === "gauntlet" && this.mixedOpen(meta);
+    const gp = this.genProgress(meta, gauntletPath ? "g" : mixedPath ? "m" : evilPath ? `e${setup.gen}` : setup.gen);
     const spriteMode = SPRITE_MODES.find((m) => m.id === meta.sprites) ?? SPRITE_MODES[0];
     // Icons that follow the settings: the equipped badges in this run's zones, one starter per generation (dim = not in the pool)
     const ZONE_COLORS = ["#5ec8ff", "#ff8fd0", "#9be564", "#ffb454", "#c79bff", "#5eead0", "#ff7b72", "#e6e36b"];
@@ -712,7 +784,7 @@ export class RunUI {
     // One starter per generation, drawn again every time this screen opens (fire, water and grass all show up)
     this.starterPicks = STARTER_TRIOS.map((trio) => trio[Math.floor(Math.random() * 3)]);
     const poolIcon = `<span class="sc-starters">${this.starterPicks.map((k, i) => `<img class="${setup.pools.includes(i + 1) ? "" : "off"}" src="${this.ctx.data.pokemonByKey[k].sprites.front}" alt="Gen ${i + 1}">`).join("")}</span>`;
-    const challengeIcon = mixedPath ? `<span class="sc-rainbow">🌈</span>` : evilPath ? `<img class="sc-img" src="images/trainers/${EVIL_ICON[setup.gen]}.png" alt="">` : `<img class="sc-img" src="${this.ctx.data.pokemonByKey[ICONIC[setup.gen]].sprites.front}" alt="">`;
+    const challengeIcon = gauntletPath ? `<span class="sc-rainbow">⚔️</span>` : mixedPath ? `<span class="sc-rainbow">🌈</span>` : evilPath ? `<img class="sc-img" src="images/trainers/${EVIL_ICON[setup.gen]}.png" alt="">` : `<img class="sc-img" src="${this.ctx.data.pokemonByKey[ICONIC[setup.gen]].sprites.front}" alt="">`;
     const spriteDir = spriteMode.id === "gen5-ani" ? "gen5-ani" : spriteMode.id === "gen4" ? "gen4" : "gen5";
     const spriteIcon = `<img class="sc-img" src="images/sprites/${spriteDir}/front/9.${spriteMode.id === "gen5-ani" ? "gif" : "png"}" alt="">`;
     const choices = this.runChoices(meta);
@@ -726,7 +798,7 @@ export class RunUI {
       <h1>New run</h1>
       <div class="setup-grid">
         ${card({ act: "pick-character", label: "Trainer", body: `<img class="sc-img" src="${c.front}" alt=""><b>${c.name}</b>`, sub: `${CHARACTERS.filter((x) => !locked(x)).length} of ${CHARACTERS.length} unlocked` })}
-        ${card({ act: "pick-gen", label: "Challenge", body: `${challengeIcon}<b>${mixedPath ? "Mixed Gens" : this.ctx.leaders[setup.gen].region}</b>${gp.pips}`, sub: runModes.length ? `${gp.text} · ${runModes.join(", ")}` : gp.text })}
+        ${card({ act: "pick-gen", label: "Challenge", body: `${challengeIcon}<b>${gauntletPath ? "Gauntlet" : mixedPath ? "Mixed Gens" : this.ctx.leaders[setup.gen].region}</b>${gp.pips}`, sub: runModes.length ? `${gp.text} · ${runModes.join(", ")}` : gp.text })}
         ${hasBadges || reveal ? card({ act: "badge-editor", label: "Badge case", ghost: hasBadges ? "" : "hidden",
           body: caseIcon,
           sub: `${slots.filter(Boolean).length} of ${unlockedSlotCount(meta)} slots · ${owned.size} badges owned` }) : ""}
@@ -754,9 +826,10 @@ export class RunUI {
       if (act === "pick-gen") {
         const g = await this.challengeDialog(m);
         if (g) {
-          const evil = typeof g === "string" && g !== "m"; // "e3" = the evil team path of Gen 3; "m" = Mixed Gens
+          const evil = typeof g === "string" && !["m", "g"].includes(g); // "e3" = the evil team path of Gen 3; "m" = Mixed Gens; "g" = the Gauntlet
           const prev = { gen: m.setup.gen, path: m.setup.path };
           if (g === "m") m.setup.path = "mixed";
+          else if (g === "g") m.setup.path = "gauntlet";
           else { m.setup.gen = evil ? Number(g.slice(1)) : g; m.setup.path = evil ? "evil" : "normal"; }
           const ok = await this.runTypeDialog(m); // which kind of run
           if (!ok) Object.assign(m.setup, prev); // backed out: keep the old challenge
@@ -771,7 +844,7 @@ export class RunUI {
         if (id) { m.sprites = id; saveMeta(m); applySpriteMode(this.ctx.data, id); this.renderSetup(); }
       }
       if (act === "go") {
-        this.run = Run.newRun(this.ctx, { gen: this.runChoices(m).path === "mixed" ? 1 + Math.floor(Math.random() * 5) : m.setup.gen, pools: m.setup.pools, perks: perksFromMeta(m, this.ctx.rules), character: m.character, dupes: m.setup.dupes !== false, ...this.runChoices(m), badges: caseOf(m), badgeLinks: m.badgeLinks, badgeOff: m.badgeOff ?? [] });
+        this.run = Run.newRun(this.ctx, { gen: ["mixed", "gauntlet"].includes(this.runChoices(m).path) ? 1 + Math.floor(Math.random() * 5) : m.setup.gen, pools: m.setup.pools, perks: perksFromMeta(m, this.ctx.rules), character: m.character, dupes: m.setup.dupes !== false, ...this.runChoices(m), badges: caseOf(m), badgeLinks: m.badgeLinks, badgeOff: m.badgeOff ?? [] });
         saveMeta(m);
         this.render();
       }
@@ -787,14 +860,19 @@ export class RunUI {
   }
 
   // The trainer picker: unlocked trainers by generation, and a hint about the next one
-  // "Obtain: a, b, c" unlocks (Cynthia): the Pokémon you need, the ones you had in your best run lit up
+  // How far you are with a locked trainer: coloured text such as "2 of 5" (none for a yes or no condition)
+  unlockBar(meta, rule) {
+    const { share, text } = ruleProgressText(meta, rule);
+    return text ? `<small class="progress-text ${progressClass(share)}">${text}</small>` : "";
+  }
+
+  // "Obtain: a, b, c" / "Final team: a, b, c" unlocks (Cynthia): the Pokémon you need, the ones you had in your best run lit up
   requiredTeam(rule, meta) {
-    const c = rule?.alts.flat().find((x) => x.kind === "obtain");
+    const c = rule?.alts.flat().find((x) => x.kind === "obtain" || x.kind === "finalTeam");
     if (!c) return "";
-    const have = new Set(meta.obtainBest?.[c.arg.join(",")] ?? []); // from your best run so far
+    const have = new Set((c.kind === "finalTeam" ? meta.finalTeamBest : meta.obtainBest)?.[c.arg.join(",")] ?? []); // from your best run so far
     const got = have.size;
-    return `<span class="req-team">${c.arg.map((k) => { const p = this.ctx.data.pokemonByKey[k]; return p ? `<img class="${have.has(k) ? "got" : ""}" src="${p.sprites.front}" alt="${p.name}" title="${p.name}${have.has(k) ? " (obtained)" : ""}">` : ""; }).join("")}</span>
-      <small class="how-unlocked">Best run so far: ${got} of ${c.n}</small>`;
+    return `<span class="req-team">${c.arg.map((k) => { const p = this.ctx.data.pokemonByKey[k]; return p ? `<img class="${have.has(k) ? "got" : ""}" src="${p.sprites.front}" alt="${p.name}" title="${p.name}${have.has(k) ? " (obtained)" : ""}">` : ""; }).join("")}</span>`;
   }
 
   async characterDialog(meta) {
@@ -808,7 +886,7 @@ export class RunUI {
     const tile = (c) => secret(c)
       ? `<div class="opt-tile locked secret" title="A secret trainer"><img src="${c.front}" alt=""><b>🔒 ???</b><small>A secret trainer. Keep playing to find out.</small></div>`
       : locked(c)
-        ? `<div class="opt-tile locked" title="Locked: ${unlockText(unlocks[c.id])}"><img src="${c.front}" alt=""><b>🔒 ${c.name}</b><small>${unlockText(unlocks[c.id])}</small>${this.requiredTeam(unlocks[c.id], meta)}</div>`
+        ? `<div class="opt-tile locked" title="Locked: ${unlockText(unlocks[c.id])}"><img src="${c.front}" alt=""><b>🔒 ${c.name}</b><small>${unlockText(unlocks[c.id])}</small>${this.requiredTeam(unlocks[c.id], meta)}${this.unlockBar(meta, unlocks[c.id])}</div>`
         : `<button class="opt-tile ${c.id === meta.character ? "selected" : ""}" data-result='${JSON.stringify(c.id)}'><img src="${c.front}" alt=""><b>${c.name}</b><small class="perk-text">${this.perkText(c.id)}</small>${how(c)}</button>`;
     let showLocked = true;
     try { showLocked = localStorage.getItem("pd.showLocked") !== "0"; } catch { /* ignore */ }
@@ -862,11 +940,14 @@ export class RunUI {
     // Final paths: Mixed Gens opens once every generation is won. The Gauntlet (all five back to back) is still to be designed.
     const mixedOpen = this.mixedOpen(meta);
     const mp = this.genProgress(meta, "m");
-    const finalTiles = (mixedOpen
-      ? `<button class="opt-tile gen-tile final ${meta.setup.path === "mixed" ? "selected" : ""} ${[1, 2, 3, 4, 5].every((g) => meta.winGens?.[g] > 0) ? "" : "dev-shown"}" data-result='"m"'>
-          <span class="evil-icon rainbow">🌈</span><b class="gen-no">Mixed Gens</b><span>Every region</span>${mp.pips}<small>${mp.text}</small></button>`
-      : `<div class="opt-tile gen-tile final locked"><span class="evil-icon rainbow">🌈</span><b class="gen-no">🔒 Mixed Gens</b><span>Every region</span><small>Win all 5 generations</small></div>`)
-      + `<div class="opt-tile gen-tile final locked"><span class="evil-icon rainbow">⚔️</span><b class="gen-no">Gauntlet</b><span>All 5 back to back</span><small>Coming soon</small></div>`;
+    const gp2 = this.genProgress(meta, "g");
+    const finalTile = (id, icon, title, sub, progress, selected, open, lockText) => open
+      ? `<button class="opt-tile gen-tile final ${selected ? "selected" : ""} ${[1, 2, 3, 4, 5].every((g) => meta.winGens?.[g] > 0) ? "" : "dev-shown"}" data-result='"${id}"'>
+          <span class="evil-icon rainbow">${icon}</span><b class="gen-no">${title}</b><span>${sub}</span>${progress.pips}<small>${progress.text}</small></button>`
+      : `<div class="opt-tile gen-tile final locked"><span class="evil-icon rainbow">${icon}</span><b class="gen-no">🔒 ${title}</b><span>${sub}</span><small>${lockText}</small></div>`;
+    const finalTiles = finalTile("m", "🌈", "Mixed Gens", "Every region", mp, meta.setup.path === "mixed", mixedOpen, "Win all 5 generations")
+      + finalTile("g", "⚔️", "Gauntlet", "All 5 back to back · 30 battles", gp2, meta.setup.path === "gauntlet", mixedOpen, "Win all 5 generations")
+      + `<div class="opt-tile gen-tile final locked"><span class="evil-icon rainbow">🏔️</span><b class="gen-no">Marathon</b><span>All 5, 70 battles</span><small>Coming soon</small></div>`;
     return this.modal({
       title: "Challenge",
       variant: "settings",
@@ -952,8 +1033,8 @@ export class RunUI {
     }
     const item = set.picks?.item;
     if (owned.has("pick-item") && item && ITEMS[item]?.kind === "held") picks.item = item;
-    const path = set.path === "mixed" && this.mixedOpen(meta) ? "mixed" : set.path === "evil" && this.ctx.evil?.[set.gen] && this.evilOpen(meta, set.gen) ? "evil" : "normal";
-    if (path === "evil" || path === "mixed") { delete modes.opponents; if (path === "evil") delete modes.rainbow; } // (the evil paths have their own gym order; Mixed Gens plans its own, Rainbow makes the type order random)
+    const path = (set.path === "mixed" || set.path === "gauntlet") && this.mixedOpen(meta) ? set.path : set.path === "evil" && this.ctx.evil?.[set.gen] && this.evilOpen(meta, set.gen) ? "evil" : "normal";
+    if (path !== "normal") { delete modes.opponents; if (path === "evil") delete modes.rainbow; } // (the evil paths have their own gym order; Mixed Gens plans its own, Rainbow makes the type order random)
     const favType = (perksFromMeta(meta, this.ctx.rules).typeMagnet ?? 0) > 0 && TYPE_CHOICES.includes(set.favType) ? set.favType : "";
     return { modes, picks, monoType, path, favType, fixedSix };
   }
@@ -1028,36 +1109,40 @@ export class RunUI {
 
   // After a generation is picked: which kind of run (Bloons style). Tiles switch on and off, so runs can be combined; "Standard" clears them all.
   async runTypeDialog(meta) {
-    const region = meta.setup.path === "mixed" ? "Mixed Gens" : this.ctx.leaders[meta.setup.gen]?.region ?? `Gen ${meta.setup.gen}`;
+    const region = meta.setup.path === "mixed" ? "Mixed Gens" : meta.setup.path === "gauntlet" ? "The Gauntlet" : this.ctx.leaders[meta.setup.gen]?.region ?? `Gen ${meta.setup.gen}`;
     const owned = this.ownedRules(meta);
     const real = unlockedRules(loadMeta(), this.ctx.rules, ruleGen(meta));
     const TYPES = TYPE_CHOICES.map((t) => [t, cap(t)]);
     const sel = (attr, cur, opts) => `<select class="rule-select" ${attr} onclick="event.stopPropagation()">${opts.map(([v, l]) => `<option value="${v}" ${cur === v ? "selected" : ""}>${l}</option>`).join("")}</select>`;
     const st = () => meta.setup;
-    const evil = meta.setup.path === "evil" || meta.setup.path === "mixed"; // (their own gym order)
-    const mixed = meta.setup.path === "mixed";
+    const evil = ["evil", "mixed", "gauntlet"].includes(meta.setup.path); // (their own gym order)
+    const mixed = ["mixed", "gauntlet"].includes(meta.setup.path); // (the final paths: unlocks count your best generation)
+    const gauntletPath = meta.setup.path === "gauntlet";
     // Easiest first; each opens by winning this generation more often (see the rule unlock table in DESIGN.md)
     const defs = [
       { id: "hard", unlock: "mode-hard", name: "Hard mode", text: "Foes are 2 levels higher, bring one more Pokémon from battle 3, and have perfect IVs, a good Nature and a held item.", on: () => st().modes?.hard === true },
       { id: "levels", unlock: "mode-levels", name: "Random levels", text: "Recruits arrive up to 5 levels above or below.", on: () => st().modes?.levels === true },
       { id: "moves", unlock: "mode-moves", name: "Random moves", text: "Recruits come with random moves.", on: () => st().modes?.moves === true },
-      { id: "rainbow", unlock: "mode-rainbow", name: "Rainbow", text: mixed ? "The gym types come in a random order instead of the usual one." : "The gyms of this generation come in a random order, so any type can be next.", on: () => st().modes?.rainbow === true, evilOff: !mixed },
+      { id: "rainbow", unlock: "mode-rainbow", name: "Rainbow", text: gauntletPath ? "The five regions come in a random order instead of Kanto to Unova." : mixed ? "The gym types come in a random order instead of the usual one." : "The gyms of this generation come in a random order, so any type can be next.", on: () => st().modes?.rainbow === true, evilOff: !mixed },
       { id: "noitems", unlock: "mode-noitems", name: "No items", text: "No bag, no item screens, and the shop sells only TMs.", on: () => st().modes?.noitems === true },
       { id: "opponents", unlock: "mode-opponents", name: "Random gyms", text: "Battles 1 to 8 (the gyms) are fought against leaders from any generation instead of one region. Pick how they are chosen below.", on: () => !!st().opponents, evilOff: true,
         extra: () => sel('data-opp="1"', st().opponents || "mixed", [["mixed", "One of each type"], ["wild", "Any leaders (types can repeat)"]]) },
-      { id: "mono", unlock: "mode-mono", name: "Mono type", text: "EVERY card you are offered is this type, so the whole team ends up one type.", on: () => !!st().monoType,
+      { id: "mono", unlock: "mode-mono", name: "Mono type", text: "Every card you are offered is this type, so the whole team ends up one type. A Pokémon that will evolve into the type can join too, but waits on the bench until it does.", on: () => !!st().monoType,
         extra: () => sel('data-mono="1"', st().monoType || "normal", TYPES) },
       { id: "fixedSix", unlock: "mode-fixed", name: "Fixed Six", text: "Pick six Pokémon at the start and never recruit another.", on: () => st().fixedSix === true },
       { id: "twelve", name: "12 mon run", text: "Battles 13 and 14 become 12 against 12, two trainers at once.", soon: true, on: () => false },
     ];
     const tile = (d) => {
       if (d.soon) return `<div class="opt-tile run-tile locked"><b>${d.name}</b><small>${d.text}</small><small><em>Coming soon</em></small></div>`;
-      if (d.evilOff && evil) return `<div class="opt-tile run-tile locked"><b>${d.name}</b><small>${mixed ? "Mixed Gens picks its own gyms." : "Evil teams have their own gym order."}</small></div>`;
+      if (d.evilOff && evil) return `<div class="opt-tile run-tile locked"><b>${d.name}</b><small>${mixed ? "The final paths pick their own leaders." : "Evil teams have their own gym order."}</small></div>`;
       const locked = d.unlock && !owned.has(d.unlock);
       if (locked) {
-        if (d.unlock === "mode-mono") return `<div class="opt-tile run-tile locked"><b>🔒 ${d.name}</b><small>Beat ${MONO_UNLOCK} of the ${MONO_TYPES.length} type challenges: win a run using only one type (${monoChallengesDone(meta)} so far)</small></div>`;
+        if (d.unlock === "mode-mono") {
+          const trials = monoTrials(meta), done = monoTrialsDone(meta);
+          return `<div class="opt-tile run-tile locked wide-lock"><b>🔒 ${d.name}</b><small>Do any ${MONO_TRIALS_NEEDED} of these:</small>${trials.map((t) => `<small class="trial ${t.done ? "done" : ""}">${t.done ? "✔" : "○"} ${t.label}</small>`).join("")}<small class="progress-text ${progressClass(done / MONO_TRIALS_NEEDED)}">${Math.min(done, MONO_TRIALS_NEEDED)} of ${MONO_TRIALS_NEEDED}</small></div>`;
+        }
         const w = this.ctx.rules.ruleUnlocks?.[d.unlock] ?? 1;
-        return `<div class="opt-tile run-tile locked"><b>🔒 ${d.name}</b><small>Win ${mixed ? "any generation" : region} ${w} time${w > 1 ? "s" : ""} (${winsInGen(meta, ruleGen(meta))} so far)</small></div>`;
+        return `<div class="opt-tile run-tile locked"><b>🔒 ${d.name}</b><small>Win ${mixed ? "any generation" : region} ${w} time${w > 1 ? "s" : ""}</small>${w > 1 ? `<small class="progress-text ${progressClass(winsInGen(meta, ruleGen(meta)) / w)}">${Math.min(winsInGen(meta, ruleGen(meta)), w)} of ${w}</small>` : ""}</div>`;
       }
       const dev = d.unlock && !real.has(d.unlock) ? "dev-shown" : ""; // (opened by the debug panel only)
       return `<button class="opt-tile run-tile ${d.on() ? "selected" : ""} ${dev}" data-run="${d.id}"><b>${d.name}</b><small>${d.text}</small>${d.extra ? d.extra() : ""}</button>`;
@@ -1328,9 +1413,9 @@ export class RunUI {
     return `<ul class="ability-list" aria-label="Abilities">${all.map(({ id, hidden: ha }) => {
       const info = this.ctx.data.abilities[id];
       const active = id === mon.ability;
-      return `<li class="${active ? "active" : ""}" title="${info?.shortEffect ?? ""}">
+      return `<li class="${active ? "active" : ""}" data-tip="${escapeHtml(info?.shortEffect ?? "")}">
         <span class="ab-arrow" aria-hidden="true">${active ? "▶" : ""}</span>
-        <span class="ab-name">${info?.name ?? id}</span>${ha ? `<span class="ab-ha">HA</span>` : ""}
+        <span class="ab-name">${info?.name ?? id}</span>${ha ? `<span class="ab-ha" data-tip="Hidden Ability: a rarer Ability this species can have">HA</span>` : ""}
         ${active ? `<span class="sr-only">(active)</span>` : ""}
       </li>`;
     }).join("")}</ul>`;
@@ -1427,6 +1512,7 @@ export class RunUI {
 
   track() {
     const run = this.run;
+    if (Run.isGauntlet(run)) return this.gauntletTrack();
     const order = run.order;
     // On the recruit/item screens the current battle is already won
     const beaten = ["recruit", "items"].includes(run.screen) ? order : order - 1;
@@ -1453,6 +1539,27 @@ export class RunUI {
       return `${sep}<span class="stop face ${cls}" title="Battle ${n}: ${name}${type ? ` (${type})` : ""}"
         style="background-image: url('images/trainers/${id}.png'); ${type ? `--ring: var(--t-${type});` : ""}"><i>${label}</i></span>`;
     }).join("")}</div>`;
+  }
+
+  // The Gauntlet's progress: five chapter pips (the regions) and the six stops of the chapter you are in
+  gauntletTrack() {
+    const run = this.run;
+    const inOffer = ["recruit", "items"].includes(run.screen);
+    const justEnded = inOffer && run.order === Run.FINAL_ORDER; // (the chapter that ended already counts as the next one)
+    const beaten = justEnded ? 0 : Math.max(0, run.order - Run.GAUNTLET_FIRST + (inOffer ? 1 : 0));
+    const lineup = this.ctx.leaders[run.settings.gen].opponents;
+    const pips = run.chapterGens.map((g, c) => `<span class="chapter-pip ${c < run.chapter ? "done" : c === run.chapter ? "current" : ""}" title="${escapeHtml(this.ctx.leaders[g].region)}">${this.ctx.leaders[g].region}</span>`).join("");
+    const stops = STOP_LABELS.slice(Run.GAUNTLET_FIRST - 1).map((label, i) => {
+      const n = Run.GAUNTLET_FIRST + i;
+      const cls = i < beaten ? "done" : i === beaten && run.screen === "hub" ? "current" : "";
+      const o = lineup.find((x) => x.order === n);
+      const rival = n === Run.FINAL_ORDER;
+      if (!o || i > beaten) return `<span class="stop ${cls}" title="Battle ${i + 1} of the chapter">${label}</span>`;
+      const id = rival ? run.rival?.id : o.sprites?.[0] ?? o.id;
+      const type = o.theme ?? null;
+      return `<span class="stop face ${cls}" title="${escapeHtml(rival ? `Rival ${run.rival?.name ?? ""}` : `${o.title} ${o.name}`)}${type ? ` (${type})` : ""}" style="background-image: url('images/trainers/${id}.png'); ${type ? `--ring: var(--t-${type});` : ""}"><i>${label}</i></span>`;
+    }).join("");
+    return `<div class="gauntlet-track"><div class="chapter-pips">${pips}</div><div class="track">${stops}</div></div>`;
   }
 
   // Generic choice dialog → resolves with an option's value, or null when cancelled
@@ -1612,12 +1719,13 @@ export class RunUI {
           <img class="big" src="${this.sprite(m)}" alt="">
           <span class="name">${this.monName(m)}</span>
           <span>${this.typeBadges(m.species)}</span>
+          ${o.pending ? `<span class="bench-note" data-tip="Mono type: it waits on the bench, out of battle, until it has evolved into ${cap(run.settings.monoType)}">Benched until ${cap(run.settings.monoType)}</span>` : ""}
           <span class="detail">Lv ${m.level} · ${nature}</span>
           ${run.charFx?.["iv-rating"] && m.ivs ? `<span class="detail iv-rating" title="How close its hidden stat boosts (IVs) are to perfect">IVs ${Math.round(Object.values(m.ivs).reduce((a, b) => a + b, 0) / 186 * 100)}%</span>` : ""}
           ${o.taken ? "" : `<span class="open-hint">Tap for details</span>`}
         </button>`;
     }).join("");
-    const headline = starter ? (run.settings.fixedSix ? "Choose your six Pokémon" : "Choose your starters")
+    const headline = starter ? (run.settings.fixedSix || Run.isGauntlet(run) ? "Choose your six Pokémon" : "Choose your starters")
       : `You beat ${run.lastBattle?.opponent}! Recruit time`;
     const picks = offer.picksLeft;
     const meter = `<div class="pick-meter" aria-label="${picks} of ${offer.picks} picks left"><span class="pm-count"><b>${picks}</b> of ${offer.picks} pick${offer.picks > 1 ? "s" : ""} left</span>
@@ -1825,7 +1933,7 @@ export class RunUI {
     if (!opp) return "";
     const name = opp.title === "Rival" ? `Rival ${opp.name}` : `${opp.title} ${opp.name}`;
     return `<section class="card-panel next-up">
-      <span class="title">Next up · battle #${opp.order}</span>
+      <span class="title">Next up · ${Run.isGauntlet(this.run) ? `chapter ${this.run.chapter + 1} of ${Run.GAUNTLET_CHAPTERS}, battle ${opp.order - Run.GAUNTLET_FIRST + 1} of 6` : `battle #${opp.order}`}</span>
       <div class="trainer-row">
         <div class="trainer-portrait">${this.trainerSprites(opp).map((src) => `<img src="${src}" alt="" onerror="this.remove()">`).join("")}</div>
         <div>
@@ -1866,10 +1974,16 @@ export class RunUI {
       <div class="fallen-list">${fallen.map((f) => `<div class="mon"><img src="${this.sprite(f)}" alt="">${f.name}</div>`).join("")}</div></section>${savedNote}`;
   }
 
+  // Mono type: a Pokémon that is not of the type yet waits on the bench
+  benchTag(m) {
+    if (!Run.benched(this.run, this.ctx, m)) return "";
+    return `<span class="bench-note" data-tip="Mono type: it stays out of battle until it has evolved into ${cap(this.run.settings.monoType)}">Benched until ${cap(this.run.settings.monoType)}</span>`;
+  }
+
   // A team member on the recruit and item screens: tap it for its details
   miniCard(m) {
     return `<button class="mon-card mini" data-act="details" data-uid="${m.uid}" title="Tap for details">${this.newDot(m)}<div class="mon-head"><img src="${this.sprite(m)}" alt="">
-      <div><div class="mon-name">${this.monName(m)}</div><div class="mon-sub">Lv ${m.level} · ${this.abilityText(m)}</div></div></div></button>`;
+      <div><div class="mon-name">${this.monName(m)}</div><div class="mon-sub">Lv ${m.level} · ${this.abilityText(m)}</div>${this.benchTag(m)}</div></div></button>`;
   }
 
   // ===============================
@@ -1963,7 +2077,7 @@ export class RunUI {
       const nature = m.nature.charAt(0).toUpperCase() + m.nature.slice(1);
       return `
         <div class="mon-card ${i < 2 ? "lead" : ""}" draggable="true" data-drag="mon" data-uid="${m.uid}">
-          ${i < 2 ? `<span class="lead-tag">LEAD</span>` : ""}
+          ${Run.benched(run, ctx, m) ? "" : i < 2 ? `<span class="lead-tag">LEAD</span>` : ""}${this.benchTag(m)}
           <div class="mon-head with-ability">
             <img src="${this.sprite(m)}" alt="">
             <div>
@@ -2725,6 +2839,15 @@ export class RunUI {
         default: return `Lv ${lvl}`;
       }
     };
+    // Many branches (Eevee): a 3 by 3 grid, the first stage in the middle and the evolutions around it
+    if (stages.length === 2 && stages[0].length === 1 && stages[1].length >= 4 && stages[1].length <= 8) {
+      const RING = [[1, 1], [1, 2], [1, 3], [2, 3], [3, 3], [3, 2], [3, 1], [2, 1]]; // row, column, clockwise from the top left
+      const tile = (k, at, i) => `<div class="evo-mon compact ${k === m.species ? "current" : ""}" style="grid-row:${at[0]};grid-column:${at[1]}">
+          <img src="${ctx.data.pokemonByKey[k].sprites.front}" alt="">
+          <b>${ctx.data.pokemonByKey[k].name}</b>
+          ${i >= 0 ? `<small>${method(k)}</small>` : ""}</div>`;
+      return `<div class="evo-ring">${tile(stages[0][0], [2, 2], -1)}${stages[1].map((k, i) => tile(k, RING[i], i)).join("")}</div>`;
+    }
     return `<div class="evo-line">${stages.map((col, i) => `
       ${i > 0 ? `<span class="evo-arrow" aria-hidden="true">→</span>` : ""}
       <div class="evo-stage">${col.map((k) => `
@@ -3330,6 +3453,7 @@ export class RunUI {
       const perk = this.perkLine(id);
       await this.modal({
         title: "New trainer unlocked!",
+        variant: "unlock-modal",
         body: `<div class="unlock-card"><img src="${c.front}" alt=""><b>${c.name}</b><p class="unlocked-how"><em>How you unlocked them:</em> ${unlockText((this.ctx.rules.characterUnlocks ?? {})[id])}</p>${perk ? `<p>${perk.replace(/<\/?small>/g, "")}</p>` : ""}<p class="empty-note">Pick them on the New run screen.</p></div>`,
         cancel: "Nice!",
       });
@@ -3343,7 +3467,7 @@ export class RunUI {
     this.hub.className = "hub end-screen";
     this.hub.innerHTML = `
       <div class="big">Run over</div>
-      <p>${run.lastBattle?.forfeited ? `You gave up at battle #${run.lastBattle.order} of 14.` : `Defeated by ${run.lastBattle?.opponent} at battle #${run.lastBattle?.order} of 14.`}</p>
+      <p>${run.lastBattle?.forfeited ? `You gave up at ${Run.isGauntlet(run) ? `chapter ${run.chapter + 1}, battle ${run.lastBattle.order - 8} of 6` : `battle #${run.lastBattle.order} of 14`}.` : `Defeated by ${run.lastBattle?.opponent} at ${Run.isGauntlet(run) ? `chapter ${run.chapter + 1}, battle ${(run.lastBattle?.order ?? 9) - 8} of 6` : `battle #${run.lastBattle?.order} of 14`}.`}</p>
       ${tpLine}
       <section class="card-panel"><h3>Fallen this run</h3>
         <div class="fallen-list">${run.fallen.map((f) => `<div class="mon"><img src="${this.sprite(f)}" alt="">${f.name}<small>Lv ${f.level} · #${f.order}</small></div>`).join("")}</div>
@@ -3370,7 +3494,7 @@ export class RunUI {
       team: run.team.map((m) => ({ species: m.species, shiny: m.shiny, level: m.level, ability: m.ability, item: m.item, moves: m.moves })),
       fallen: run.fallen.length,
       // The run rules it was won with (Fixed Six, modes, Mono type), so challenges can be checked again later
-      rules: { ...(run.settings.path === "evil" || run.settings.path === "mixed" ? { path: run.settings.path } : {}), ...(run.settings.fixedSix ? { fixedSix: true } : {}), ...(Object.keys(run.settings.modes ?? {}).length ? { modes: run.settings.modes } : {}), ...(run.settings.monoType ? { monoType: run.settings.monoType } : {}) },
+      rules: { ...(["evil", "mixed", "gauntlet"].includes(run.settings.path) ? { path: run.settings.path } : {}), ...(run.settings.fixedSix ? { fixedSix: true } : {}), ...(Object.keys(run.settings.modes ?? {}).length ? { modes: run.settings.modes } : {}), ...(run.settings.monoType ? { monoType: run.settings.monoType } : {}) },
       // Every Pokémon that fell on the way, for the Hall of Fame (older entries only have the number)
       fallenMons: run.fallen.map((f) => ({ species: f.species, name: f.name, level: f.level, order: f.order, opponent: f.opponent })),
     };

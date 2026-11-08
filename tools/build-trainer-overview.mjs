@@ -136,10 +136,11 @@ const evilCard = (gen) => {
   const rows = file.opponents.map((o) => {
     const row = rules.progression.find((r) => r.order === o.order);
     const faces = (o.sprites ?? [o.id]).filter((id) => fs.existsSync(path.join(ROOT, `images/trainers/${id}.png`))).map((id) => `<img src="images/trainers/${id}.png" alt="">`).join("");
+    const nm = (k) => esc(byKey[k]?.name ?? k);
     const set = o.sets?.[0];
     const detail = set
       ? `<div class="team">${set.team.map((m) => `<div>${chip(byKey[m.species]?.name ?? m.species, false)}<small>${esc((m.moves ?? []).join(", "))}${m.item ? ` · ${esc(m.item)}` : ""}${m.ability ? ` · ${esc(m.ability)}` : ""}</small></div>`).join("")}</div>`
-      : (() => { const pool = poolAt(o.theme, o.order); return `<details><summary>Pool: ${pool.length} Pokémon of the ${esc(o.theme ?? "any")} type</summary><p class="pool">${pool.map((k) => esc(byKey[k].name)).join(", ")}</p></details>`; })();
+      : `<details><summary>${o.anchor?.length ? `Always: ${o.anchor.map(nm).join(", ")} · ` : ""}${o.signature?.length ? `Signature: ${o.signature.map(nm).join(", ")} · ` : ""}team pool of ${o.pool?.length ?? 0}</summary><p class="pool">${(o.pool ?? []).map(nm).join(", ")}</p></details>`;
     return `<tr class="evil-row"><th>${o.order}</th><td><span class="faces">${faces}</span> <b>${esc(o.title)} ${esc(o.name)}</b> <small>${o.theme ? `<i class="ttype" style="background:${TYPE_COLORS[o.theme] ?? "#667"}">${esc(o.theme)}</i>` : "legendary team"} · Lv ${row?.level ?? "?"} · ${row?.teamSize ?? 6} Pokémon${set ? " · handcrafted team" : ""}</small>${detail}</td></tr>`;
   }).join("");
   const names = file.opponents.map((o) => `${o.title} ${o.name}`).join(" ");
@@ -178,7 +179,7 @@ ${perBattle.length ? `<table><tr><th>Battle</th>${perBattle.map((r) => `<td>${es
 <div class="bar"><input id="q" placeholder="Search a trainer, type or Pokémon (e.g. Skarmory, electric, brock)…"></div>
 <div class="grid" id="grid">${pools.map(card).join("")}</div>
 <h1 style="margin-top:28px">Evil team paths</h1>
-<p class="sub">One path per generation, unlocked by winning the normal path. Battles 1 to 12 draw a team of the opponent's type from the pool shown (every Pokémon that is fully evolved enough for the level, from any generation); battles 13 and 14 are handcrafted. Built by tools/build-evil-leaders.mjs from the rosters in that script.</p>
+<p class="sub">One path per generation, unlocked by winning the normal path. Every battle draws a new random team, not tied to a type: a character's signature Pokémon first, then the team's own pool (the strongest stage that is legal at the level). Bosses always bring their anchor Pokémon (the legendaries) and some of their signature Pokémon. Evil foes are 1 level higher with perfect IVs, and the elite hold items. Built by tools/build-evil-leaders.mjs from the rosters in that script.</p>
 <div class="grid" id="evil-grid">${[1, 2, 3, 4, 5].map(evilCard).join("")}</div>
 <script>
   const cards = [...document.querySelectorAll(".card")];

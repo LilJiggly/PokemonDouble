@@ -141,16 +141,29 @@ export function perksFromMeta(meta, rules = null) {
 // (gen "m" = Mixed Gens: your best generation, plus the Mixed Gens wins)
 export const winsInGen = (meta, gen) => gen === "m" ? Math.max(0, ...[1, 2, 3, 4, 5].map((g) => winsInGen(meta, g))) + (meta.mixedWins ?? 0) : (meta.winGens?.[gen] ?? 0) + (meta.evilWins?.[gen] ?? 0);
 
-// Mono type opens once half of the "win using only one type" challenges are beaten (any run, any generation)
-export const MONO_UNLOCK = Math.ceil(MONO_TYPES.length / 2);
+// Mono type opens when you have done any 3 of these 6 trials (any run, any generation): a mix of skill, risk and exploring
+export const MONO_TRIALS_NEEDED = 3;
 export const monoChallengesDone = (meta) => MONO_TYPES.filter((m) => (meta.challenges ?? []).includes(m.id)).length;
+export function monoTrials(meta) {
+  const has = (id) => (meta.challenges ?? []).includes(id);
+  const types = monoChallengesDone(meta);
+  return [
+    { id: "types", label: `Beat 3 type challenges (${Math.min(types, 3)} of 3)`, done: types >= 3 },
+    { id: "hard", label: "Win with Hard mode on", done: has("hard-win") },
+    { id: "flawless", label: "Win without losing a Pokémon", done: has("flawless") },
+    { id: "legend", label: "Win with a Legendary or Mythical on your team", done: has("legend") },
+    { id: "evil", label: "Win an evil team path", done: [1, 2, 3, 4, 5].some((g) => (meta.evilWins?.[g] ?? 0) > 0) || [1, 2, 3, 4, 5].some((g) => has(`evil-${g}`)) },
+    { id: "all", label: "Win all five generations", done: [1, 2, 3, 4, 5].every((g) => (meta.winGens?.[g] ?? 0) > 0) },
+  ];
+}
+export const monoTrialsDone = (meta) => monoTrials(meta).filter((t) => t.done).length;
 
 // The run rules and picks you can use: the ones the Skill Tree unlocks, and the rules that open by winning THE generation you are about to play
 export function unlockedRules(meta, rules, gen) {
   const set = new Set(perksFromMeta(meta, rules).unlocked);
   const wins = winsInGen(meta, gen);
   for (const [id, need] of Object.entries(rules?.ruleUnlocks ?? {})) if (wins >= need) set.add(id);
-  if (monoChallengesDone(meta) >= MONO_UNLOCK) set.add("mode-mono"); // Mono type opens with the type challenges, not with wins
+  if (monoTrialsDone(meta) >= MONO_TRIALS_NEEDED) set.add("mode-mono"); // Mono type opens with the trials above, not with wins
   return set;
 }
 
@@ -166,11 +179,32 @@ export function respecTree(meta, nodes) {
   const refund = Math.floor(spent * (1 - RESPEC_FEE));
   for (const n of nodes) delete meta.upgrades[n.id];
   meta.tp += refund;
+  meta.respecFees = (meta.respecFees ?? 0) + (spent - refund); // (for the Trainer Points check)
   return { spent, refund, fee: spent - refund };
+}
+
+// Trainer Points check (Profile → Stats): what you earned, spent and have left, and the least you must have earned by now.
+// A won run pays at least a full run (every gym, Elite Four member, the Champion and the Hall of Fame), so wins × that is a floor.
+export function tpCheck(meta, rules) {
+  const t = rules.tp;
+  const fullRun = t.gym * 8 + t.elite * 4 + t.champion + t.hallOfFame;
+  const earned = meta.earned ?? 0;
+  const floor = (meta.wins ?? 0) * fullRun;
+  return { earned, spent: spentOnTree(meta, rules.upgrades), left: meta.tp ?? 0, fees: meta.respecFees ?? 0, fullRun, floor, missing: Math.max(0, floor - earned) };
+}
+// If the earned total is below that floor (a save that lost progress), bring earned and the balance up to it. Returns the points added.
+export function restoreTp(meta, rules) {
+  const { missing } = tpCheck(meta, rules);
+  if (missing > 0) { meta.earned = (meta.earned ?? 0) + missing; meta.tp = (meta.tp ?? 0) + missing; }
+  return missing;
 }
 
 // How many battles of the run were beaten (a win = all 14)
 export function beatenCount(run) {
+  if (run.settings?.path === "gauntlet") { // 6 battles a chapter, the first is battle 9
+    const per = 14 - 9 + 1;
+    return run.screen === "won" ? 5 * per : Math.min(5 * per, (run.chapter ?? 0) * per + Math.max(0, (run.lastBattle?.order ?? 9) - 9 + (run.lastBattle?.won ? 1 : 0)));
+  }
   return run.screen === "won" ? 14 : Math.max(0, (run.lastBattle?.order ?? 1) - 1);
 }
 
@@ -181,7 +215,8 @@ export function recordRun(meta, run, ctx = null) {
   if (run.screen === "won") {
     meta.wins = (meta.wins ?? 0) + 1;
     // A Team path win is counted apart, so it doesn't count as the normal Challenge Gen win (and doesn't open the next unlocks by itself)
-    if (run.settings?.path === "mixed") meta.mixedWins = (meta.mixedWins ?? 0) + 1; // a final path: counted apart
+    if (run.settings?.path === "gauntlet") meta.gauntletWins = (meta.gauntletWins ?? 0) + 1; // a final path: counted apart
+    else if (run.settings?.path === "mixed") meta.mixedWins = (meta.mixedWins ?? 0) + 1;
     else if (run.settings?.path === "evil") meta.evilWins = { ...meta.evilWins, [run.settings.gen]: (meta.evilWins?.[run.settings.gen] ?? 0) + 1 };
     else meta.winGens = { ...meta.winGens, [run.settings.gen]: (meta.winGens?.[run.settings.gen] ?? 0) + 1 };
   }
@@ -193,12 +228,15 @@ export const MIXED_WIN_BONUS = 50;
 export function trainerPointsFor(run, rules) {
   const beaten = beatenCount(run);
   let tp = 0;
-  for (let order = 1; order <= beaten; order++) {
+  const gauntlet = run.settings?.path === "gauntlet";
+  for (let n = 1; n <= beaten; n++) {
+    const order = gauntlet ? 9 + ((n - 1) % 6) : n; // (a Gauntlet chapter pays like battles 9 to 14)
     if (order <= 8) tp += rules.tp.gym;
     else if (order <= 12) tp += rules.tp.elite;
     else if (order === 13) tp += rules.tp.champion;
     else tp += rules.tp.hallOfFame;
   }
+  if (gauntlet) tp *= 3; // the Gauntlet pays triple
   if (run.settings?.path === "mixed") tp = tp * 2 + (beaten >= 14 ? MIXED_WIN_BONUS : 0); // the final path pays double, and a lot more for finishing it
   const pct = run.perks?.tpPct ?? 0;
   return pct ? Math.round(tp * (1 + pct / 100)) : tp;

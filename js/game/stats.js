@@ -6,6 +6,7 @@
 // =====================================================
 
 import { CHALLENGES } from "./challenges.js";
+import { tpCheck } from "./meta.js";
 
 export const fmtDuration = (ms) => {
   const min = Math.floor((ms ?? 0) / 60000);
@@ -49,8 +50,8 @@ export function buildStats(meta, hof, ctx, extra = {}) {
       { label: "Flawless wins", value: meta.cleanWins ?? 0, hint: "Nobody fell" },
       { label: "Time played", value: fmtDuration(meta.playMs), hint: "Counted for runs finished since v0.37" },
       { label: "Fastest win", value: meta.fastestWin ? fmtDuration(meta.fastestWin) : "–" },
-      { label: "Trainer Points earned", value: meta.earned ?? 0, hint: `${meta.tp ?? 0} left to spend` },
     ] },
+    { title: "Trainer Points", ...tpSection(meta, ctx) },
     { title: "Battles", rows: [
       { label: "Battles won", value: won },
       { label: "Runs ended by a loss", value: lost },
@@ -95,4 +96,17 @@ export function ownedSpecies(meta, hof, ctx) {
   const set = new Set(meta.species ?? []);
   for (const e of hof ?? []) for (const m of e.team ?? []) set.add(m.species);
   return [...set].filter((k) => ctx.data.pokemonByKey[k]).sort((a, b) => ctx.data.pokemonByKey[a].id - ctx.data.pokemonByKey[b].id);
+}
+
+// The Trainer Points check: earned, spent and left, the least you must have earned from your wins, and a restore when the earned total is below that
+function tpSection(meta, ctx) {
+  const c = tpCheck(meta, ctx.rules);
+  const rows = [
+    { label: "Earned in total", value: c.earned },
+    { label: "Spent in the Skill Tree", value: c.spent, hint: "Upgrades you own, at what they cost" },
+    ...(c.fees ? [{ label: "Respec fees paid", value: c.fees }] : []),
+    { label: "Left to spend", value: c.left },
+    { label: "At least earned from wins", value: c.floor, hint: `${meta.wins ?? 0} wins × ${c.fullRun} TP for a full run` },
+  ];
+  return { rows, action: c.missing > 0 ? { act: "restore-tp", missing: c.missing, text: `Your earned total is ${c.missing} TP below what your ${meta.wins} wins pay. That can happen when a save lost progress.`, label: `Restore ${c.missing} TP` } : null };
 }

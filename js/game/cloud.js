@@ -103,7 +103,7 @@ function publicLine(meta, hof) {
     name: publicName(meta), wins: meta?.wins ?? 0, best: meta?.best ?? 0, cleanWins: meta?.cleanWins ?? 0,
     trainers: extraStats(meta).trainers ?? 1, badges: meta?.badges?.length ?? 0, used: usedFrom(hof), hof: recentHof(hof), challenges: (meta?.challenges ?? []).slice(0, 40), updatedAt: Date.now(),
     // The profile the player made: trainer avatar, six favourite Pokémon and a short line
-    avatar: String(meta?.profile?.avatar ?? "").slice(0, 24), favs: (meta?.profile?.favs ?? []).filter(Boolean).slice(0, 6).map(String), tagline: cleanTagline(meta?.profile?.tagline),
+    avatar: String(meta?.profile?.avatar || meta?.character || "").slice(0, 24), favs: (meta?.profile?.favs ?? []).filter(Boolean).slice(0, 6).map(String), tagline: cleanTagline(meta?.profile?.tagline),
   };
 }
 

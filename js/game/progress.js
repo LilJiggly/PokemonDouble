@@ -49,6 +49,22 @@ function noteObtained(meta, run, ctx) {
   }
 }
 
+// "Final team: a, b, c" unlocks (Cynthia): which of those species were on your team in the last battle, and whether you won it
+function noteFinalTeam(meta, run, ctx) {
+  if ((run.lastBattle?.order ?? run.order) < 14) return; // never reached the last battle
+  const onTeam = new Set(run.team.map((m) => m.species));
+  for (const rule of Object.values(ctx.rules?.characterUnlocks ?? {})) {
+    for (const alt of rule.alts) for (const c of alt) {
+      if (c.kind !== "finalTeam") continue;
+      const key = c.arg.join(",");
+      const got = c.arg.filter((k) => onTeam.has(k));
+      (meta.finalTeamBest ??= {});
+      if (got.length > (meta.finalTeamBest[key]?.length ?? 0)) meta.finalTeamBest[key] = got;
+      if (run.screen === "won" && got.length === c.n) (meta.finalTeamWon ??= {})[key] = true;
+    }
+  }
+}
+
 // After a battle was won: lines and types on the team, quick wins, clean runs, starter sets
 export function noteBattleWon(meta, run, ctx, { turns = null } = {}) {
   const order = run.lastBattle?.order ?? run.order;
@@ -76,6 +92,7 @@ export function noteBattleWon(meta, run, ctx, { turns = null } = {}) {
 // At the end of a run (won or lost)
 export function noteRunEnd(meta, run, ctx) {
   noteObtained(meta, run, ctx);
+  noteFinalTeam(meta, run, ctx);
   mergeStats(meta, run);
   // Totals for the Stats screen (the profile)
   const add = (key, n) => { meta[key] = (meta[key] ?? 0) + (n ?? 0); };
@@ -102,10 +119,11 @@ export function noteRunEnd(meta, run, ctx) {
   if (run.settings?.fixedSix) modes.push("fixed");
   if (run.settings?.path === "evil") modes.push("evil");
   if (run.settings?.path === "mixed") modes.push("mixed");
+  if (run.settings?.path === "gauntlet") modes.push("gauntlet");
   for (const mode of modes) bump(meta.modeWins, mode);
   noteChallenges(meta, run, ctx);
   if (!run.fallen.length) {
     meta.cleanWins = (meta.cleanWins ?? 0) + 1;
-    if (run.settings?.path !== "mixed") bump(meta.cleanWinGens, run.settings.gen);
+    if (!["mixed", "gauntlet"].includes(run.settings?.path)) bump(meta.cleanWinGens, run.settings.gen);
   }
 }

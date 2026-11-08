@@ -42,6 +42,30 @@ Each idea can be a trainer unlock (a clause in the DESIGN.md §3j table) or a ch
 | **Weather team:** win with three Pokémon that set or use the same weather | Unlock | 🔴 | Needs ability and move categories counted per run. |
 | **Weakness hunter:** win a battle after every Pokémon hit a super-effective move | Challenge | 🔴 | Needs per-battle hit tracking. |
 
+## Coming soon (noted November 8, 2026)
+
+| Idea | Kind | Tracking | Notes |
+|---|---|---|---|
+| **Trainers from special modes:** unlock existing locked trainers by winning a mode or an evil path, for example Silver for winning the Gen 2 evil path | Unlock | ✅ | The clauses already exist: `Mode win: hard` (also `moves`, `levels`, `rainbow`, `gyms`, `mono`, `noitems`, `fixed`, `mixed`), `Evil win gen 2` and `Evil wins: 3`. It only needs a choice of which trainer gets which clause, in the §3j table. Silver would move off `Friendship: 5`, or get it as a second way (`Friendship: 5 or Evil win gen 2`). |
+| **New trainers for the evil teams and final paths:** extra trainers (for example Team leaders) unlocked by `Evil win` and `Mode win: mixed` | Unlock | 🟡 | Needs picks and sprites first (the back sprites are not downloaded yet). |
+
+### Proposal: trainers for modes, evil paths and final paths (to fine tune later)
+
+Not applied yet. Each row adds a second way in (`A or B`) so nobody loses the old way. Everything here is already tracked, it is only a change to the Unlock cell in §3j.
+
+| Trainer | Now | Proposed | Why |
+|---|---|---|---|
+| Silver (HGSS) | Friendship: 5 | Friendship: 5 or Evil win gen 2 | The Gen 2 evil path is Team Rocket, Silver's story |
+| Cheren (B2/W2) | Clean win Gen 5 | Clean win Gen 5 or Evil win gen 5 | Team Plasma is Unova's story |
+| Barry (Platinum) | Fast win: 60 | Fast win: 60 or Evil win gen 4 | Galactic is Sinnoh's story |
+| Lance (HGSS) | Full team: dragon | Full team: dragon or Evil win gen 3 | The Hoenn path ends with Zinnia's dragons |
+| Kris (Crystal) | Clean win | Clean win or Mode win: hard | Rewards a hard win with her save |
+| Hugh (B2/W2) | Quick wins: 5 | Quick wins: 5 or Mode win: rainbow | Rainbow gyms in any order, a speedy kind of run |
+| Steven (Emerald) | Full team: steel | Full team: steel or Mode win: noitems | A trainer who gives you a Hard Stone and Metal Coat, so a run without items is his proof |
+| Red (Battle Frontier) | Win all gens | Win all gens or Mode win: gauntlet | The Battle Frontier Red for the longest run |
+
+Open for later: new trainers (Team leaders, the Hoenn and Sinnoh bosses) for `Mode win: mixed` and `Evil wins: 3`, once there are sprites for them.
+
 ## How to add one
 
 1. Add the clause to the `CLAUSES` list in `js/game/unlocks.js` (what to write in the table, what it counts, its text).

@@ -18,6 +18,7 @@ import { setFriendshipSpecies } from "./game/unlocks.js";
 import { Pokedex } from "./game/pokedex.js";
 import { RunUI } from "./ui/run-screens.js";
 import { DevTools } from "./ui/dev-tools.js";
+import { initTooltips } from "./ui/tooltip.js";
 
 async function boot() {
   persistMigration(); // saves from before the skill tree: refund the old upgrades once
@@ -57,6 +58,7 @@ async function boot() {
   } catch { /* ignore */ }
   setFriendshipSpecies(Object.entries(ctx.dex.evolvesFrom).filter(([, e]) => e.method.kind === "friendship").map(([k]) => k));
   // The debug panel (press L) can bring you back to the screen you were on
+  initTooltips(); // hover text for every data-tip and title
   new DevTools(new RunUI(ctx), ctx).boot();
   onSave(noteLocalSave); // cloud save: copies every save to Firestore when signed in (see js/firebase-config.js)
   initCloud();

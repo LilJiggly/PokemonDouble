@@ -28,6 +28,7 @@
 //   Win all gens             reach the Hall of Fame in every Challenge Gen (1–5)
 //   Fast win: 60             reach the Hall of Fame within 60 minutes of play time
 //   Obtain: a, b, c          have every one of those exact species on your team at some point of one run
+//   Final team: a, b, c      win the last battle with every one of those exact species on your team (Cynthia)
 //   Friendship: 5            recruit 5 different Pokémon that evolved by friendship (Crobat, Blissey, Lucario…)
 // Progress comes from the meta save (see progress.js). Trainers are granted by grantUnlocks(): at most
 // 2 per run, so unlocking feels like an event.
@@ -71,6 +72,7 @@ const CLAUSES = [
   [/^evil win gen (\d+)$/i, (m) => ({ kind: "evilWinGen", n: 1, arg: m[1] })],
   [/^evil wins:?\s*(\d+)$/i, (m) => ({ kind: "evilWins", n: +m[1] })],
   [/^fast win:?\s*(\d+)$/i, (m) => ({ kind: "fast", n: +m[1] })],
+  [/^final team:?\s*([\w, -]+)$/i, (m) => { const arg = m[1].split(",").map((x) => x.trim().toLowerCase()).filter(Boolean); return { kind: "finalTeam", n: arg.length, arg }; }],
   [/^friendship:?\s*(\d+)$/i, (m) => ({ kind: "friendly", n: +m[1] })],
   [/^obtain:?\s*([\w, -]+)$/i, (m) => { const arg = m[1].split(",").map((x) => x.trim().toLowerCase()).filter(Boolean); return { kind: "obtain", n: arg.length, arg }; }],
 ];
@@ -141,6 +143,7 @@ export function clauseProgress(meta, c) {
     case "evilWinGen": return { have: count(meta.evilWins, c.arg), need: 1 };
     case "evilWins": return { have: [1, 2, 3, 4, 5].filter((g) => count(meta.evilWins, g) > 0).length, need: c.n };
     case "fast": return { have: (meta.fastestWin ?? Infinity) <= c.n * 60000 ? 1 : 0, need: 1 };
+    case "finalTeam": return { have: meta.finalTeamWon?.[c.arg.join(",")] ? c.n : Math.min(c.n - 1, (meta.finalTeamBest?.[c.arg.join(",")] ?? []).length), need: c.n };
     case "obtain": return { have: (meta.obtainBest?.[c.arg.join(",")] ?? []).length, need: c.n };
     case "friendly": return { have: (meta.species ?? []).filter((k) => friendshipSpecies.has(k)).length, need: c.n };
     default: return { have: 1, need: 1 };
@@ -154,6 +157,22 @@ export function ruleProgress(meta, rule) {
     const { have, need } = clauseProgress(meta, c);
     return Math.min(1, have / need);
   }))));
+}
+
+// Progress of the closest way to unlock a trainer, for the picker: a share (0 to 1) and a short text such as "2 of 5"
+// (a way with several conditions lists them: "2 of 5 · 3 of 10"). Yes or no conditions give no text.
+export function ruleProgressText(meta, rule) {
+  if (!rule) return { share: 1, text: "" };
+  let best = null;
+  for (const alt of rule.alts) {
+    const parts = alt.map((c) => ({ ...clauseProgress(meta, c), kind: c.kind }));
+    const share = Math.min(...parts.map(({ have, need }) => Math.min(1, have / need)));
+    if (!best || share > best.share) best = { share, parts };
+  }
+  // Yes or no conditions (and a team to bring, like Cynthia's) have nothing to count: no text
+  const countable = best.parts.every(({ need, kind }) => need > 1 && !["finalTeam", "obtain"].includes(kind));
+  const text = countable ? best.parts.map(({ have, need }) => `${Math.min(have, need)} of ${need}`).join(" · ") : "";
+  return { share: best.share, text };
 }
 
 // Are the conditions met (whether or not the trainer has been granted yet)?
@@ -187,7 +206,7 @@ export function grantUnlocks(meta, rules, characters, max = MAX_UNLOCKS_PER_RUN)
 }
 
 // The names a run mode goes by in "Mode win: X" (the clause) and in the text
-const MODE_NAMES = { hard: "Hard mode", moves: "Random moves", levels: "Random levels", rainbow: "Rainbow", gyms: "Random gyms", mono: "Mono type", noitems: "No items", fixed: "Fixed Six", mixed: "Mixed Gens", evil: "an evil team path" };
+const MODE_NAMES = { hard: "Hard mode", moves: "Random moves", levels: "Random levels", rainbow: "Rainbow", gyms: "Random gyms", mono: "Mono type", noitems: "No items", fixed: "Fixed Six", mixed: "Mixed Gens", gauntlet: "the Gauntlet", evil: "an evil team path" };
 const nice = (s) => String(s ?? "").replace(/-/g, " ").replace(/^./, (x) => x.toUpperCase());
 
 export function clauseText(c) {
@@ -218,6 +237,7 @@ export function clauseText(c) {
     case "evilWinGen": return `Win the evil team path of Gen ${c.arg}`;
     case "evilWins": return c.n === 1 ? "Win an evil team path" : `Win ${c.n} evil team paths`;
     case "fast": return `Win a run in ${c.n} minutes`;
+    case "finalTeam": return `Win the last battle with all ${c.n} of these on your team`;
     case "obtain": return `Have all ${c.n} of these in one run`;
     case "friendly": return `Recruit ${c.n} friendship evolutions`;
     default: return "";
