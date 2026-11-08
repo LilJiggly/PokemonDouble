@@ -10,6 +10,9 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { readTable } from "../js/game/design-tables.js";
+import { prepareData } from "../js/engine/data.js";
+import { parseRules } from "../js/game/rules.js";
+import { Pokedex } from "../js/game/pokedex.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const design = fs.readFileSync(path.join(ROOT, "DESIGN.md"), "utf8");
@@ -18,6 +21,7 @@ const list = Array.isArray(pokemon) ? pokemon : Object.values(pokemon);
 const byName = Object.fromEntries(list.map((p) => [p.name.toLowerCase(), p]));
 const byKey = Object.fromEntries(list.map((p) => [p.key, p]));
 const leaders = Object.fromEntries([1, 2, 3, 4, 5].map((g) => [g, JSON.parse(fs.readFileSync(path.join(ROOT, `data/leaders/gen${g}.json`), "utf8"))]));
+const evilFiles = Object.fromEntries([1, 2, 3, 4, 5].map((g) => [g, JSON.parse(fs.readFileSync(path.join(ROOT, `data/leaders/evil${g}.json`), "utf8"))]));
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
 // --- Pools from DESIGN.md ---
@@ -110,6 +114,38 @@ for (const t of trainers) {
 }
 const sigGroups = new Map();
 for (const t of signature) (sigGroups.get(sig(t)) ?? sigGroups.set(sig(t), []).get(sig(t))).push(t);
+// --- Evil team paths: 14 battles each. Battles 1 to 12 are a team of the opponent's type from every Pokémon that is fully
+// evolved enough for the battle's level (any generation; no Legendaries before battle 13, no Mythicals); 13 and 14 are handcrafted.
+const readJson = (p) => JSON.parse(fs.readFileSync(path.join(ROOT, p), "utf8"));
+const gameData = prepareData({ pokemon: readJson("data/pokemon.json"), moves: readJson("data/moves.json"), abilities: readJson("data/abilities.json") });
+const rules = parseRules(design, gameData);
+const dex = new Pokedex(gameData, readJson("data/evolutions.json"), rules);
+const poolAt = (theme, order) => {
+  const level = rules.progression.find((r) => r.order === order)?.level ?? 50;
+  const out = [];
+  for (const root of Object.keys(dex.lines)) {
+    const stages = dex.highestLegalStages(root, level).filter((k) => !theme || gameData.pokemonByKey[k].types.includes(theme));
+    const p = stages.length && gameData.pokemonByKey[stages[0]];
+    if (!p || p.isMythical || (p.isLegendary && order < 13)) continue;
+    out.push(...stages);
+  }
+  return [...new Set(out)].sort((a, b) => gameData.pokemonByKey[a].id - gameData.pokemonByKey[b].id);
+};
+const evilCard = (gen) => {
+  const file = evilFiles[gen];
+  const rows = file.opponents.map((o) => {
+    const row = rules.progression.find((r) => r.order === o.order);
+    const faces = (o.sprites ?? [o.id]).filter((id) => fs.existsSync(path.join(ROOT, `images/trainers/${id}.png`))).map((id) => `<img src="images/trainers/${id}.png" alt="">`).join("");
+    const set = o.sets?.[0];
+    const detail = set
+      ? `<div class="team">${set.team.map((m) => `<div>${chip(byKey[m.species]?.name ?? m.species, false)}<small>${esc((m.moves ?? []).join(", "))}${m.item ? ` · ${esc(m.item)}` : ""}${m.ability ? ` · ${esc(m.ability)}` : ""}</small></div>`).join("")}</div>`
+      : (() => { const pool = poolAt(o.theme, o.order); return `<details><summary>Pool: ${pool.length} Pokémon of the ${esc(o.theme ?? "any")} type</summary><p class="pool">${pool.map((k) => esc(byKey[k].name)).join(", ")}</p></details>`; })();
+    return `<tr class="evil-row"><th>${o.order}</th><td><span class="faces">${faces}</span> <b>${esc(o.title)} ${esc(o.name)}</b> <small>${o.theme ? `<i class="ttype" style="background:${TYPE_COLORS[o.theme] ?? "#667"}">${esc(o.theme)}</i>` : "legendary team"} · Lv ${row?.level ?? "?"} · ${row?.teamSize ?? 6} Pokémon${set ? " · handcrafted team" : ""}</small>${detail}</td></tr>`;
+  }).join("");
+  const names = file.opponents.map((o) => `${o.title} ${o.name}`).join(" ");
+  return `<section class="card evil-card" data-gens="${gen}" data-search="${esc(`evil ${file.region} ${names}`.toLowerCase())}"><h2>Gen ${gen} · ${esc(file.region)} <small>evil path · 14 battles</small></h2><table>${rows}</table></section>`;
+};
+
 const pools = [...byTheme.values(), ...sigGroups.values()];
 const card = cardFor;
 const html = `<!doctype html>
@@ -133,6 +169,7 @@ const html = `<!doctype html>
   details { margin-top: 8px; } summary { cursor: pointer; color: #f8d030; } .set { margin: 6px 0; padding: 6px 8px; background: #232a3b; border-radius: 8px; } .set ul { margin: 4px 0 0; padding-left: 18px; } .set small { color: #aebccf; }
   .legend { margin: 6px 0 12px; color: #aebccf; font-size: 13px; } .legend table { width: auto; margin-top: 6px; } .legend td, .legend th { padding: 2px 12px 2px 0; width: auto; }
   .hide { display: none; }
+  .evil-row th { width: 24px; } .evil-row td { padding: 6px 0; border-top: 1px solid #38425c; } .evil-row .faces img { height: 40px; } .ttype { padding: 0 6px; border-radius: 6px; color: #10131c; font-size: 11px; font-style: normal; font-weight: 700; text-transform: uppercase; } .pool { margin: 4px 0 0; color: #aebccf; font-size: 12px; line-height: 1.5; }
 </style></head><body>
 <h1>Trainer overview</h1>
 <p class="sub">${trainers.length} trainers in ${pools.length} pools · built from DESIGN.md §5 and data/leaders/ by tools/build-trainer-overview.mjs · CSV: trainer-pools.csv</p>
@@ -140,6 +177,9 @@ const html = `<!doctype html>
 ${perBattle.length ? `<table><tr><th>Battle</th>${perBattle.map((r) => `<td>${esc(String(r["Battle"]).replace("Elite Four #", "E4 ").replace("Gym ", "G"))}</td>`).join("")}</tr><tr><th>Groups</th>${perBattle.map((r) => `<td>${esc(r["Groups"])}</td>`).join("")}</tr></table>` : ""}</div>
 <div class="bar"><input id="q" placeholder="Search a trainer, type or Pokémon (e.g. Skarmory, electric, brock)…"></div>
 <div class="grid" id="grid">${pools.map(card).join("")}</div>
+<h1 style="margin-top:28px">Evil team paths</h1>
+<p class="sub">One path per generation, unlocked by winning the normal path. Battles 1 to 12 draw a team of the opponent's type from the pool shown (every Pokémon that is fully evolved enough for the level, from any generation); battles 13 and 14 are handcrafted. Built by tools/build-evil-leaders.mjs from the rosters in that script.</p>
+<div class="grid" id="evil-grid">${[1, 2, 3, 4, 5].map(evilCard).join("")}</div>
 <script>
   const cards = [...document.querySelectorAll(".card")];
   const apply = () => { const q = document.getElementById("q").value.toLowerCase().trim();

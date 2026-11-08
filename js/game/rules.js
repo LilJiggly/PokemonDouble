@@ -108,7 +108,7 @@ export function parseRules(markdown, data) {
   }
 
   // §3h shop sections: how many items each section sells
-  const shopStock = { items: 4, battle: 2, key: 2, tms: 3 };
+  const shopStock = { items: 4, key: 2, tms: 3 };
   for (const row of readTableAfter(markdown, "### 3h.", "| Shop section")) {
     const name = clean(row["Shop section"]).toLowerCase();
     const n = firstNumber(row["Items for sale"]);
@@ -149,6 +149,14 @@ export function parseRules(markdown, data) {
         icon: dash(row["Icon"]),
       });
     }
+  }
+
+  // The run rules that open by winning runs: { "mode-hard": 1, … } (id → Hall of Fame wins needed)
+  const ruleUnlocks = {};
+  for (const row of readTableAfter(markdown, "### 3i.", "| ID | Rule |")) {
+    const id = clean(row["ID"]);
+    const wins = firstNumber(row["Wins"]);
+    if (id && wins !== null) ruleUnlocks[id] = wins;
   }
 
   // §5 team pools: { gen: { trainerId: [[group 0 keys], [group 1 keys], …] } }
@@ -198,6 +206,7 @@ export function parseRules(markdown, data) {
     money,
     tp,
     upgrades,
+    ruleUnlocks,
     startingBag,
     progression: parseProgression(markdown),
     tierMinBst,

@@ -85,7 +85,8 @@ export function noteRunEnd(meta, run, ctx) {
   add("evolutionsDone", run.evolutions);
   add("rerollsDone", run.rerollsUsed);
   add("playMs", run.playMs);
-  if (run.screen !== "won" && run.lastBattle) add("battlesLost", 1);
+  if (run.screen !== "won" && run.lastBattle?.forfeited) add("forfeits", 1);
+  else if (run.screen !== "won" && run.lastBattle) add("battlesLost", 1);
   if (run.screen !== "won") return;
   meta.lineWins ??= {};
   meta.typeWins ??= {};
@@ -95,9 +96,16 @@ export function noteRunEnd(meta, run, ctx) {
   for (const type of types) bump(meta.typeWins, type);
   if (types.size >= 6) meta.diverseWins = (meta.diverseWins ?? 0) + 1;
   if (run.playMs > 0) meta.fastestWin = Math.min(meta.fastestWin ?? Infinity, run.playMs);
+  // Wins with a run mode on (for "Mode win: X" trainer unlocks)
+  meta.modeWins ??= {};
+  const modes = Object.entries(run.settings?.modes ?? {}).filter(([, on]) => on).map(([k]) => (k === "opponents" ? "gyms" : k));
+  if (run.settings?.fixedSix) modes.push("fixed");
+  if (run.settings?.path === "evil") modes.push("evil");
+  if (run.settings?.path === "mixed") modes.push("mixed");
+  for (const mode of modes) bump(meta.modeWins, mode);
   noteChallenges(meta, run, ctx);
   if (!run.fallen.length) {
     meta.cleanWins = (meta.cleanWins ?? 0) + 1;
-    bump(meta.cleanWinGens, run.settings.gen);
+    if (run.settings?.path !== "mixed") bump(meta.cleanWinGens, run.settings.gen);
   }
 }

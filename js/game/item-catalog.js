@@ -122,10 +122,11 @@ export const ITEMS = {
   "deep-sea-scale": held("rare", "DeepSeaScale", "Doubles Clamperl's Sp. Def. Trade evolution: Clamperl → Gorebyss.", { species: ["clamperl"] }),
 };
 
-// Retired items: berries and healing items are no longer found, bought or given at the start (a Nuzlocke has no healing in battle, and
+// Retired items: berries, healing items and battle items are no longer found, bought or given at the start (a Nuzlocke has no healing in battle, and
 // berries were hardly used). They stay in the catalog so a saved run that still holds them keeps working, and opponents may still hold berries.
 const HEALING = ["potion", "super-potion", "hyper-potion", "max-potion", "full-restore", "full-heal", "antidote", "paralyze-heal", "burn-heal", "awakening", "ice-heal"];
-for (const [id, item] of Object.entries(ITEMS)) if (id.endsWith("-berry") || HEALING.includes(id)) item.retired = true;
+// Every bag item is retired too (X items, Dire Hit, Guard Spec.): nothing is used in battle, only held items, stones, patches and mints are left.
+for (const [id, item] of Object.entries(ITEMS)) if (id.endsWith("-berry") || HEALING.includes(id) || item.kind === "bag") item.retired = true;
 export const isRetired = (id) => !!ITEMS[id]?.retired;
 
 export function itemSprite(id) {

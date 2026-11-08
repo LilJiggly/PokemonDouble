@@ -7,11 +7,14 @@
 // =====================================================
 
 import { noteRunEnd } from "./progress.js";
+import { MONO_TYPES } from "./challenges.js";
 
 export const META_KEY = "pd.meta";
 
-// Version 1 = the skill tree. Older saves had seven flat upgrades; migrateMeta() refunds them
-export const TREE_VERSION = 1;
+// Version 1 = the skill tree (older saves had seven flat upgrades, refunded). Version 2 = the run rules open by wins, so the
+// Modes nodes left the tree and what was spent on them is refunded.
+export const TREE_VERSION = 2;
+const REMOVED_NODE_COST = { "mode-moves": 40, "mode-levels": 40, "mode-mons": 40, "mode-hard": 60, "mode-noitems": 50, "mode-opponents": 80, "mode-mono": 60 };
 // What the old upgrades cost per level, for the refund
 const OLD_UPGRADE_COST = { scout: 1, dice: 5, allowance: 3, bag: 3, gift: 1, hidden: 5, shiny: 5 };
 
@@ -24,11 +27,16 @@ export function emptyMeta() {
 export function migrateMeta(meta) {
   if (!meta || meta.treeVersion >= TREE_VERSION) return false;
   let refund = 0;
-  for (const [id, level] of Object.entries(meta.upgrades ?? {})) refund += (OLD_UPGRADE_COST[id] ?? 0) * (Number(level) || 0);
+  if (!(meta.treeVersion >= 1)) { // the old flat upgrades
+    for (const [id, level] of Object.entries(meta.upgrades ?? {})) refund += (OLD_UPGRADE_COST[id] ?? 0) * (Number(level) || 0);
+    meta.upgrades = {};
+  }
+  for (const [id, cost] of Object.entries(REMOVED_NODE_COST)) { // the Modes nodes
+    if ((meta.upgrades?.[id] ?? 0) > 0) { refund += cost; delete meta.upgrades[id]; }
+  }
   meta.tp = (meta.tp ?? 0) + refund;
-  meta.upgrades = {};
   meta.treeVersion = TREE_VERSION;
-  if (refund > 0) meta.refundNote = refund; // shown once on the skill tree screen
+  if (refund > 0) meta.refundNote = (meta.refundNote ?? 0) + refund; // shown once on the skill tree screen
   return true;
 }
 
@@ -37,7 +45,7 @@ export function loadMeta(storage = globalThis.localStorage) {
     const raw = JSON.parse(storage.getItem(META_KEY));
     // A brand new save starts on the tree; an old one is migrated (and refunded) as it is read
     const meta = { ...emptyMeta(), ...raw };
-    if (raw && !(raw.treeVersion >= TREE_VERSION)) { meta.treeVersion = 0; migrateMeta(meta); }
+    if (raw && !(raw.treeVersion >= TREE_VERSION)) { meta.treeVersion = raw.treeVersion ?? 0; migrateMeta(meta); }
     return meta;
   } catch {
     return emptyMeta();
@@ -95,6 +103,7 @@ export function buyUpgrade(meta, upgrade, nodes) {
   return true;
 }
 
+const BASE_PERKS = new Set(["scout", "dice", "allowance", "bag", "gift", "hidden", "shiny", "shiny2"]); // (these are read by node id above)
 // The upgrades a new run starts with (copied into the run, so later purchases don't change it)
 // rules: the parsed rules (for the tree's stat bonuses, Trainer Point bonus and unlocked features)
 export function perksFromMeta(meta, rules = null) {
@@ -122,10 +131,42 @@ export function perksFromMeta(meta, rules = null) {
       else if (kind === "tp-pct") perks.tpPct += Number(a) * level;
       else if (kind === "unlock") perks.unlocked.push(a);
       else if (kind === "run") perks.tree.run[a] = (perks.tree.run[a] ?? 0) + Number(b) * level;
-      else if (kind === "perk" && !(a in perks)) perks[a] = Number(b) * level; // a perk without its own line above (IV floor)
+      else if (kind === "perk" && !BASE_PERKS.has(a)) perks[a] = (perks[a] ?? 0) + Number(b) * level; // a perk without its own line above (IV floor, Type Magnet…), added up over its nodes
     }
   }
   return perks;
+}
+
+// How many times you have won a generation (its normal path or its evil team path)
+// (gen "m" = Mixed Gens: your best generation, plus the Mixed Gens wins)
+export const winsInGen = (meta, gen) => gen === "m" ? Math.max(0, ...[1, 2, 3, 4, 5].map((g) => winsInGen(meta, g))) + (meta.mixedWins ?? 0) : (meta.winGens?.[gen] ?? 0) + (meta.evilWins?.[gen] ?? 0);
+
+// Mono type opens once half of the "win using only one type" challenges are beaten (any run, any generation)
+export const MONO_UNLOCK = Math.ceil(MONO_TYPES.length / 2);
+export const monoChallengesDone = (meta) => MONO_TYPES.filter((m) => (meta.challenges ?? []).includes(m.id)).length;
+
+// The run rules and picks you can use: the ones the Skill Tree unlocks, and the rules that open by winning THE generation you are about to play
+export function unlockedRules(meta, rules, gen) {
+  const set = new Set(perksFromMeta(meta, rules).unlocked);
+  const wins = winsInGen(meta, gen);
+  for (const [id, need] of Object.entries(rules?.ruleUnlocks ?? {})) if (wins >= need) set.add(id);
+  if (monoChallengesDone(meta) >= MONO_UNLOCK) set.add("mode-mono"); // Mono type opens with the type challenges, not with wins
+  return set;
+}
+
+// Respec: take back every upgrade for most of the Trainer Points spent on them (a fee of 20%)
+export const RESPEC_FEE = 0.2;
+export function spentOnTree(meta, nodes) {
+  let spent = 0;
+  for (const n of nodes) for (let i = 0; i < upgradeLevel(meta, n.id); i++) spent += n.costs[i] ?? 0;
+  return spent;
+}
+export function respecTree(meta, nodes) {
+  const spent = spentOnTree(meta, nodes);
+  const refund = Math.floor(spent * (1 - RESPEC_FEE));
+  for (const n of nodes) delete meta.upgrades[n.id];
+  meta.tp += refund;
+  return { spent, refund, fee: spent - refund };
 }
 
 // How many battles of the run were beaten (a win = all 14)
@@ -139,16 +180,16 @@ export function recordRun(meta, run, ctx = null) {
   meta.best = Math.max(meta.best ?? 0, beatenCount(run));
   if (run.screen === "won") {
     meta.wins = (meta.wins ?? 0) + 1;
-    meta.winGens = { ...meta.winGens, [run.settings.gen]: (meta.winGens?.[run.settings.gen] ?? 0) + 1 };
+    // A Team path win is counted apart, so it doesn't count as the normal Challenge Gen win (and doesn't open the next unlocks by itself)
+    if (run.settings?.path === "mixed") meta.mixedWins = (meta.mixedWins ?? 0) + 1; // a final path: counted apart
+    else if (run.settings?.path === "evil") meta.evilWins = { ...meta.evilWins, [run.settings.gen]: (meta.evilWins?.[run.settings.gen] ?? 0) + 1 };
+    else meta.winGens = { ...meta.winGens, [run.settings.gen]: (meta.winGens?.[run.settings.gen] ?? 0) + 1 };
   }
   if (ctx) noteRunEnd(meta, run, ctx); // lines, types, clean wins… for the character unlocks
 }
 
-// +25% Trainer Points for a run with Fixed Six or a Mode switched on
-export const CHALLENGE_RUN_BONUS = 25;
-export const isChallengeRun = (run) => !!(run.settings?.fixedSix || Object.values(run.settings?.modes ?? {}).some(Boolean));
-
-// TP for a finished run: per opponent beaten, plus the Hall of Fame bonus, plus the skill tree's pay increase and the challenge run bonus
+// TP for a finished run: per opponent beaten, plus the Hall of Fame bonus, plus the skill tree's pay increase
+export const MIXED_WIN_BONUS = 50;
 export function trainerPointsFor(run, rules) {
   const beaten = beatenCount(run);
   let tp = 0;
@@ -158,6 +199,7 @@ export function trainerPointsFor(run, rules) {
     else if (order === 13) tp += rules.tp.champion;
     else tp += rules.tp.hallOfFame;
   }
-  const pct = (run.perks?.tpPct ?? 0) + (isChallengeRun(run) ? CHALLENGE_RUN_BONUS : 0);
+  if (run.settings?.path === "mixed") tp = tp * 2 + (beaten >= 14 ? MIXED_WIN_BONUS : 0); // the final path pays double, and a lot more for finishing it
+  const pct = run.perks?.tpPct ?? 0;
   return pct ? Math.round(tp * (1 + pct / 100)) : tp;
 }

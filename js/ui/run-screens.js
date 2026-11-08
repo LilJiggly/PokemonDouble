@@ -19,10 +19,10 @@ import { CASE_SIZE, badgeId, badgeImage, badgeName, caseOf, caseStrengths, owned
 import { targetIcon, categoryIcon } from "./target-icon.js";
 import { rankScore, rankOf } from "../game/ranks.js";
 import { play as playMusic } from "../game/music.js";
-import { CHALLENGES, PLANNED, REVEAL_AT, isRevealed } from "../game/challenges.js";
+import { CHALLENGES, MONO_TYPES, PLANNED, secretAt, secretRevealed } from "../game/challenges.js";
 import { VERSION } from "../version.js";
 import * as Run from "../game/run.js";
-import { loadMeta, saveMeta, buyUpgrade, canBuyUpgrade, upgradeLevel, lockReason, nextCost, perksFromMeta, trainerPointsFor, isChallengeRun, CHALLENGE_RUN_BONUS, recordRun, noteSave } from "../game/meta.js";
+import { loadMeta, saveMeta, buyUpgrade, canBuyUpgrade, upgradeLevel, lockReason, nextCost, perksFromMeta, unlockedRules, winsInGen, MONO_UNLOCK, monoChallengesDone, spentOnTree, respecTree, RESPEC_FEE, trainerPointsFor, recordRun, noteSave } from "../game/meta.js";
 import { cloudAvailable, state as cloudState, onCloudChange, signIn, signOutUser, allPlayers, topPlayers, LEADERBOARDS, publicName, cleanUsername, cleanTagline, setSyncChooser, setPublicStats } from "../game/cloud.js";
 import { buildStats, ownedSpecies } from "../game/stats.js";
 import { ITEMS, POCKETS, pocketOf, itemInfo, itemSprite } from "../game/item-catalog.js";
@@ -58,6 +58,8 @@ const DETAIL_TABS = [
   { id: "evolution", label: "Evolution", icon: "everstone" },
   { id: "moves", label: "Moves", icon: "tm-normal" },
 ];
+// Which generation's wins open the run rules (Mixed Gens counts your best generation)
+const ruleGen = (meta) => (meta.setup?.path === "mixed" ? "m" : meta.setup?.gen);
 const TYPE_CHOICES = ["normal", "fire", "water", "electric", "grass", "ice", "fighting", "poison", "ground", "flying", "psychic", "bug", "rock", "ghost", "dragon", "dark", "steel"];
 const cap = (t) => t.charAt(0).toUpperCase() + t.slice(1);
 const STOP_LABELS = ["1", "2", "3", "4", "5", "6", "7", "8", "E1", "E2", "E3", "E4", "C", "R"];
@@ -72,6 +74,8 @@ const store = {
 
 // The most iconic Pokémon of each generation (the box art legends), and the starter trios
 const ICONIC = { 1: "charizard", 2: "lugia", 3: "rayquaza", 4: "dialga", 5: "reshiram" };
+// The evil team path of each generation: a trainer sprite for its card (images/trainers)
+const EVIL_ICON = { 1: "giovanni", 2: "archer", 3: "archie", 4: "cyrus", 5: "ghetsis" };
 const STARTER_TRIOS = [["bulbasaur", "charmander", "squirtle"], ["chikorita", "cyndaquil", "totodile"], ["treecko", "torchic", "mudkip"], ["turtwig", "chimchar", "piplup"], ["snivy", "tepig", "oshawott"]];
 
 export class RunUI {
@@ -107,6 +111,7 @@ export class RunUI {
     else if (name === "leaderboards" && cloudAvailable()) this.renderLeaderboards();
     else if (name === "hof") this.renderHallOfFame();
     else if (name === "profile") this.renderProfile();
+    else if (name === "challenges") this.renderChallenges();
     else this.start();
   }
   resumeSaved() {
@@ -184,13 +189,13 @@ export class RunUI {
     this.hub.innerHTML = `
       <div class="logo">Pokémon Double</div>
       <div class="title-banner" aria-hidden="true"></div>
-      <p class="title-blurb">Hone your skills in this Pokémon double battle roguelike. Draft a team and beat the gyms, the Elite Four and your Rival.</p>
       <div class="menu-list">
         ${savedRun ? `<button class="btn primary" data-act="continue">Continue run</button>` : ""}
         <button class="btn ${savedRun ? "" : "primary"}" data-act="new">New run</button>
         <button class="btn" data-act="upgrades">Skill Tree <span class="tp-pill">${meta.tp} TP</span></button>
+        <button class="btn" data-act="challenges">Challenges <span class="tp-pill">${(meta.challenges ?? []).length}/${CHALLENGES.length}</span></button>
+        <button class="btn" data-act="hof">Hall of Fame</button>
         <button class="btn" data-act="profile">Profile</button>
-        <button class="btn" data-act="hof" ${hof.length ? "" : "disabled"}>Hall of Fame</button>
         ${cloudAvailable() ? `<button class="btn" data-act="leaderboards">Leaderboards</button>` : ""}
       </div>
       ${cloudAvailable() ? `<div class="account" data-account>${this.accountHtml()}</div>` : ""}
@@ -222,6 +227,7 @@ export class RunUI {
       if (act === "hof") this.renderHallOfFame();
       if (act === "upgrades") this.renderUpgrades();
       if (act === "profile") this.renderProfile();
+      if (act === "challenges") this.renderChallenges();
     };
   }
 
@@ -261,6 +267,7 @@ export class RunUI {
       ${boardId === "hof" ? `<p class="rank-note">The latest winning teams of all players, newest first.</p>` : ""}
       ${boardId === "challenges" ? `<p class="rank-note">Special goals for a winning run. Beat one in any run to put your name on it.</p>` : ""}
       ${boardId === "pokemon" ? `<p class="rank-note">The Pokémon that were in the most winning Hall of Fame teams, across all players.</p>` : ""}
+      <p class="rank-note click-note">Click a player to see their profile: trainer, favourite team, stats and champion teams.</p>
       ${boardId === "ranks" ? `<p class="rank-note">Everyone starts at Z. Climb towards A: points for your furthest run, every Champion win and flawless win, every badge and every trainer you unlock.</p>` : ""}
       <section class="card-panel"><ol class="board-list" data-board-list><li class="empty-note">Loading…</li></ol></section>`;
     this.boardPlayers = new Map(); // uid → the line, for the profile window
@@ -269,7 +276,7 @@ export class RunUI {
       const el = e.target.closest("[data-act]");
       if (el?.dataset.act === "title") this.start();
       if (el?.dataset.act === "board") this.renderLeaderboards(el.dataset.board);
-      const row = e.target.closest("li[data-uid]");
+      const row = e.target.closest("[data-uid]"); // a row or a name tag
       if (row && !el) this.playerProfile(this.boardPlayers.get(row.dataset.uid)); // a click on a player opens their profile
     };
     if (boardId === "hof" || boardId === "challenges") {
@@ -280,13 +287,14 @@ export class RunUI {
       const myId = cloudState().user?.uid;
       if (players === null) { box.innerHTML = `<li class="empty-note">Could not load the leaderboard.</li>`; return; }
       if (boardId === "challenges") {
+        for (const p of players) this.boardPlayers.set(p.uid, p);
         const mine = new Set(loadMeta().challenges ?? []);
         const total = Math.max(1, players.length);
         const row = (c) => {
           const done = players.filter((p) => p.challenges?.includes(c.id)).sort((a, b) => String(a.name).localeCompare(String(b.name)));
-          const pills = done.slice(0, 10).map((p) => `<span class="user-pill ${p.uid === myId ? "me" : ""}">${escapeHtml(p.name ?? "Trainer")}</span>`).join("") + (done.length > 10 ? `<span class="user-pill more">+${done.length - 10} more</span>` : "");
+          const pills = done.slice(0, 10).map((p) => `<span class="user-pill clickable ${p.uid === myId ? "me" : ""}" data-uid="${p.uid}">${escapeHtml(p.name ?? "Trainer")}</span>`).join("") + (done.length > 10 ? `<span class="user-pill more">+${done.length - 10} more</span>` : "");
           return `<li class="challenge-row ${mine.has(c.id) ? "done" : ""}"><span class="ch-check" title="${mine.has(c.id) ? "You beat this one" : "Not beaten yet"}">${mine.has(c.id) ? "✓" : ""}</span>
-            <span class="who"><span class="ch-title"><strong>${c.name}</strong><em class="ch-tag ${c.rule ? "rule" : ""}">${c.rule ? `Rule: ${c.rule}` : "Any run"}</em></span><small>${c.text}</small>
+            <span class="who"><span class="ch-title"><strong>${c.name}</strong><em class="ch-tag ${c.rule ? "rule" : ""}">${c.rule ? `Rule: ${c.rule}` : "Any run"}</em></span><small>${c.text}${c.hint ? ` <em class="ch-hint">${c.hint}</em>` : ""}</small>
             <span class="ch-bar" title="${done.length} of ${players.length} players"><i style="width:${Math.round(done.length / total * 100)}%"></i></span>
             ${done.length ? `<span class="user-pills">${pills}</span>` : ""}</span>
             <b>${done.length}<small> / ${players.length}</small></b></li>`;
@@ -294,7 +302,7 @@ export class RunUI {
         box.innerHTML = `<li class="ch-head"><b>${CHALLENGES.filter((c) => mine.has(c.id)).length} of ${CHALLENGES.length}</b> beaten by you<small>Beat a challenge in a winning run. Most count in any run; a rule challenge needs its switch on before you start.</small></li>`
           + this.challengeRows(CHALLENGES, mine, row)
           + `<li class="ch-head soon"><b>Coming soon</b><small>Ideas on the list. They aren't tracked yet.</small></li>`
-          + PLANNED.map((c) => `<li class="challenge-row planned"><span class="ch-check"></span><span class="who"><span class="ch-title"><strong>${c.name}</strong></span><small>${c.text}</small></span></li>`).join("");
+          + PLANNED.map((c) => `<li class="challenge-row planned"><span class="ch-check"></span><span class="who"><span class="ch-title"><strong>${c.name}</strong></span><small>${c.text}${c.hint ? ` <em class="ch-hint">${c.hint}</em>` : ""}</small></span></li>`).join("");
         return;
       }
       for (const p of players) this.boardPlayers.set(p.uid, p);
@@ -316,12 +324,13 @@ export class RunUI {
         for (const [k, n] of Object.entries(p.used ?? {})) {
           if (!this.ctx.data.pokemonByKey[k]) continue;
           totals[k] = (totals[k] ?? 0) + n;
-          (users[k] ??= []).push({ name: p.name ?? "Trainer", n });
+          this.boardPlayers.set(p.uid, p);
+          (users[k] ??= []).push({ name: p.name ?? "Trainer", n, uid: p.uid });
         }
       }
       const pills = (k) => {
         const list = users[k].sort((a, b) => b.n - a.n || a.name.localeCompare(b.name));
-        return `<span class="user-pills">${list.slice(0, 6).map((u) => `<span class="user-pill">${escapeHtml(u.name)}${u.n > 1 ? ` x ${u.n}` : ""}</span>`).join("")}${list.length > 6 ? `<span class="user-pill more">+${list.length - 6} more</span>` : ""}</span>`;
+        return `<span class="user-pills">${list.slice(0, 6).map((u) => `<span class="user-pill clickable" data-uid="${u.uid}">${escapeHtml(u.name)}${u.n > 1 ? ` x ${u.n}` : ""}</span>`).join("")}${list.length > 6 ? `<span class="user-pill more">+${list.length - 6} more</span>` : ""}</span>`;
       };
       const top = Object.entries(totals).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 20);
       box.innerHTML = players === null ? `<li class="empty-note">Could not load the leaderboard.</li>`
@@ -475,10 +484,10 @@ export class RunUI {
     return this.modal({
       title: escapeHtml(p.name ?? "Trainer"),
       variant: "player-profile",
-      body: `<div class="pp-head"><img class="profile-avatar" src="${avatar.front}" alt=""><div>${p.tagline ? `<p class="pp-tagline">${escapeHtml(p.tagline)}</p>` : ""}<p class="empty-note">${avatar.name}</p></div>
+      body: `<div class="pp-head"><img class="profile-avatar" src="${avatar.front}" alt=""><div>${p.tagline ? `<p class="pp-tagline">${escapeHtml(p.tagline)}</p>` : ""}<p class="empty-note">${p.avatar && CHARACTERS.some((c) => c.id === p.avatar) ? avatar.name : "No trainer picked yet"}</p></div>
           <div class="profile-rank"><b>${rank.letter}</b><small>${rankScore(p)} pts</small></div></div>
         <div class="stat-grid">${stat("Champion wins", p.wins ?? 0)}${stat("Furthest battle", `${p.best ?? 0} of 14`)}${stat("Flawless wins", p.cleanWins ?? 0)}${stat("Badges", `${p.badges ?? 0} of 40`)}${stat("Trainers", `${p.trainers ?? 0} of ${CHARACTERS.length}`)}${stat("Challenges", `${done.length} of ${CHALLENGES.length}`)}</div>
-        ${favs ? `<h4 class="ch-section">Favourite team</h4><div class="pp-mons">${favs}</div>` : ""}
+        <h4 class="ch-section">Favourite team</h4>${favs ? `<div class="pp-mons">${favs}</div>` : `<p class="empty-note">No favourite team picked yet.</p>`}
         ${teams ? `<h4 class="ch-section">Latest champion teams</h4>${teams}` : ""}
         ${done.length ? `<h4 class="ch-section">Challenges beaten</h4><div class="user-pills">${done.map((c) => `<span class="user-pill">${escapeHtml(c.name)}</span>`).join("")}</div>` : ""}`,
       options: [],
@@ -494,6 +503,7 @@ export class RunUI {
     const nodes = this.ctx.rules.upgrades;
     const byId = Object.fromEntries(nodes.map((n) => [n.id, n]));
     const refund = meta.refundNote;
+    const spentTotal = spentOnTree(meta, nodes);
     const arms = [...new Set(nodes.map((n) => n.arm))];
     const active = arms.includes(tab) ? tab : arms[0];
     this.treeTab = active; // the tab you were on stays after buying
@@ -533,7 +543,7 @@ export class RunUI {
       <div class="offer-head">
         <div><h1>Skill Tree</h1>
           <p>Spend Trainer Points on permanent upgrades. Every panel builds upwards: finish a node to open the one above it.</p></div>
-        <div class="row-buttons"><span class="tp-pill big">${meta.tp} TP</span><button class="btn" data-act="title">◀ Title</button></div>
+        <div class="row-buttons"><span class="tp-pill big">${meta.tp} TP</span><button class="btn" data-act="respec" ${spentTotal ? "" : "disabled"} title="Take back every upgrade for most of the Trainer Points you spent">Respec</button><button class="btn" data-act="title">◀ Title</button></div>
       </div>
       ${refund ? `<p class="refund-note">The upgrades you had were refunded: <b>+${refund} TP</b>. Spend them in the new skill tree.</p>` : ""}
       <div class="tabs tree-tabs">${arms.map((a) => `<button class="tab ${a === active ? "active" : ""}" data-tab="${a}" data-arm="${a}">${a}<small>${armProgress(a)}</small></button>`).join("")}</div>
@@ -558,6 +568,24 @@ export class RunUI {
     grid.onmouseout = (e) => { const id = e.target.closest("[data-node]")?.dataset.node; if (id) mark(id, false); };
     this.hub.onclick = async (e) => {
       if (e.target.closest("[data-act]")?.dataset.act === "title") { this.start(); return; }
+      if (e.target.closest("[data-act]")?.dataset.act === "respec") {
+        const m0 = loadMeta();
+        const spent = spentOnTree(m0, nodes);
+        const refund = Math.floor(spent * (1 - RESPEC_FEE));
+        const ok = await this.modal({
+          title: "Respec the Skill Tree?",
+          body: `<p>Every upgrade is taken back and you start the tree again.</p>
+            <div class="nd"><div class="nd-row"><span>You spent</span><b>${spent} TP</b></div><div class="nd-row"><span>Fee (${Math.round(RESPEC_FEE * 100)}%)</span><b>−${spent - refund} TP</b></div><div class="nd-row"><span>You get back</span><b>${refund} TP</b></div></div>`,
+          options: [{ value: true, label: `Respec, get ${refund} TP back` }],
+          cancel: "Keep my upgrades",
+        });
+        if (!ok) return;
+        const fresh = loadMeta();
+        respecTree(fresh, nodes);
+        saveMeta(fresh);
+        this.renderUpgrades(active);
+        return;
+      }
       const tabBtn = e.target.closest("[data-tab]");
       if (tabBtn) { this.renderUpgrades(tabBtn.dataset.tab); return; }
       const id = e.target.closest("[data-node]")?.dataset.node;
@@ -646,9 +674,10 @@ export class RunUI {
   }
 
   // How far you got in a Challenge Gen: the pips (8 gyms, Elite Four, Champion, Final Rival) and a line of text
-  genProgress(meta, g) {
+  genProgress(meta, g) { // g is a generation (1 to 5) or "e1" to "e5" for an evil team path
+    const evil = String(g).startsWith("e");
     const beaten = Math.min(14, Math.max(0, (meta.reach?.[g] ?? 1) - 1));
-    const cleared = meta.winGens?.[g] ?? 0;
+    const cleared = g === "m" ? meta.mixedWins ?? 0 : evil ? meta.evilWins?.[String(g).slice(1)] ?? 0 : meta.winGens?.[g] ?? 0;
     const pips = Array.from({ length: 14 }, (_, i) => `<i class="${i < (cleared ? 14 : beaten) ? "done" : ""} ${i < 8 ? "gym" : i < 12 ? "e4" : "top"}"></i>`).join("");
     const text = cleared ? `Cleared ${cleared > 1 ? `×${cleared}` : "✓"}` : beaten ? `Best: ${beaten} of 14 beaten` : "Not played yet";
     return { pips: `<span class="gen-progress" aria-hidden="true">${pips}</span>`, text };
@@ -672,7 +701,9 @@ export class RunUI {
     const hasBadges = owned.size > 0;
     const c = characterById(meta.character);
     const slots = caseOf(meta);
-    const gp = this.genProgress(meta, setup.gen);
+    const evilPath = setup.path === "evil" && !!this.ctx.evil?.[setup.gen] && this.evilOpen(meta, setup.gen);
+    const mixedPath = setup.path === "mixed" && this.mixedOpen(meta);
+    const gp = this.genProgress(meta, mixedPath ? "m" : evilPath ? `e${setup.gen}` : setup.gen);
     const spriteMode = SPRITE_MODES.find((m) => m.id === meta.sprites) ?? SPRITE_MODES[0];
     // Icons that follow the settings: the equipped badges in this run's zones, one starter per generation (dim = not in the pool)
     const ZONE_COLORS = ["#5ec8ff", "#ff8fd0", "#9be564", "#ffb454", "#c79bff", "#5eead0", "#ff7b72", "#e6e36b"];
@@ -681,12 +712,13 @@ export class RunUI {
     // One starter per generation, drawn again every time this screen opens (fire, water and grass all show up)
     this.starterPicks = STARTER_TRIOS.map((trio) => trio[Math.floor(Math.random() * 3)]);
     const poolIcon = `<span class="sc-starters">${this.starterPicks.map((k, i) => `<img class="${setup.pools.includes(i + 1) ? "" : "off"}" src="${this.ctx.data.pokemonByKey[k].sprites.front}" alt="Gen ${i + 1}">`).join("")}</span>`;
-    const challengeIcon = `<img class="sc-img" src="${this.ctx.data.pokemonByKey[ICONIC[setup.gen]].sprites.front}" alt="">`;
+    const challengeIcon = mixedPath ? `<span class="sc-rainbow">🌈</span>` : evilPath ? `<img class="sc-img" src="images/trainers/${EVIL_ICON[setup.gen]}.png" alt="">` : `<img class="sc-img" src="${this.ctx.data.pokemonByKey[ICONIC[setup.gen]].sprites.front}" alt="">`;
     const spriteDir = spriteMode.id === "gen5-ani" ? "gen5-ani" : spriteMode.id === "gen4" ? "gen4" : "gen5";
     const spriteIcon = `<img class="sc-img" src="images/sprites/${spriteDir}/front/9.${spriteMode.id === "gen5-ani" ? "gif" : "png"}" alt="">`;
     const choices = this.runChoices(meta);
-    const MODE_NAMES = { moves: "Random moves", levels: "Random levels", mons: "Random mons", hard: "Hard mode", noitems: "No items", mono: "Mono type", opponents: "Random gyms" };
-    const rules = [setup.dupes !== false ? "Dupes clause" : null, setup.fixedSix === true ? "Fixed Six" : null, ...Object.keys(choices.modes).map((k) => MODE_NAMES[k]), Object.keys(choices.picks).length ? `${Object.keys(choices.picks).length} pick${Object.keys(choices.picks).length > 1 ? "s" : ""}` : null].filter(Boolean);
+    const MODE_NAMES = { moves: "Random moves", levels: "Random levels", rainbow: "Rainbow", hard: "Hard mode", noitems: "No items", mono: "Mono type", opponents: "Random gyms" };
+    const runModes = [choices.fixedSix ? "Fixed Six" : null, ...Object.keys(choices.modes).map((k) => MODE_NAMES[k])].filter(Boolean); // challenge runs (Challenge window)
+    const rules = [setup.dupes !== false ? "Dupes clause" : null, choices.favType ? "Type Magnet" : null, Object.keys(choices.picks).length ? `${Object.keys(choices.picks).length} pick${Object.keys(choices.picks).length > 1 ? "s" : ""}` : null].filter(Boolean);
     const card = ({ act, label, body, sub, ghost = "" }) => `<button class="setup-card ${ghost ? "ghost" : ""}" data-act="${act}">
       <span class="sc-label">${label}${ghost ? ` <em class="sc-hidden" title="Hidden until you win your first badge">${ghost}</em>` : ""}</span>
       <span class="sc-body">${body}</span><span class="sc-sub">${sub}</span><span class="sc-go" aria-hidden="true">Change ▸</span></button>`;
@@ -694,14 +726,14 @@ export class RunUI {
       <h1>New run</h1>
       <div class="setup-grid">
         ${card({ act: "pick-character", label: "Trainer", body: `<img class="sc-img" src="${c.front}" alt=""><b>${c.name}</b>`, sub: `${CHARACTERS.filter((x) => !locked(x)).length} of ${CHARACTERS.length} unlocked` })}
-        ${card({ act: "pick-gen", label: "Challenge", body: `${challengeIcon}<b>Gen ${setup.gen} · ${this.ctx.leaders[setup.gen].region}</b>${gp.pips}`, sub: gp.text })}
+        ${card({ act: "pick-gen", label: "Challenge", body: `${challengeIcon}<b>${mixedPath ? "Mixed Gens" : this.ctx.leaders[setup.gen].region}</b>${gp.pips}`, sub: runModes.length ? `${gp.text} · ${runModes.join(", ")}` : gp.text })}
         ${hasBadges || reveal ? card({ act: "badge-editor", label: "Badge case", ghost: hasBadges ? "" : "hidden",
           body: caseIcon,
           sub: `${slots.filter(Boolean).length} of ${unlockedSlotCount(meta)} slots · ${owned.size} badges owned` }) : ""}
         ${card({ act: "pick-pool", label: "Pokémon Pool",
           body: `${poolIcon}<b>${setup.pools.length === 5 ? "All generations" : `Gen ${setup.pools.join(", ")}`}</b>`, sub: "Where your recruits come from" })}
-        ${card({ act: "pick-challenges", label: "Challenges",
-          body: `<span class="sc-chal ${rules.length ? "on" : ""}">${rules.length}</span><b>${rules.length ? `${rules.length} rule${rules.length > 1 ? "s" : ""} on` : "No rules on"}</b>`, sub: rules.join(", ") || "Rules, modes and picks" })}
+        ${card({ act: "pick-rules", label: "Rules",
+          body: `<span class="sc-chal ${rules.length ? "on" : ""}">${rules.length}</span><b>${rules.length ? `${rules.length} rule${rules.length > 1 ? "s" : ""} on` : "No rules on"}</b>`, sub: rules.join(", ") || "Helpers and picks" })}
         ${card({ act: "pick-sprites", label: "Sprites", body: `${spriteIcon}<b>${spriteMode.label}</b>`, sub: spriteMode.hint })}
       </div>
       <div class="row-buttons">
@@ -721,16 +753,25 @@ export class RunUI {
       }
       if (act === "pick-gen") {
         const g = await this.challengeDialog(m);
-        if (g) { m.setup.gen = g; saveMeta(m); this.renderSetup(); }
+        if (g) {
+          const evil = typeof g === "string" && g !== "m"; // "e3" = the evil team path of Gen 3; "m" = Mixed Gens
+          const prev = { gen: m.setup.gen, path: m.setup.path };
+          if (g === "m") m.setup.path = "mixed";
+          else { m.setup.gen = evil ? Number(g.slice(1)) : g; m.setup.path = evil ? "evil" : "normal"; }
+          const ok = await this.runTypeDialog(m); // which kind of run
+          if (!ok) Object.assign(m.setup, prev); // backed out: keep the old challenge
+          saveMeta(m);
+        }
+        this.renderSetup();
       }
       if (act === "pick-pool") { await this.poolDialog(m); this.renderSetup(); }
-      if (act === "pick-challenges") { await this.challengesDialog(m); this.renderSetup(); }
+      if (act === "pick-rules") { await this.rulesDialog(m); this.renderSetup(); }
       if (act === "pick-sprites") {
         const id = await this.spritesDialog(m);
         if (id) { m.sprites = id; saveMeta(m); applySpriteMode(this.ctx.data, id); this.renderSetup(); }
       }
       if (act === "go") {
-        this.run = Run.newRun(this.ctx, { gen: m.setup.gen, pools: m.setup.pools, perks: perksFromMeta(m, this.ctx.rules), character: m.character, dupes: m.setup.dupes !== false, fixedSix: m.setup.fixedSix === true, ...this.runChoices(m), badges: caseOf(m), badgeLinks: m.badgeLinks, badgeOff: m.badgeOff ?? [] });
+        this.run = Run.newRun(this.ctx, { gen: this.runChoices(m).path === "mixed" ? 1 + Math.floor(Math.random() * 5) : m.setup.gen, pools: m.setup.pools, perks: perksFromMeta(m, this.ctx.rules), character: m.character, dupes: m.setup.dupes !== false, ...this.runChoices(m), badges: caseOf(m), badgeLinks: m.badgeLinks, badgeOff: m.badgeOff ?? [] });
         saveMeta(m);
         this.render();
       }
@@ -795,24 +836,74 @@ export class RunUI {
 
   // The Challenge Gen picker: one tile per generation with a progress bar
   async challengeDialog(meta) {
+    const reveal = this.revealAll();
     const tile = (g) => {
       const beaten = Math.min(14, Math.max(0, (meta.reach?.[g] ?? 1) - 1));
       const cleared = meta.winGens?.[g] ?? 0;
       const done = cleared ? 14 : beaten;
       const text = cleared ? `Cleared ${cleared > 1 ? `×${cleared}` : "✓"}` : beaten ? `${beaten} of 14 beaten` : "Not played yet";
-      return `<button class="opt-tile gen-tile ${g === meta.setup.gen ? "selected" : ""}" data-result="${g}">
+      return `<button class="opt-tile gen-tile ${g === meta.setup.gen && meta.setup.path !== "evil" ? "selected" : ""}" data-result="${g}">
         <img src="${this.ctx.data.pokemonByKey[ICONIC[g]].sprites.front}" alt=""><b class="gen-no">Gen ${g}</b><span>${this.ctx.leaders[g].region}</span>
         <i class="gen-bar"><i style="width:${(done / 14) * 100}%"></i></i><small>${text}</small></button>`;
     };
+    // The evil team paths open when you have won the normal path of the same generation (the debug panel shows them anyway)
+    const evilTile = (g) => {
+      const file = this.ctx.evil?.[g];
+      if (!file) return "";
+      const open = this.evilOpen(meta, g);
+      const gp = this.genProgress(meta, `e${g}`);
+      const done = String(gp.text).startsWith("Cleared") ? 14 : Math.min(14, Math.max(0, (meta.reach?.[`e${g}`] ?? 1) - 1));
+      const icon = `<img class="evil-sprite" src="images/trainers/${EVIL_ICON[g]}.png" alt="">`;
+      if (!open) return `<div class="opt-tile gen-tile evil locked"><span class="evil-icon">${icon}</span><b class="gen-no">🔒 Gen ${g}</b><span>${file.region}</span><small>Win Gen ${g} first</small></div>`;
+      return `<button class="opt-tile gen-tile evil ${g === meta.setup.gen && meta.setup.path === "evil" ? "selected" : ""} ${meta.winGens?.[g] > 0 ? "" : "dev-shown"}" data-result='"e${g}"'>
+        <span class="evil-icon">${icon}</span><b class="gen-no">Gen ${g}</b><span>${file.region}</span>
+        <i class="gen-bar"><i style="width:${(done / 14) * 100}%"></i></i><small>${gp.text}</small></button>`;
+    };
+    // Final paths: Mixed Gens opens once every generation is won. The Gauntlet (all five back to back) is still to be designed.
+    const mixedOpen = this.mixedOpen(meta);
+    const mp = this.genProgress(meta, "m");
+    const finalTiles = (mixedOpen
+      ? `<button class="opt-tile gen-tile final ${meta.setup.path === "mixed" ? "selected" : ""} ${[1, 2, 3, 4, 5].every((g) => meta.winGens?.[g] > 0) ? "" : "dev-shown"}" data-result='"m"'>
+          <span class="evil-icon rainbow">🌈</span><b class="gen-no">Mixed Gens</b><span>Every region</span>${mp.pips}<small>${mp.text}</small></button>`
+      : `<div class="opt-tile gen-tile final locked"><span class="evil-icon rainbow">🌈</span><b class="gen-no">🔒 Mixed Gens</b><span>Every region</span><small>Win all 5 generations</small></div>`)
+      + `<div class="opt-tile gen-tile final locked"><span class="evil-icon rainbow">⚔️</span><b class="gen-no">Gauntlet</b><span>All 5 back to back</span><small>Coming soon</small></div>`;
     return this.modal({
       title: "Challenge",
       variant: "settings",
-      body: `<p class="opt-note">Which gyms, Elite Four and Champion you fight.</p>
-        <div class="opt-grid">${[1, 2, 3, 4, 5].map(tile).join("")}</div>`,
+      body: `<p class="opt-note">Which gyms, Elite Four and Champion you fight. You choose the kind of run next.</p>
+        <div class="opt-grid">${[1, 2, 3, 4, 5].map(tile).join("")}</div>
+        ${Object.keys(this.ctx.evil ?? {}).length ? `<h4 class="ch-section">Evil team paths</h4>
+        <p class="opt-note">Fight the evil team of each generation instead, grunts to boss. Each opens when you win the normal path of the same generation.</p>
+        <div class="opt-grid">${[1, 2, 3, 4, 5].map(evilTile).join("")}</div>` : ""}
+        <h4 class="ch-section">Final paths</h4>
+        <p class="opt-note">They open when you have won all five generations.</p>
+        <div class="opt-grid final-grid">${finalTiles}</div>`,
       options: [],
       cancel: "Close",
     });
   }
+
+  // An evil team path is open once you have won the normal path of that generation (the debug panel opens them all)
+  // A Skill Tree pick must be a Pokémon (or its evolution line) you have recruited before
+  pickable(meta, key) {
+    if (this.revealAll()) return true;
+    const line = this.ctx.dex.lineOf[key];
+    return (meta.species ?? []).some((k) => this.ctx.dex.lineOf[k] === line);
+  }
+
+  // The run rules you can use now. The debug panel's "Show locked and hidden choices" opens every one of them.
+  ownedRules(meta) {
+    const set = unlockedRules(loadMeta(), this.ctx.rules, ruleGen(meta));
+    if (this.revealAll()) {
+      for (const id of [...Object.keys(this.ctx.rules.ruleUnlocks ?? {}), "mode-mono"]) set.add(id);
+      for (const n of this.ctx.rules.upgrades) for (const d of n.does.split(";")) if (d.trim().startsWith("unlock:")) set.add(d.trim().slice(7));
+    }
+    return set;
+  }
+
+  // Mixed Gens (a final path) opens when every generation has been won on its normal path
+  mixedOpen(meta) { return [1, 2, 3, 4, 5].every((g) => (meta.winGens?.[g] ?? 0) > 0) || this.revealAll(); }
+  evilOpen(meta, g) { return (meta.winGens?.[g] ?? 0) > 0 || this.revealAll(); }
 
   // Which generations your recruits can come from: tap a tile to include or leave out (changes apply at once)
   async poolDialog(meta) {
@@ -846,103 +937,223 @@ export class RunUI {
 
   // The run modes and Skills picks that are switched on, and that you own (a locked one in an old setup is ignored)
   runChoices(meta) {
-    const owned = new Set(perksFromMeta(meta, this.ctx.rules).unlocked);
+    const owned = this.ownedRules(meta);
     const set = meta.setup ?? {};
     const modes = {};
-    for (const k of ["moves", "levels", "mons", "hard", "noitems"]) if (owned.has(`mode-${k}`) && set.modes?.[k]) modes[k] = true;
-    if (owned.has("mode-opponents") && ["shuffled", "mixed", "wild"].includes(set.opponents)) modes.opponents = set.opponents;
+    for (const k of ["moves", "levels", "rainbow", "hard", "noitems"]) if (owned.has(`mode-${k}`) && set.modes?.[k]) modes[k] = true;
+    if (owned.has("mode-opponents") && ["mixed", "wild"].includes(set.opponents)) modes.opponents = set.opponents;
+    const fixedSix = owned.has("mode-fixed") && set.fixedSix === true;
     const monoType = owned.has("mode-mono") && TYPE_CHOICES.includes(set.monoType) ? set.monoType : "";
     if (monoType) modes.mono = true;
     const picks = {};
     for (const [slot, node] of [["starter", "starter-pick"], ["encounter", "encounter-pick"], ["legend", "legend-pick"], ["mythic", "mythic-pick"]]) {
       const key = set.picks?.[slot];
-      if (owned.has(node) && key && this.ctx.data.pokemonByKey[key]) picks[slot] = key;
+      if (owned.has(node) && key && this.ctx.data.pokemonByKey[key] && this.pickable(meta, key)) picks[slot] = key;
     }
     const item = set.picks?.item;
     if (owned.has("pick-item") && item && ITEMS[item]?.kind === "held") picks.item = item;
-    return { modes, picks, monoType };
+    const path = set.path === "mixed" && this.mixedOpen(meta) ? "mixed" : set.path === "evil" && this.ctx.evil?.[set.gen] && this.evilOpen(meta, set.gen) ? "evil" : "normal";
+    if (path === "evil" || path === "mixed") { delete modes.opponents; if (path === "evil") delete modes.rainbow; } // (the evil paths have their own gym order; Mixed Gens plans its own, Rainbow makes the type order random)
+    const favType = (perksFromMeta(meta, this.ctx.rules).typeMagnet ?? 0) > 0 && TYPE_CHOICES.includes(set.favType) ? set.favType : "";
+    return { modes, picks, monoType, path, favType, fixedSix };
   }
 
   // The challenge rows you can see: later tiers show as one "???" line each until you have beaten enough challenges
   challengeRows(list, mine, row) {
-    const beaten = mine.size;
+    const reveal = this.revealAll(); // debug panel: show the secret ones too
     const out = [];
-    for (const tier of [...new Set(list.map((c) => c.tier))].sort()) {
-      const inTier = list.filter((c) => c.tier === tier);
-      if (isRevealed(inTier[0], beaten)) out.push(...inTier.map(row));
-      else out.push(`<li class="challenge-row hidden-tier"><span class="ch-check">?</span><span class="who"><span class="ch-title"><strong>${inTier.length} hidden challenges</strong></span><small>Beat ${REVEAL_AT[tier] - beaten} more challenge${REVEAL_AT[tier] - beaten > 1 ? "s" : ""} to reveal them.</small></span></li>`);
+    const group = (title, inGroup, note = "") => {
+      const done = inGroup.filter((c) => mine.has(c.id)).length;
+      out.push(`<li class="ch-tier-head"><b>${title}</b><small>${done} of ${inGroup.length} beaten${note}</small></li>`);
+    };
+    for (const tier of [...new Set(list.filter((c) => !c.secret).map((c) => c.tier))].sort()) {
+      const inTier = list.filter((c) => !c.secret && c.tier === tier);
+      group(`Tier ${tier}`, inTier);
+      out.push(...inTier.map(row));
+    }
+    // Secret challenges: listed once you have beaten most of the others (one you beat by accident is listed anyway)
+    const secret = list.filter((c) => c.secret);
+    if (secret.length) {
+      const beaten = list.filter((c) => !c.secret && mine.has(c.id)).length;
+      const open = secretRevealed(beaten);
+      const hidden = secret.filter((c) => !mine.has(c.id));
+      group("Secret", secret, open ? "" : ` · beat ${secretAt() - beaten} more challenges to see the rest`);
+      out.push(...secret.filter((c) => open || mine.has(c.id)).map(row));
+      if (!open && hidden.length) {
+        if (reveal) out.push(...hidden.map((c) => row(c).replace('<li class="challenge-row', '<li class="challenge-row dev-shown')));
+        else out.push(`<li class="challenge-row hidden-tier"><span class="ch-check">?</span><span class="who"><span class="ch-title"><strong>${hidden.length} secret challenge${hidden.length > 1 ? "s" : ""}</strong></span><small>Beat ${secretAt() - beaten} more challenges to reveal ${hidden.length > 1 ? "them" : "it"}.</small></span></li>`);
+      }
     }
     return out.join("");
   }
 
-  // Extra rules for the run: switches (changes apply at once)
-  async challengesDialog(meta) {
-    const mine = new Set(loadMeta().challenges ?? []);
-    const owned = new Set(perksFromMeta(loadMeta(), this.ctx.rules).unlocked);
-    const { data } = this.ctx;
-    const row = (attr, key, on, title, text) => `<label class="dupes-row"><span class="switch"><input type="checkbox" ${attr}="${key}" ${on ? "checked" : ""}><span class="track-dot"></span></span>
-      <span><b>${title}</b><small>${text}</small></span></label>`;
-    const modes = meta.setup.modes ?? {};
-    const picks = meta.setup.picks ?? {};
-    const options = (list, chosen) => `<option value="">Random</option>${list.map((p) => `<option value="${p.key}" ${chosen === p.key ? "selected" : ""}>${p.name} (Gen ${p.gen})</option>`).join("")}`;
-    const starters = Object.values(STARTER_LINES).flat().map((k) => data.pokemonByKey[k]).filter(Boolean);
-    const lists = {
-      starter: starters,
-      encounter: data.pokemon.filter((p) => !p.evolvesFrom && !p.isLegendary && !p.isMythical),
-      legend: data.pokemon.filter((p) => p.isLegendary && !p.isMythical),
-      mythic: data.pokemon.filter((p) => p.isMythical),
+  // Run rules: switches and choices for the next run (the Rules tile of the New run screen)
+  // Rule cards (used by the Challenge window for challenge runs and the Rules window for helpers). A rule stays locked (greyed, with where to unlock it) until opened.
+  ruleKit(meta) {
+    const owned = this.ownedRules(meta);
+    const nodeOf = (unlock) => this.ctx.rules.upgrades.find((n) => n.does.split(";").some((d) => d.trim() === `unlock:${unlock}`));
+    const card = ({ title, text, control, unlock = null }) => {
+      const locked = unlock && !owned.has(unlock);
+      const node = locked ? nodeOf(unlock) : null;
+      const wins = this.ctx.rules.ruleUnlocks?.[unlock]; // a rule that opens by winning runs
+      const regionName = this.ctx.leaders[meta.setup.gen]?.region ?? `Gen ${meta.setup.gen}`;
+      const lockLine = wins !== undefined ? `Win <em>${regionName}</em> <em>${wins} time${wins > 1 ? "s" : ""}</em> to unlock (${winsInGen(meta, ruleGen(meta))} so far)`
+        : `Unlock <em>${node?.name ?? unlock}</em> in the Skill Tree${node ? ` (${node.arm})` : ""}`;
+      return `<div class="rule-card ${locked ? "locked" : ""}"><b>${locked ? "🔒 " : ""}${title}</b><small>${text}</small>
+        ${locked ? `<span class="rule-lock">${lockLine}</span>` : control}</div>`;
     };
-    const pick = (slot, node, title, text) => owned.has(node) ? `<label class="pick-row"><span><b>${title}</b><small>${text}</small></span>
-      <select data-pick="${slot}">${options(lists[slot], picks[slot])}</select></label>` : "";
-    const modeRows = [["moves", "Random moves", "Recruits come with random moves."], ["levels", "Random levels", "Recruits arrive up to 5 levels above or below."], ["mons", "Random mons", "Recruit cards are random species, whatever their tier."], ["hard", "Hard mode", "Every opponent is 3 levels higher."],
-      ["noitems", "No items", "No bag, no item screens, and the shop sells only TMs."]]
-      .filter(([k]) => owned.has(`mode-${k}`)).map(([k, t, d]) => row("data-mode", k, modes[k] === true, t, d)).join("");
-    const select = (attr, key, current, title, text, options) => `<label class="pick-row"><span><b>${title}</b><small>${text}</small></span>
-      <select ${attr}="${key}">${options.map(([v, label]) => `<option value="${v}" ${current === v ? "selected" : ""}>${label}</option>`).join("")}</select></label>`;
-    const choiceRows = [
-      owned.has("mode-opponents") ? select("data-opp", "opponents", meta.setup.opponents ?? "", "Random gyms", "Which gyms stand in battles 1 to 8. Shuffled: your Challenge Gen's gyms in a random order. Mixed: gyms from every generation, no two of the same type. Wild: any 8 gyms.",
-        [["", "Off"], ["shuffled", "Shuffled order"], ["mixed", "Mixed types"], ["wild", "Wild"]]) : "",
-      owned.has("mode-mono") ? select("data-mono", "monoType", meta.setup.monoType ?? "", "Mono type", "Every recruit has this type.", [["", "Off"], ...TYPE_CHOICES.map((t) => [t, cap(t)])]) : "",
-    ].join("");
-    const heldItems = Object.entries(ITEMS).filter(([, it]) => it.kind === "held" && ["common", "uncommon"].includes(it.tier)).map(([id, it]) => ({ key: id, name: it.name })).sort((a, b) => a.name.localeCompare(b.name));
-    const pickRows = [pick("starter", "starter-pick", "Starter pick", "This starter line is always in your draft."),
-      pick("encounter", "encounter-pick", "Encounter pick", "Always on your first recruit screen."),
-      pick("legend", "legend-pick", "Legendary pick", "On the recruit screen after battle 7."),
-      pick("mythic", "mythic-pick", "Mythical pick", "On the recruit screen after battle 11."),
-      owned.has("pick-item") ? `<label class="pick-row"><span><b>Starting item</b><small>A held item you begin every run with.</small></span>
-        <select data-pick="item"><option value="">None</option>${heldItems.map((i) => `<option value="${i.key}" ${picks.item === i.key ? "selected" : ""}>${i.name}</option>`).join("")}</select></label>` : ""].join("");
-    await this.modal({
-      title: "Challenges",
+    const toggle = (attr, key, on) => `<label class="rule-switch"><span class="switch"><input type="checkbox" ${attr}="${key}" ${on ? "checked" : ""}><span class="track-dot"></span></span><em>${on ? "On" : "Off"}</em></label>`;
+    const select = (attr, key, current, options) => `<select class="rule-select" ${attr}="${key}">${options.map(([v, label]) => `<option value="${v}" ${current === v ? "selected" : ""}>${label}</option>`).join("")}</select>`;
+    return { card, toggle, select };
+  }
+
+  // One change handler for every rule control (switches and selects write straight into meta.setup)
+  onRuleChange(dialog, meta) {
+    dialog.addEventListener("change", (e) => {
+      const t = e.target;
+      const m = loadMeta();
+      m.setup ??= { gen: meta.setup.gen, pools: [...meta.setup.pools] };
+      if (t.dataset?.rule) { m.setup[t.dataset.rule] = t.checked; meta.setup[t.dataset.rule] = t.checked; }
+      else if (t.dataset?.mode) { (m.setup.modes ??= {})[t.dataset.mode] = t.checked; meta.setup.modes = m.setup.modes; }
+      else if (t.dataset?.pick) { (m.setup.picks ??= {})[t.dataset.pick] = t.value; meta.setup.picks = m.setup.picks; }
+      else if (t.dataset?.opp) { m.setup.opponents = t.value; meta.setup.opponents = t.value; }
+      else if (t.dataset?.mono) { m.setup.monoType = t.value; meta.setup.monoType = t.value; }
+      else if (t.dataset?.fav) { m.setup.favType = t.value; meta.setup.favType = t.value; }
+      else return;
+      saveMeta(m);
+      const label = t.closest(".rule-switch")?.querySelector("em");
+      if (label) label.textContent = t.checked ? "On" : "Off";
+    });
+  }
+
+  // After a generation is picked: which kind of run (Bloons style). Tiles switch on and off, so runs can be combined; "Standard" clears them all.
+  async runTypeDialog(meta) {
+    const region = meta.setup.path === "mixed" ? "Mixed Gens" : this.ctx.leaders[meta.setup.gen]?.region ?? `Gen ${meta.setup.gen}`;
+    const owned = this.ownedRules(meta);
+    const real = unlockedRules(loadMeta(), this.ctx.rules, ruleGen(meta));
+    const TYPES = TYPE_CHOICES.map((t) => [t, cap(t)]);
+    const sel = (attr, cur, opts) => `<select class="rule-select" ${attr} onclick="event.stopPropagation()">${opts.map(([v, l]) => `<option value="${v}" ${cur === v ? "selected" : ""}>${l}</option>`).join("")}</select>`;
+    const st = () => meta.setup;
+    const evil = meta.setup.path === "evil" || meta.setup.path === "mixed"; // (their own gym order)
+    const mixed = meta.setup.path === "mixed";
+    // Easiest first; each opens by winning this generation more often (see the rule unlock table in DESIGN.md)
+    const defs = [
+      { id: "hard", unlock: "mode-hard", name: "Hard mode", text: "Foes are 2 levels higher, bring one more Pokémon from battle 3, and have perfect IVs, a good Nature and a held item.", on: () => st().modes?.hard === true },
+      { id: "levels", unlock: "mode-levels", name: "Random levels", text: "Recruits arrive up to 5 levels above or below.", on: () => st().modes?.levels === true },
+      { id: "moves", unlock: "mode-moves", name: "Random moves", text: "Recruits come with random moves.", on: () => st().modes?.moves === true },
+      { id: "rainbow", unlock: "mode-rainbow", name: "Rainbow", text: mixed ? "The gym types come in a random order instead of the usual one." : "The gyms of this generation come in a random order, so any type can be next.", on: () => st().modes?.rainbow === true, evilOff: !mixed },
+      { id: "noitems", unlock: "mode-noitems", name: "No items", text: "No bag, no item screens, and the shop sells only TMs.", on: () => st().modes?.noitems === true },
+      { id: "opponents", unlock: "mode-opponents", name: "Random gyms", text: "Battles 1 to 8 (the gyms) are fought against leaders from any generation instead of one region. Pick how they are chosen below.", on: () => !!st().opponents, evilOff: true,
+        extra: () => sel('data-opp="1"', st().opponents || "mixed", [["mixed", "One of each type"], ["wild", "Any leaders (types can repeat)"]]) },
+      { id: "mono", unlock: "mode-mono", name: "Mono type", text: "EVERY card you are offered is this type, so the whole team ends up one type.", on: () => !!st().monoType,
+        extra: () => sel('data-mono="1"', st().monoType || "normal", TYPES) },
+      { id: "fixedSix", unlock: "mode-fixed", name: "Fixed Six", text: "Pick six Pokémon at the start and never recruit another.", on: () => st().fixedSix === true },
+      { id: "twelve", name: "12 mon run", text: "Battles 13 and 14 become 12 against 12, two trainers at once.", soon: true, on: () => false },
+    ];
+    const tile = (d) => {
+      if (d.soon) return `<div class="opt-tile run-tile locked"><b>${d.name}</b><small>${d.text}</small><small><em>Coming soon</em></small></div>`;
+      if (d.evilOff && evil) return `<div class="opt-tile run-tile locked"><b>${d.name}</b><small>${mixed ? "Mixed Gens picks its own gyms." : "Evil teams have their own gym order."}</small></div>`;
+      const locked = d.unlock && !owned.has(d.unlock);
+      if (locked) {
+        if (d.unlock === "mode-mono") return `<div class="opt-tile run-tile locked"><b>🔒 ${d.name}</b><small>Beat ${MONO_UNLOCK} of the ${MONO_TYPES.length} type challenges: win a run using only one type (${monoChallengesDone(meta)} so far)</small></div>`;
+        const w = this.ctx.rules.ruleUnlocks?.[d.unlock] ?? 1;
+        return `<div class="opt-tile run-tile locked"><b>🔒 ${d.name}</b><small>Win ${mixed ? "any generation" : region} ${w} time${w > 1 ? "s" : ""} (${winsInGen(meta, ruleGen(meta))} so far)</small></div>`;
+      }
+      const dev = d.unlock && !real.has(d.unlock) ? "dev-shown" : ""; // (opened by the debug panel only)
+      return `<button class="opt-tile run-tile ${d.on() ? "selected" : ""} ${dev}" data-run="${d.id}"><b>${d.name}</b><small>${d.text}</small>${d.extra ? d.extra() : ""}</button>`;
+    };
+    const anyOn = () => defs.some((d) => (!d.unlock || owned.has(d.unlock)) && !(d.evilOff && evil) && d.on());
+    const body = () => `<p class="opt-note">${region}: how do you want to play it? Pick as many as you like.</p>
+      <div class="opt-grid run-grid"><button class="opt-tile run-tile ${anyOn() ? "" : "selected"}" data-run="standard"><b>Standard</b><small>The normal run, no extra rules.</small></button>${defs.map(tile).join("")}</div>`;
+    const write = (fn) => { const m = loadMeta(); m.setup ??= { gen: meta.setup.gen, pools: [...meta.setup.pools] }; fn(m.setup); saveMeta(m); fn(meta.setup); };
+    return this.modal({
+      title: "Choose your run",
       variant: "settings",
-      body: `<div class="note-row"><p class="opt-note">Rules change how the next run is played. A challenge is beaten by winning a run: most count in any run, a challenge with a switch needs it on before you start. A run with Fixed Six or a Mode on pays +${CHALLENGE_RUN_BONUS}% Trainer Points.</p></div>
-        <h4 class="ch-section">Run rules</h4>
-        ${row("data-rule", "dupes", meta.setup.dupes !== false, "Dupes clause", "A Pokémon line you had before, even a fallen one, won't be offered as a recruit again.")}
-        ${modeRows}${choiceRows}
-        ${pickRows.trim() ? `<h4 class="ch-section">Skill tree picks</h4>${pickRows}` : ""}
-        <p class="empty-note">More modes and picks unlock in the Skill Tree.</p>
-        <h4 class="ch-section">Challenges <small>${CHALLENGES.filter((c) => mine.has(c.id)).length} of ${CHALLENGES.length} beaten</small></h4>
-        <ol class="board-list ch-list">${this.challengeRows(CHALLENGES, mine, (c) => `<li class="challenge-row ${mine.has(c.id) ? "done" : ""}"><span class="ch-check">${mine.has(c.id) ? "✓" : ""}</span>
-          <span class="who"><span class="ch-title"><strong>${c.name}</strong><em class="ch-tag ${c.toggle || c.rule ? "rule" : ""}">${c.toggle ? "Needs its switch" : c.rule ? "Needs a mode" : "Any run"}</em></span><small>${c.text}</small></span>
-          ${c.toggle ? `<span class="switch"><input type="checkbox" data-rule="${c.toggle}" ${meta.setup[c.toggle] === true ? "checked" : ""} aria-label="${c.name} on or off"><span class="track-dot"></span></span>` : ""}</li>`)}</ol>
-        <h4 class="ch-section">Coming soon</h4>
-        <ol class="board-list ch-list">${PLANNED.map((c) => `<li class="challenge-row planned"><span class="ch-check"></span><span class="who"><span class="ch-title"><strong>${c.name}</strong></span><small>${c.text}</small></span></li>`).join("")}</ol>`,
-      options: [],
-      cancel: "Done",
+      body: body(),
+      options: [{ label: "Select", value: true }],
+      cancel: "Back",
       onOpen: (dialog) => {
+        const refresh = () => { dialog.querySelector(".modal-body > div").innerHTML = body(); };
+        dialog.addEventListener("click", (e) => {
+          const t = e.target.closest("[data-run]");
+          if (!t || e.target.closest("select")) return;
+          const id = t.dataset.run;
+          if (id === "standard") write((x) => { x.fixedSix = false; x.modes = {}; x.opponents = ""; x.monoType = ""; });
+          else if (id === "fixedSix") write((x) => { x.fixedSix = !x.fixedSix; });
+          else if (id === "opponents") write((x) => { x.opponents = x.opponents ? "" : "mixed"; });
+          else if (id === "mono") write((x) => { x.monoType = x.monoType ? "" : "normal"; });
+          else write((x) => { x.modes = { ...(x.modes ?? {}), [id]: !x.modes?.[id] }; });
+          refresh();
+        });
         dialog.addEventListener("change", (e) => {
           const t = e.target;
-          const m = loadMeta();
-          m.setup ??= { gen: meta.setup.gen, pools: [...meta.setup.pools] };
-          if (t.dataset?.rule) { m.setup[t.dataset.rule] = t.checked; meta.setup[t.dataset.rule] = t.checked; }
-          else if (t.dataset?.mode) { (m.setup.modes ??= {})[t.dataset.mode] = t.checked; meta.setup.modes = m.setup.modes; }
-          else if (t.dataset?.pick) { (m.setup.picks ??= {})[t.dataset.pick] = t.value; meta.setup.picks = m.setup.picks; }
-          else if (t.dataset?.opp) { m.setup.opponents = t.value; meta.setup.opponents = t.value; }
-          else if (t.dataset?.mono) { m.setup.monoType = t.value; meta.setup.monoType = t.value; }
-          else return;
-          saveMeta(m);
+          if (t.dataset?.opp) write((x) => { x.opponents = t.value; });
+          else if (t.dataset?.mono) write((x) => { x.monoType = t.value; });
         });
       },
     });
+  }
+
+  async rulesDialog(meta) {
+    const owned = this.ownedRules(meta);
+    const { data } = this.ctx;
+    const modes = meta.setup.modes ?? {};
+    const picks = meta.setup.picks ?? {};
+    const magnetN = Math.min(3, perksFromMeta(loadMeta(), this.ctx.rules).typeMagnet ?? 0);
+    const { card, toggle, select } = this.ruleKit(meta);
+    const options = (list, chosen) => [["", "Random"], ...list.map((p) => [p.key, `${p.name} (Gen ${p.gen})`])].map(([v, label]) => [v, label]);
+    // Picks only offer Pokémon you have recruited before (in any run); the debug panel shows them all
+    const known = (p) => this.pickable(meta, p.key);
+    const lists = {
+      starter: Object.values(STARTER_LINES).flat().map((k) => data.pokemonByKey[k]).filter(Boolean).filter(known),
+      encounter: data.pokemon.filter((p) => !p.evolvesFrom && !p.isLegendary && !p.isMythical).filter(known),
+      legend: data.pokemon.filter((p) => p.isLegendary && !p.isMythical).filter(known),
+      mythic: data.pokemon.filter((p) => p.isMythical).filter(known),
+    };
+    const pick = (slot, unlock, title, text) => card({ title, text, unlock, control: select("data-pick", slot, picks[slot] ?? "", options(lists[slot])) });
+    const heldItems = Object.entries(ITEMS).filter(([, it]) => it.kind === "held" && ["common", "uncommon"].includes(it.tier)).map(([id, it]) => [id, it.name]).sort((a, b) => a[1].localeCompare(b[1]));
+    const helpers = [
+      card({ title: "Dupes clause", text: "A Pokémon line you had before, even a fallen one, won't be offered as a recruit again.", control: toggle("data-rule", "dupes", meta.setup.dupes !== false) }),
+      card({ title: "Type Magnet", text: `${magnetN ? `At least ${magnetN} of the cards on every recruit screen are this type` : "Some of the cards on every recruit screen are this type"}, when one can be offered. The other cards stay random.`, unlock: "type-magnet",
+        control: select("data-fav", "favType", meta.setup.favType ?? "", [["", "Off"], ...TYPE_CHOICES.map((t) => [t, cap(t)])]) }),
+      pick("starter", "starter-pick", "Starter pick", "This starter line is always in your draft. Only Pokémon you have recruited before."),
+      pick("encounter", "encounter-pick", "Encounter pick", "Always on your first recruit screen. Only Pokémon you have recruited before."),
+      pick("legend", "legend-pick", "Legendary pick", "On the recruit screen after battle 7. Only Pokémon you have recruited before."),
+      pick("mythic", "mythic-pick", "Mythical pick", "On the recruit screen after battle 11. Only Pokémon you have recruited before."),
+      card({ title: "Starting item", text: "A held item you begin every run with.", unlock: "pick-item", control: select("data-pick", "item", picks.item ?? "", [["", "None"], ...heldItems]) }),
+    ].join("");
+    await this.modal({
+      title: "Rules",
+      variant: "settings rules-modal",
+      body: `<div class="note-row"><p class="opt-note">Rules help you steer the next run. Most come from the Skill Tree. The harder challenge runs (Fixed Six, Hard mode and more) come up after you pick a generation in the Challenge window.</p></div>
+        <div class="rule-grid">${helpers}</div>`,
+      options: [],
+      cancel: "Done",
+      onOpen: (dialog) => {
+        this.onRuleChange(dialog, meta);
+      },
+    });
+  }
+
+  // The challenge checklist, grouped by tier (Challenges in the main menu)
+  renderChallenges() {
+    this.trackView("challenges");
+    this.showHub();
+    const mine = new Set(loadMeta().challenges ?? []);
+    const tag = (c) => (c.toggle || c.rule ? `<em class="ch-tag rule">Needs a rule</em>` : `<em class="ch-tag">Any run</em>`);
+    const left = secretAt() - CHALLENGES.filter((c) => !c.secret && mine.has(c.id)).length;
+    const secretHidden = CHALLENGES.filter((c) => c.secret && !mine.has(c.id)).length;
+    this.hub.className = "hub framed";
+    this.hub.innerHTML = `
+      <div class="offer-head"><div><h1>Challenges</h1>
+        <p>A challenge is beaten by winning a run. Most count in any run; the ones marked "Needs a rule" need that rule switched on in Rules on the New run screen first. ${left > 0 && secretHidden ? `${secretHidden} secret challenges are hidden at the end: beat ${left} more to see them.` : "The secret challenges are open."}</p></div>
+        <button class="btn" data-act="title">◀ Title</button></div>
+      <h4 class="ch-section">Challenges <small>${CHALLENGES.filter((c) => mine.has(c.id)).length} of ${CHALLENGES.length} beaten</small></h4>
+      <ol class="board-list ch-list">${this.challengeRows(CHALLENGES, mine, (c) => `<li class="challenge-row ${mine.has(c.id) ? "done" : ""}"><span class="ch-check">${mine.has(c.id) ? "✓" : ""}</span>
+        <span class="who"><span class="ch-title"><strong>${c.name}</strong>${tag(c)}</span><small>${c.text}${c.hint ? ` <em class="ch-hint">${c.hint}</em>` : ""}</small></span></li>`)}</ol>
+      <h4 class="ch-section">Coming soon</h4>
+      <ol class="board-list ch-list">${PLANNED.map((c) => `<li class="challenge-row planned"><span class="ch-check"></span><span class="who"><span class="ch-title"><strong>${c.name}</strong></span><small>${c.text}</small></span></li>`).join("")}</ol>`;
+    this.hub.onclick = (e) => { if (e.target.closest("[data-act]")?.dataset.act === "title") this.start(); };
   }
 
   // The sprite style: the same battle scene in each style, so you see the difference
@@ -1199,8 +1410,9 @@ export class RunUI {
   // ===============================
 
   trainerSprites(opp) {
-    const ids = opp.order === Run.FINAL_ORDER ? [this.run.rival.id]
-      : opp.id === "tate-and-liza" ? ["tate", "liza"] : [opp.id];
+    const ids = opp.sprites?.length ? opp.sprites // (a Team path: one or two trainers)
+      : opp.order === Run.FINAL_ORDER ? [this.run.rival.id]
+        : opp.id === "tate-and-liza" ? ["tate", "liza"] : [opp.id];
     return ids.map((id) => `images/trainers/${id}.png`);
   }
 
@@ -1219,22 +1431,23 @@ export class RunUI {
     // On the recruit/item screens the current battle is already won
     const beaten = ["recruit", "items"].includes(run.screen) ? order : order - 1;
     // Faces are revealed as you reach them, and stay revealed in later runs of the same Challenge Gen
-    const gen = run.settings.gen;
+    const evil = run.settings.path === "evil";
+    const gen = run.settings.path === "mixed" ? "m" : evil ? `e${run.settings.gen}` : run.settings.gen; // (a Team path has its own progress)
     const meta = loadMeta();
     const reached = Math.max(meta.reach?.[gen] ?? 0, beaten + 1);
     if (!this.preview && reached > (meta.reach?.[gen] ?? 0)) {
       meta.reach = { ...meta.reach, [gen]: reached };
       saveMeta(meta);
     }
-    const lineup = this.ctx.leaders[gen].opponents;
+    const lineup = evil ? this.ctx.evil[run.settings.gen].opponents : this.ctx.leaders[run.settings.gen].opponents;
     return `<div class="track">${STOP_LABELS.map((label, i) => {
       const n = i + 1;
       const cls = n <= beaten ? "done" : n === beaten + 1 && run.screen === "hub" ? "current" : "";
       const sep = i === 8 || i === 12 ? `<span class="sep"></span>` : "";
-      const o = n <= 8 && run.gymPlan ? Run.leaderFor(run, this.ctx, n) : lineup[i]; // (Random gyms: the gym that really stands there)
+      const o = n <= 13 && run.gymPlan ? Run.leaderFor(run, this.ctx, n) : lineup[i]; // (Random gyms: the gym that really stands there)
       if (!o || n > reached) return `${sep}<span class="stop ${cls}" title="Battle ${n}">${label}</span>`;
-      const rival = n === Run.FINAL_ORDER;
-      const id = rival ? run.rival?.id : o.id === "tate-and-liza" ? "tate" : o.id;
+      const rival = n === Run.FINAL_ORDER && !evil;
+      const id = rival ? run.rival?.id : o.sprites?.[0] ?? (o.id === "tate-and-liza" ? "tate" : o.id);
       const name = rival ? `Rival ${run.rival?.name ?? ""}` : `${o.title} ${o.name}`;
       const type = o.theme ?? null;
       return `${sep}<span class="stop face ${cls}" title="Battle ${n}: ${name}${type ? ` (${type})` : ""}"
@@ -1250,6 +1463,8 @@ export class RunUI {
   modal({ title, label = "", body = "", head = "", options = [], cancel = "Cancel", layout = "list", wide = false, nav = false, onOpen = null, variant = "", actions = "" }) {
     return new Promise((resolve) => {
       const backdrop = document.createElement("div");
+      // A yes / no question (one plain option and a way out): the option becomes a coloured button at the bottom right
+      const confirm = layout === "list" && cancel && options.length === 1 && !/<(img|small)/.test(options[0].html ?? "") ? options[0] : null;
       backdrop.className = `modal-backdrop ${layout === "cards" || wide ? "wide" : ""} ${layout === "actions" ? "details" : ""} ${variant}`;
       // Three parts: a fixed top (head + title), a scrolling middle, a fixed bottom (Close)
       backdrop.innerHTML = `
@@ -1258,10 +1473,10 @@ export class RunUI {
           <div class="modal-body">
             ${body ? `<div>${body}</div>` : ""}
             <div class="options ${layout === "cards" ? "card-options" : layout === "actions" ? "action-options" : ""}">
-              ${options.map((o, i) => `<button class="${layout === "cards" ? "card-choice" : layout === "actions" ? "btn small" : "btn"}" data-i="${i}" ${o.disabled ? "disabled" : ""}>${o.html ?? o.label}</button>`).join("")}
+              ${confirm ? "" : options.map((o, i) => `<button class="${layout === "cards" ? "card-choice" : layout === "actions" ? "btn small" : "btn"}" data-i="${i}" ${o.disabled ? "disabled" : ""}>${o.html ?? o.label}</button>`).join("")}
             </div>
           </div>
-          ${cancel ? `<div class="modal-foot"><button class="btn" data-cancel>${cancel}</button>${actions}</div>` : ""}
+          ${cancel ? `<div class="modal-foot ${confirm ? "confirm-foot" : ""}"><button class="btn" data-cancel>${cancel}</button>${actions}${confirm ? `<button class="btn confirm" data-i="0" ${confirm.disabled ? "disabled" : ""}>${confirm.html ?? confirm.label}</button>` : ""}</div>` : ""}
         </div>`;
       const close = (value) => { backdrop.remove(); document.removeEventListener("keydown", onKey); resolve(value); };
       const onKey = (e) => {
@@ -1407,7 +1622,7 @@ export class RunUI {
     const picks = offer.picksLeft;
     const meter = `<div class="pick-meter" aria-label="${picks} of ${offer.picks} picks left"><span class="pm-count"><b>${picks}</b> of ${offer.picks} pick${offer.picks > 1 ? "s" : ""} left</span>
       <span class="pm-dots">${Array.from({ length: offer.picks }, (_, i) => `<i class="${i < offer.picks - picks ? "done" : ""}"></i>`).join("")}</span></div>`;
-    const sub = `Tap a card to see it, then lock it in. They join at Lv ${offer.level}.${!starter && run.team.length >= 6 ? " Team full: you'll swap one out." : ""}`;
+    const sub = `Tap a card to see it, then lock it in. They join at Lv ${offer.level}.${!starter && run.team.length >= 6 ? " Team full: you'll swap one out." : ""}${offer.magnet ? ` 🧲 Type Magnet: ${cap(offer.magnet.type)} cards are favoured.` : ""}`;
     this.hub.innerHTML = `
       ${starter ? "" : this.track()}
       <div class="post-battle">${this.rewardsBanner()}${this.nextUpCard()}</div>
@@ -1775,10 +1990,10 @@ export class RunUI {
       <div class="hub-top">
         <div class="me-card">
           <img src="${characterById(run.character ?? loadMeta().character).front}" alt="">
-          <div><b>${characterById(run.character ?? loadMeta().character).name}</b><small>Gen ${run.settings.gen} · ${ctx.leaders[run.settings.gen].region}</small></div>
+          <div><b>${characterById(run.character ?? loadMeta().character).name}</b><small>Gen ${run.settings.gen} · ${Run.regionOf(run, ctx)}</small></div>
         </div>
         ${this.track()}
-        <div class="row-buttons"><span class="money">₽${run.money.toLocaleString()}</span>${this.badgeButton()}<button class="btn" data-act="title">Save & quit</button></div>
+        <div class="row-buttons"><span class="money">₽${run.money.toLocaleString()}</span>${this.badgeButton()}<button class="btn" data-act="title">Save & quit</button><button class="btn forfeit" data-act="forfeit" title="Give up this run">Forfeit</button></div>
       </div>
       ${messages.length ? `<div class="messages">${messages.map((m) => `<p>${m}</p>`).join("")}</div>` : ""}
       <div class="hub-main">
@@ -1797,7 +2012,7 @@ export class RunUI {
             <dt>Team</dt><dd>${opp.teamSize} Pokémon</dd>
             <dt>Format</dt><dd>Double battle</dd>
           </dl>
-          ${opp.pooled ? `<p class="empty-note">Random team from their pool.</p>` : opp.placeholder ? `<p class="empty-note">Placeholder team (no pool yet).</p>` : ""}
+          ${opp.pooled ? `<p class="empty-note">Random team from their pool.</p>` : opp.placeholder ? `<p class="empty-note">${this.run.settings.path === "evil" ? `A team of ${opp.theme ?? "any"} types.` : "Placeholder team (no pool yet)."}</p>` : ""}
           <p class="empty-note">Your first two Pokémon lead. Your team is fully healed.</p>
           <button class="btn primary" data-act="battle">Battle!</button>
         </section>
@@ -1927,7 +2142,7 @@ export class RunUI {
 
   // The badge a gym leader gives, greyed out until you own it (a teaser in the Next battle panel)
   badgeTeaser(opp) {
-    if (opp.order < 1 || opp.order > 8) return "";
+    if (opp.order < 1 || opp.order > 8 || this.run.settings.path === "evil") return ""; // (no badges on a Team path)
     const gen = opp.gen ?? this.run.settings.gen, order = opp.gymOrder ?? opp.order; // (Random gyms: the badge of the gym's own game)
     const id = badgeId(gen, order);
     const owned = ownedBadges(loadMeta()).has(id);
@@ -2381,7 +2596,9 @@ export class RunUI {
 
   bagPanel() {
     const { run, ctx } = this;
-    const pockets = POCKETS;
+    // Berries, medicine and battle items are retired: their pockets only show for a saved run that still holds some
+    const holds = (id) => Object.keys(run.bag).some((k) => pocketOf(k) === id);
+    const pockets = POCKETS.filter((p) => !["berries", "medicine", "battle"].includes(p.id) || holds(p.id));
     const entries = Object.entries(run.bag).sort((a, b) => itemInfo(a[0]).name.localeCompare(itemInfo(b[0]).name));
     const byPocket = Object.fromEntries(pockets.map((p) => [p.id, []]));
     for (const [id, n] of entries) {
@@ -2856,6 +3073,7 @@ export class RunUI {
     const mon = run.team.find((m) => m.uid === uid);
 
     if (act === "title") { this.save(); this.start(); return; }
+    if (act === "forfeit") { if (await this.askForfeit()) this.forfeitRun(); return; }
     if (act === "battle") {
       const result = Run.startBattle(run, ctx);
       if (!result.ok) { await this.modal({ title: result.reason, cancel: "OK" }); return; }
@@ -3005,6 +3223,25 @@ export class RunUI {
   // BATTLE
   // ===============================
 
+  // Forfeit: ask first, then end the run as a loss (the battles you beat still pay Trainer Points)
+  askForfeit() {
+    const beaten = ["recruit", "items"].includes(this.run.screen) ? this.run.order : this.run.order - 1;
+    return this.modal({
+      title: "Forfeit this run?",
+      body: `<p>The run ends here and your team is gone. You keep the Trainer Points for the ${Math.max(0, beaten)} battle${beaten === 1 ? "" : "s"} you beat.</p>`,
+      options: [{ value: true, label: "Yes, forfeit" }],
+      cancel: "Keep playing",
+      variant: "forfeit-modal",
+    });
+  }
+
+  forfeitRun() {
+    Run.forfeit(this.run);
+    this.battleScreen?.destroy();
+    this.battleScreen = null;
+    this.render();
+  }
+
   renderBattle() {
     // Resuming a saved battle
     const battle = new Battle(this.ctx.data, this.run.battle);
@@ -3013,7 +3250,9 @@ export class RunUI {
 
   playBattle(battle, runOpts) {
     this.showBattle();
-    playMusic({ "Gym Leader": "gym", "Elite Four": "elite", Champion: "champion", Rival: "rival" }[this.run.opponent.title] ?? "battle");
+    const o = this.run.opponent;
+    playMusic(this.run.settings.path === "evil" ? (o.order === 14 ? "rival" : o.order === 13 ? "champion" : o.order >= 9 ? "elite" : "gym")
+      : { "Gym Leader": "gym", "Elite Four": "elite", Champion: "champion", Rival: "rival" }[o.title] ?? "battle");
     const mine = this.run;
     const screen = new BattleScreen(battle, {
       data: this.ctx.data,
@@ -3025,6 +3264,7 @@ export class RunUI {
         sprites: this.trainerSprites(this.run.opponent),
       },
       onSave: (state) => { if (this.run !== mine) return; this.run.battle = state; this.save(); },
+      onForfeit: async () => { if (this.run === mine && await this.askForfeit()) this.forfeitRun(); },
       onEnd: async () => {
         screen.destroy();
         await new Promise((r) => setTimeout(r, 900));
@@ -3071,7 +3311,7 @@ export class RunUI {
       run.newUnlocks = [...(run.unlockedThisRun ?? []), ...granted];
     }
     const fresh = (run.newUnlocks ?? []).map((id) => characterById(id));
-    const bonus = [run.perks?.tpPct ? `pay increase +${run.perks.tpPct}%` : null, isChallengeRun(run) ? `challenge run +${CHALLENGE_RUN_BONUS}%` : null].filter(Boolean).join(", ");
+    const bonus = run.perks?.tpPct ? `pay increase +${run.perks.tpPct}%` : "";
     return `<p class="tp-earned">+${tp} Trainer Points <small>(${bonus ? `${bonus}; ` : ""}spend them in the Skill Tree)</small></p>
       ${fresh.length ? `<section class="card-panel"><h3>New trainers unlocked!</h3>
         <div class="characters">${fresh.map((c) => `<div class="character selected"><img src="${c.front}" alt=""><span>${c.name}</span><small class="how-unlocked"><em>How you unlocked them:</em> ${unlockText((this.ctx.rules.characterUnlocks ?? {})[c.id])}</small>${this.perkLine(c.id)}</div>`).join("")}</div></section>` : ""}`;
@@ -3103,7 +3343,7 @@ export class RunUI {
     this.hub.className = "hub end-screen";
     this.hub.innerHTML = `
       <div class="big">Run over</div>
-      <p>Defeated by ${run.lastBattle?.opponent} at battle #${run.lastBattle?.order} of 14.</p>
+      <p>${run.lastBattle?.forfeited ? `You gave up at battle #${run.lastBattle.order} of 14.` : `Defeated by ${run.lastBattle?.opponent} at battle #${run.lastBattle?.order} of 14.`}</p>
       ${tpLine}
       <section class="card-panel"><h3>Fallen this run</h3>
         <div class="fallen-list">${run.fallen.map((f) => `<div class="mon"><img src="${this.sprite(f)}" alt="">${f.name}<small>Lv ${f.level} · #${f.order}</small></div>`).join("")}</div>
@@ -3125,10 +3365,12 @@ export class RunUI {
     const entry = {
       date: new Date().toISOString().slice(0, 10),
       gen: run.settings.gen,
-      region: this.ctx.leaders[run.settings.gen].region,
+      region: Run.regionOf(run, this.ctx),
       rival: run.rival.name,
       team: run.team.map((m) => ({ species: m.species, shiny: m.shiny, level: m.level, ability: m.ability, item: m.item, moves: m.moves })),
       fallen: run.fallen.length,
+      // The run rules it was won with (Fixed Six, modes, Mono type), so challenges can be checked again later
+      rules: { ...(run.settings.path === "evil" || run.settings.path === "mixed" ? { path: run.settings.path } : {}), ...(run.settings.fixedSix ? { fixedSix: true } : {}), ...(Object.keys(run.settings.modes ?? {}).length ? { modes: run.settings.modes } : {}), ...(run.settings.monoType ? { monoType: run.settings.monoType } : {}) },
       // Every Pokémon that fell on the way, for the Hall of Fame (older entries only have the number)
       fallenMons: run.fallen.map((f) => ({ species: f.species, name: f.name, level: f.level, order: f.order, opponent: f.opponent })),
     };
@@ -3174,7 +3416,7 @@ export class RunUI {
           <h3>${e.date} · Gen ${e.gen} ${e.region} · Rival ${e.rival} · ${e.fallen} fallen</h3>
           <div class="hof-team">${e.team.map((m) => `<div class="mon"><img src="${this.sprite(m)}" alt="">${this.ctx.data.pokemonByKey[m.species].name}<small>Lv ${m.level}</small></div>`).join("")}</div>
           ${this.fallenMemorial(e.fallenMons)}
-        </section>`).join("") || `<p>No champions yet.</p>`}`;
+        </section>`).join("") || `<div class="empty-note hof-empty"><b>No champions yet.</b><p>Beat the Elite Four, the Champion and your Rival and your team is saved here.</p></div>`}`;
     this.hub.onclick = (e) => {
       if (e.target.closest("[data-act]")?.dataset.act === "title") this.start();
     };

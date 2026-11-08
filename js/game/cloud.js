@@ -131,7 +131,7 @@ function applyCloud(d) {
 // ---- combining two saves (first login on a device that already has progress) ----
 // Counters of finished runs add up; "best" style numbers and per-key counters keep the higher one;
 // lists (badges, unlocks…) are joined; everything else (character, case layout, settings) stays as on this device.
-const SUMMED = new Set(["tp", "earned", "runs", "wins", "cleanWins", "battlesWon", "battlesLost", "battleTurns", "battleTurnCount", "pokemonLost", "recruited", "shiniesFound", "evolutionsDone", "rerollsDone", "playMs"]);
+const SUMMED = new Set(["tp", "earned", "runs", "wins", "cleanWins", "battlesWon", "battlesLost", "battleTurns", "battleTurnCount", "pokemonLost", "recruited", "shiniesFound", "evolutionsDone", "rerollsDone", "playMs", "forfeits"]);
 function mergeValue(a, b, key, top) {
   if (a === undefined || a === null) return b;
   if (b === undefined || b === null) return a;

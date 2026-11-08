@@ -17,12 +17,23 @@ const everyone = (team, run) => [...new Set([...(run.seenSpecies ?? []), ...team
 // "Only ... types": every Pokémon you had has at least one of these types
 const onlyTypes = (...types) => (team, run, ctx) => team.length > 0 && everyone(team, run).every((k) => ctx.data.pokemonByKey[k]?.types.some((t) => types.includes(t)));
 
-// tier: a tier is shown once you have beaten enough challenges (see REVEAL_AT); before that it is a "???" row.
-// rule: needs a Skill Tree mode switched on / toggle: has its own switch in the Challenges window
+// One challenge per type: win using only Pokémon of that type (a dual type counts for each of its types; fallen Pokémon count too).
+// The tier follows how many Pokémon have the type (species of all five generations), so the rarer the type the harder the challenge:
+// the 4 most common types are tier 3, the next 6 tier 4 and the 7 rarest tier 5. (The five that existed before keep their ids.)
+// [type, id, name, tier, number of Pokémon with the type]
+const MONO = [
+  ["water", "team-aqua", "Team Aqua", 3, 109], ["normal", "mono-normal", "Whitney", 3, 97], ["flying", "mono-flying", "Falkner", 3, 82], ["grass", "mono-grass", "Erika", 3, 75],
+  ["psychic", "mono-psychic", "Sabrina", 4, 68], ["bug", "mono-bug", "Bugsy", 4, 63], ["ground", "mono-ground", "Giovanni", 4, 58], ["poison", "team-rocket", "Team Rocket", 4, 57],
+  ["fire", "team-magma", "Team Magma", 4, 48], ["rock", "mono-rock", "Brock", 4, 47],
+  ["fighting", "mono-fighting", "Maylene", 5, 40], ["electric", "mono-electric", "Lt. Surge", 5, 39], ["dark", "team-plasma", "Team Plasma", 5, 39], ["steel", "team-galactic", "Team Galactic", 5, 37],
+  ["ice", "mono-ice", "Candice", 5, 29], ["dragon", "mono-dragon", "Lance", 5, 29], ["ghost", "mono-ghost", "Morty", 5, 27],
+];
+export const MONO_TYPES = MONO.map(([type, id, name, tier, count]) => ({ type, id, name, tier, count }));
+
+// tier: 1 (easiest) to 5 (hardest), used to group the list. Every challenge is always listed, except the secret ones at the end (see SECRET_AT).
+// rule: needs a run rule switched on (it opens by winning runs) / toggle: needs the Fixed Six rule (New run → Rules)
 export const CHALLENGES = [
   // Tier 1: from the start
-  { id: "flawless", tier: 1, name: "Flawless", text: "Win a run without a single Pokémon falling.",
-    check: (team, run) => !run.fallen.length },
   { id: "little-cup", tier: 1, name: "Don't evolve", text: "Don't evolve anything.",
     check: (team, run) => run.evolutions === 0 },
   { id: "fully-evolved", tier: 1, name: "Fully evolved", text: "Win with a team of six fully evolved Pokémon.",
@@ -38,28 +49,39 @@ export const CHALLENGES = [
     check: (team, run) => run.rerollsUsed === 0 },
   { id: "rich", tier: 2, name: "Rich trainer", text: "Win a run with ₽5,000 or more unspent.",
     check: (team, run) => (run.money ?? 0) >= 5000 },
-  // Tier 3: the evil teams. Only these types, every Pokémon you ever had (fallen ones too)
-  { id: "team-magma", tier: 3, name: "Team Magma", text: "Win using only Fire types.", check: onlyTypes("fire") },
-  { id: "team-aqua", tier: 3, name: "Team Aqua", text: "Win using only Water types.", check: onlyTypes("water") },
-  { id: "team-rocket", tier: 3, name: "Team Rocket", text: "Win using only Poison and Normal types.", check: onlyTypes("poison", "normal") },
-  { id: "team-galactic", tier: 3, name: "Team Galactic", text: "Win using only Steel and Psychic types.", check: onlyTypes("steel", "psychic") },
-  { id: "team-plasma", tier: 3, name: "Team Plasma", text: "Win using only Dark and Ghost types.", check: onlyTypes("dark", "ghost") },
-  // Tier 4: the hardest, and the Skill Tree modes
-  { id: "legend", tier: 4, name: "Legend in the team", text: "Win with a Legendary or Mythical Pokémon on your team.",
+  // Tier 3
+  { id: "legend", tier: 3, name: "Legend in the team", text: "Win with a Legendary or Mythical Pokémon on your team.",
     check: (team, run, ctx) => team.some((m) => dataOf(ctx, m).isLegendary || dataOf(ctx, m).isMythical) },
+  // Tiers 3 to 5: every type on its own (see MONO above)
+  ...MONO_TYPES.map(({ type, id, name, tier, count }) => ({ id, tier, name, text: `Win using only ${type.charAt(0).toUpperCase()}${type.slice(1)} types.`, hint: `${count} Pokémon have this type`, check: onlyTypes(type) })),
+  // Tier 4 and 5: the Skill Tree modes
+  // The evil team paths (they open when you win the normal path of that generation)
+  ...[[1, "Evil Kanto", "Team Rocket"], [2, "Evil Johto", "Team Rocket"], [3, "Evil Hoenn", "Team Aqua and Magma"], [4, "Evil Sinnoh", "Team Galactic"], [5, "Evil Unova", "Team Plasma"]]
+    .map(([gen, name, team]) => ({ id: `evil-${gen}`, tier: 4, name, text: `Win the ${team} path of Gen ${gen}.`, rule: "Needs the evil path (open it by winning Gen " + gen + ")", check: (t, run) => run.settings?.path === "evil" && run.settings?.gen === gen })),
   { id: "fixed-six", tier: 4, name: "Fixed six", text: "Pick six Pokémon at the start, never recruit another, and win.",
-    rule: "Switch on in New run → Challenges", toggle: "fixedSix", check: (team, run) => run.settings?.fixedSix === true },
-  { id: "hard-win", tier: 4, name: "Hard mode", text: "Win with Hard mode on.", rule: "Needs the Hard mode node", check: (team, run) => !!run.settings?.modes?.hard },
-  { id: "gyms-win", tier: 4, name: "Random gyms", text: "Win with Random gyms on.", rule: "Needs the Random gyms node", check: (team, run) => !!run.settings?.modes?.opponents },
-  { id: "mono-win", tier: 4, name: "Mono type", text: "Win with Mono type on.", rule: "Needs the Mono type node", check: (team, run) => !!run.settings?.modes?.mono },
-  { id: "noitems-win", tier: 4, name: "No items", text: "Win with No items on.", rule: "Needs the No items node", check: (team, run) => !!run.settings?.modes?.noitems },
+    rule: "Needs the Fixed Six run (New run → Challenge)", toggle: "fixedSix", check: (team, run) => run.settings?.fixedSix === true },
+  { id: "hard-win", tier: 4, name: "Hard mode", text: "Win with Hard mode on.", rule: "Needs the Hard mode rule", check: (team, run) => !!run.settings?.modes?.hard },
+  { id: "gyms-win", tier: 4, name: "Random gyms", text: "Win with Random gyms on.", rule: "Needs the Random gyms rule", check: (team, run) => !!run.settings?.modes?.opponents },
+  { id: "flawless", tier: 5, name: "Flawless", text: "Win a run without a single Pokémon falling.",
+    check: (team, run) => !run.fallen.length },
+  { id: "mono-win", tier: 5, name: "Mono type", text: "Win with Mono type on.", rule: "Needs the Mono type rule", check: (team, run) => !!run.settings?.modes?.mono },
+  { id: "noitems-win", tier: 5, name: "No items", text: "Win with No items on.", rule: "Needs the No items rule", check: (team, run) => !!run.settings?.modes?.noitems },
+  // The final path (opens when all five generations are won)
+  { id: "mixed-win", tier: 5, name: "Mixed Gens", text: "Win the Mixed Gens path.", rule: "Needs Mixed Gens (win all 5 generations first)", check: (t, run) => run.settings?.path === "mixed" },
+  { id: "mixed-hard", tier: 5, name: "Mixed and hard", text: "Win Mixed Gens with Hard mode on.", rule: "Needs Mixed Gens and the Hard mode rule", check: (t, run) => run.settings?.path === "mixed" && !!run.settings?.modes?.hard },
+  // Secret: super hard, only listed once you have beaten most of the others (or one of them by accident)
+  { id: "secret-perfect", secret: true, tier: 5, name: "Perfect champion", text: "Win with Hard mode on and nobody falling.", rule: "Needs the Hard mode rule",
+    check: (team, run) => !!run.settings?.modes?.hard && !run.fallen.length },
+  { id: "secret-pure", secret: true, tier: 5, name: "Pure and perfect", text: "Win a Mono type run with nobody falling.", rule: "Needs the Mono type rule",
+    check: (team, run) => !!run.settings?.modes?.mono && !run.fallen.length },
+  { id: "secret-iron", secret: true, tier: 5, name: "Iron trainer", text: "Win with Fixed Six, No items and Hard mode all switched on.", rule: "Needs three rules",
+    check: (team, run) => run.settings?.fixedSix === true && !!run.settings?.modes?.noitems && !!run.settings?.modes?.hard },
 ];
 
-// A tier shows up once you have beaten this many challenges in total (tier 1 is open from the start)
-export const REVEAL_AT = { 1: 0, 2: 2, 3: 5, 4: 8 };
-export const isRevealed = (c, beatenCount) => beatenCount >= (REVEAL_AT[c.tier] ?? 0);
-// How many more you have to beat to see the next tier, or null when everything is shown
-export const toNextTier = (beatenCount) => { const next = Object.values(REVEAL_AT).find((n) => n > beatenCount); return next === undefined ? null : next - beatenCount; };
+// The secret challenges are listed once you have beaten this share of all the others
+export const SECRET_SHARE = 0.8;
+export const secretAt = () => Math.ceil(CHALLENGES.filter((c) => !c.secret).length * SECRET_SHARE);
+export const secretRevealed = (beatenCount) => beatenCount >= secretAt();
 
 // Ideas that are not tracked yet: shown on the Challenges board as a "coming soon" checklist (see UNLOCK-IDEAS.md)
 export const PLANNED = [
@@ -68,8 +90,29 @@ export const PLANNED = [
   { id: "hidden-abilities", name: "Hidden abilities", text: "Win with three or more Pokémon that have their Hidden ability." },
   { id: "no-shop", name: "No shopping", text: "Win without buying anything in the shop." },
   { id: "stone-master", name: "Stone master", text: "Evolve five Pokémon with stones in one run." },
-  { id: "type-collector", name: "Type collector", text: "Win a run with each of the 17 types, over many runs." },
 ];
+
+// Older Hall of Fame entries: challenges that only depend on the winning team, its fallen Pokémon and the saved run rules.
+// Re-checked at start up so a win from before a challenge existed still counts (and nothing is lost if the tick was missed).
+const BACKFILL = new Set(["flawless", "fully-evolved", "shiny", "starters", "legend", "fixed-six", "mixed-win", "mixed-hard", "evil-1", "evil-2", "evil-3", "evil-4", "evil-5", "hard-win", "gyms-win", "mono-win", "noitems-win", "secret-perfect", "secret-pure", "secret-iron", ...MONO_TYPES.map((m) => m.id)]);
+export function backfillChallenges(meta, hof, ctx) {
+  const done = new Set(meta.challenges ?? []);
+  const before = done.size;
+  for (const entry of hof ?? []) {
+    const team = entry.team ?? [];
+    const run = {
+      fallen: Array.from({ length: entry.fallen ?? entry.fallenMons?.length ?? 0 }),
+      seenSpecies: [...team.map((m) => m.species), ...(entry.fallenMons ?? []).map((f) => f.species)],
+      settings: { ...(entry.rules ?? {}), gen: entry.gen },
+    };
+    for (const c of CHALLENGES) {
+      if (!BACKFILL.has(c.id) || done.has(c.id)) continue;
+      try { if (team.length && c.check(team, run, ctx)) done.add(c.id); } catch { /* an old entry without the data */ }
+    }
+  }
+  meta.challenges = [...done];
+  return done.size !== before;
+}
 
 // At the end of a won run: remember which challenges it beat
 export function noteChallenges(meta, run, ctx) {

@@ -7,7 +7,8 @@
 
 import { loadData } from "./engine/data.js";
 import { setCharacters } from "./game/characters.js";
-import { loadMeta, onSave, persistMigration } from "./game/meta.js";
+import { loadMeta, saveMeta, onSave, persistMigration } from "./game/meta.js";
+import { backfillChallenges } from "./game/challenges.js";
 import { initCloud, noteLocalSave } from "./game/cloud.js";
 import { applySpriteMode } from "./game/sprite-mode.js";
 import { watchSpriteFit } from "./ui/sprite-fit.js";
@@ -32,7 +33,9 @@ async function boot() {
     getJson("data/tms.json"),
     getJson("data/characters.json"),
     ...[1, 2, 3, 4, 5].map((g) => getJson(`data/leaders/gen${g}.json`)),
+    ...[1, 2, 3, 4, 5].map((g) => getJson(`data/leaders/evil${g}.json`).catch(() => null)), // the evil team paths
   ]);
+  const evilFiles = leaderFiles.splice(5);
   applySpriteMode(data, loadMeta().sprites);
   watchSpriteFit();
   setCharacters(characters);
@@ -44,7 +47,14 @@ async function boot() {
     dex: new Pokedex(data, evolutions, rules),
     tms,
     leaders: Object.fromEntries(leaderFiles.map((f) => [f.gen, f])),
+    evil: Object.fromEntries(evilFiles.filter(Boolean).map((f) => [Number(String(f.gen).replace("e", "")), f])), // evil paths by generation (Run: settings.path "evil")
   };
+  // Wins saved in the Hall of Fame count for the challenges they fit, even from before the challenge existed
+  try {
+    const hof = JSON.parse(localStorage.getItem("pd.hallOfFame") ?? "[]");
+    const meta = loadMeta();
+    if (hof.length && backfillChallenges(meta, hof, ctx)) saveMeta(meta);
+  } catch { /* ignore */ }
   setFriendshipSpecies(Object.entries(ctx.dex.evolvesFrom).filter(([, e]) => e.method.kind === "friendship").map(([k]) => k));
   // The debug panel (press L) can bring you back to the screen you were on
   new DevTools(new RunUI(ctx), ctx).boot();

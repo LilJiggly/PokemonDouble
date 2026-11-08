@@ -67,6 +67,9 @@ const CLAUSES = [
   [/^diverse win$/i, () => ({ kind: "diverse", n: 1 })],
   [/^full team:?\s*(\w+)$/i, (m) => ({ kind: "fullTeam", n: 1, arg: m[1].toLowerCase() })],
   [/^win all gens$/i, () => ({ kind: "winAll", n: 5 })],
+  [/^mode win:?\s*(\w+)$/i, (m) => ({ kind: "modeWin", n: 1, arg: m[1].toLowerCase() })],
+  [/^evil win gen (\d+)$/i, (m) => ({ kind: "evilWinGen", n: 1, arg: m[1] })],
+  [/^evil wins:?\s*(\d+)$/i, (m) => ({ kind: "evilWins", n: +m[1] })],
   [/^fast win:?\s*(\d+)$/i, (m) => ({ kind: "fast", n: +m[1] })],
   [/^friendship:?\s*(\d+)$/i, (m) => ({ kind: "friendly", n: +m[1] })],
   [/^obtain:?\s*([\w, -]+)$/i, (m) => { const arg = m[1].split(",").map((x) => x.trim().toLowerCase()).filter(Boolean); return { kind: "obtain", n: arg.length, arg }; }],
@@ -134,6 +137,9 @@ export function clauseProgress(meta, c) {
     case "diverse": return { have: meta.diverseWins ?? 0, need: 1 };
     case "fullTeam": return { have: meta.fullTeam?.[c.arg] ? 1 : 0, need: 1 };
     case "winAll": return { have: [1, 2, 3, 4, 5].filter((g) => count(meta.winGens, g) > 0).length, need: 5 };
+    case "modeWin": return { have: count(meta.modeWins, c.arg), need: 1 };
+    case "evilWinGen": return { have: count(meta.evilWins, c.arg), need: 1 };
+    case "evilWins": return { have: [1, 2, 3, 4, 5].filter((g) => count(meta.evilWins, g) > 0).length, need: c.n };
     case "fast": return { have: (meta.fastestWin ?? Infinity) <= c.n * 60000 ? 1 : 0, need: 1 };
     case "obtain": return { have: (meta.obtainBest?.[c.arg.join(",")] ?? []).length, need: c.n };
     case "friendly": return { have: (meta.species ?? []).filter((k) => friendshipSpecies.has(k)).length, need: c.n };
@@ -180,6 +186,8 @@ export function grantUnlocks(meta, rules, characters, max = MAX_UNLOCKS_PER_RUN)
   return granted;
 }
 
+// The names a run mode goes by in "Mode win: X" (the clause) and in the text
+const MODE_NAMES = { hard: "Hard mode", moves: "Random moves", levels: "Random levels", rainbow: "Rainbow", gyms: "Random gyms", mono: "Mono type", noitems: "No items", fixed: "Fixed Six", mixed: "Mixed Gens", evil: "an evil team path" };
 const nice = (s) => String(s ?? "").replace(/-/g, " ").replace(/^./, (x) => x.toUpperCase());
 
 export function clauseText(c) {
@@ -206,6 +214,9 @@ export function clauseText(c) {
     case "diverse": return "Win with 6 different types";
     case "fullTeam": return `Win a battle with 6 ${nice(c.arg)}-types`;
     case "winAll": return "Win every generation";
+    case "modeWin": return `Win with ${MODE_NAMES[c.arg] ?? nice(c.arg)} on`;
+    case "evilWinGen": return `Win the evil team path of Gen ${c.arg}`;
+    case "evilWins": return c.n === 1 ? "Win an evil team path" : `Win ${c.n} evil team paths`;
     case "fast": return `Win a run in ${c.n} minutes`;
     case "obtain": return `Have all ${c.n} of these in one run`;
     case "friendly": return `Recruit ${c.n} friendship evolutions`;

@@ -50,7 +50,7 @@ const TEXT_SPEED = { normal: { char: 14, hold: 750 }, fast: { char: 5, hold: 350
 export class BattleScreen {
   // battle: Battle instance. opts: { data, onSave(state), onEnd(winner), terrain,
   //   trainer: { title, name, sprites: [url] } }
-  constructor(battle, { data, onSave, onEnd, terrain = "normal", trainer = null, playerBack = null }) {
+  constructor(battle, { data, onSave, onEnd, onForfeit = null, terrain = "normal", trainer = null, playerBack = null }) {
     this.terrain = terrain;
     this.playerBack = playerBack;
     this.trainer = trainer;
@@ -58,6 +58,7 @@ export class BattleScreen {
     this.data = data;
     this.onSave = onSave ?? (() => {});
     this.onEnd = onEnd ?? (() => {});
+    this.onForfeit = onForfeit; // gives up the run (asked and handled by the run screens)
     this.scene = document.getElementById("scene");
     this.menu = document.getElementById("menu");
     this.textbox = document.getElementById("textbox");
@@ -620,19 +621,21 @@ export class BattleScreen {
         <div class="menu-title">What will <b>${mon.name}</b> do?</div>
         <div class="cmd-grid">
           <button class="btn fight" data-cmd="fight">FIGHT</button>
-          <button class="btn bag" data-cmd="bag" ${bag.length ? "" : "disabled"}>BAG</button>
+          ${(slotReq.bag ?? []).length ? `<button class="btn bag" data-cmd="bag" ${bag.length ? "" : "disabled"}>BAG</button>` : ""}
           <button class="btn party" data-cmd="party" ${slotReq.canSwitch ? "" : "disabled"}>POKéMON</button>
         </div>
         <div class="menu-footer">
           <button class="btn" data-cmd="back" ${canGoBack ? "" : "disabled"}>◀ Back</button>
           <button class="btn" data-cmd="speed">Text: ${this.speed === "fast" ? "Fast" : "Normal"}</button>
           <button class="btn" data-cmd="log">Log</button>
+          ${this.onForfeit ? `<button class="btn forfeit" data-cmd="forfeit">Forfeit</button>` : ""}
         </div>`);
       menu.onclick = async (ev) => {
         const cmd = ev.target.closest("button")?.dataset.cmd;
         if (!cmd) return;
         if (cmd === "back") resolve("back");
         if (cmd === "log") { this.showLog(); return; }
+        if (cmd === "forfeit") { this.onForfeit(); return; }
         if (cmd === "speed") {
           this.speed = this.speed === "fast" ? "normal" : "fast";
           localStorage.setItem("pd.textSpeed", this.speed);

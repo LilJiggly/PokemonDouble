@@ -54,6 +54,7 @@ export function buildStats(meta, hof, ctx, extra = {}) {
     { title: "Battles", rows: [
       { label: "Battles won", value: won },
       { label: "Runs ended by a loss", value: lost },
+      { label: "Runs forfeited", value: meta.forfeits ?? 0 },
       { label: "Battles per run", value: runs ? (won / runs).toFixed(1) : "–" },
       { label: "Average turns per win", value: meta.battleTurnCount ? (meta.battleTurns / meta.battleTurnCount).toFixed(1) : "–" },
       { label: "Quick gym wins", value: meta.quickWins ?? 0, hint: "A gym in 4 turns or fewer" },
@@ -77,6 +78,7 @@ export function buildStats(meta, hof, ctx, extra = {}) {
       { label: "Trainers unlocked", value: extra.trainers != null ? `${extra.trainers} of ${extra.trainersTotal}` : "–" },
       { label: "Challenges beaten", value: `${beaten} of ${CHALLENGES.length}` },
       { label: "Generations won", value: `${allGens} of 5` },
+      { label: "Evil team paths won", value: `${[1, 2, 3, 4, 5].filter((g) => (meta.evilWins?.[g] ?? 0) > 0).length} of 5` },
       { label: "Champion teams saved", value: (hof ?? []).length },
     ] },
     { title: "Wins in detail", rows: [

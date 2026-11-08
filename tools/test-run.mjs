@@ -4,6 +4,7 @@
 // =====================================================
 
 import fs from "node:fs/promises";
+import fsSync from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { prepareData } from "../js/engine/data.js";
@@ -13,11 +14,12 @@ import * as Run from "../js/game/run.js";
 import { Battle } from "../js/engine/battle.js";
 import { ITEMS, pocketOf } from "../js/game/item-catalog.js";
 import { SLOT_UNLOCKS, slotUnlocked, unlockedSlotCount, badgeStatBoost, statOfBadge, unlockBadge, placeBadge, removeBadge, caseOf, caseStrengths, randomZones, validZones, badgeName, setBonus, battleBonus, perkInfo, perkOfBadge, ALL_BADGES } from "../js/game/badges.js";
-import { emptyMeta, recordRun, migrateMeta, perksFromMeta, canBuyUpgrade, buyUpgrade, lockReason, trainerPointsFor } from "../js/game/meta.js";
+import { MONO_UNLOCK } from "../js/game/meta.js";
+import { emptyMeta, recordRun, migrateMeta, perksFromMeta, unlockedRules, spentOnTree, respecTree, canBuyUpgrade, buyUpgrade, lockReason, trainerPointsFor } from "../js/game/meta.js";
 import { grantUnlocks, isUnlocked, meetsRule, unlockText, nextHint, parseRule, setFriendshipSpecies } from "../js/game/unlocks.js";
 import { levelUpMovesAt } from "../js/game/recruit.js";
 import { noteBattleWon, noteRunEnd } from "../js/game/progress.js";
-import { CHALLENGES, isRevealed } from "../js/game/challenges.js";
+import { CHALLENGES, MONO_TYPES, secretAt, secretRevealed, backfillChallenges } from "../js/game/challenges.js";
 import { buildStats, ownedSpecies, fmtDuration } from "../js/game/stats.js";
 import { rankOf, rankScore } from "../js/game/ranks.js";
 import { mergeSaves } from "../js/game/cloud.js";
@@ -29,7 +31,9 @@ const rules = parseRules(await fs.readFile(path.join(ROOT, "DESIGN.md"), "utf8")
 const dex = new Pokedex(data, await readJson("data/evolutions.json"), rules);
 const leaders = {};
 for (const g of [1, 2, 3, 4, 5]) leaders[g] = await readJson(`data/leaders/gen${g}.json`);
-const ctx = { data, dex, rules, leaders, tms: await readJson("data/tms.json") };
+const evil = {};
+for (const g of [1, 2, 3, 4, 5]) evil[g] = await readJson(`data/leaders/evil${g}.json`);
+const ctx = { data, dex, rules, leaders, evil, tms: await readJson("data/tms.json") };
 
 let passed = 0, failed = 0;
 function test(name, fn) {
@@ -220,7 +224,7 @@ test("Trainer perks: Leaf's money, May's berries, Wally's Ralts, Red's Kanto sta
   const leaf = Run.newRun(ctx, { gen: 1, pools: [1, 2, 3, 4, 5], seed: 11, character: "leaf" });
   eq(leaf.money - base.money, 300, "+300 money");
   const may = Run.newRun(ctx, { gen: 1, pools: [1, 2, 3, 4, 5], seed: 11, character: "may" });
-  eq((may.bag["x-speed"] ?? 0) - (base.bag["x-speed"] ?? 0), 2, "two extra X Speed");
+  eq((may.bag["wise-glasses"] ?? 0) - (base.bag["wise-glasses"] ?? 0), 1, "a Wise Glasses");
   for (const seed of [1, 2, 3, 4, 5, 6]) {
     const w = Run.newRun(ctx, { gen: 1, pools: [1, 2, 3, 4, 5], seed, character: "wally" });
     assert(w.offer.options.some((o) => ctx.dex.lineOf[o.spec.species] === "ralts"), `Ralts in the draft (seed ${seed})`);
@@ -419,6 +423,163 @@ test("Fixed Six: pick six at the start, and no recruit screen follows a battle",
   assert(CHALLENGES.find((c) => c.id === "fixed-six").check(r.team, r, ctx), "counts for the challenge");
 });
 
+test("Old Hall of Fame wins count again for the challenges they fit (a mono Water win gives Team Aqua)", () => {
+  const meta = emptyMeta();
+  const hof = [
+    { team: ["squirtle", "psyduck", "poliwag", "staryu", "magikarp", "lapras"].map((k) => ({ species: k, level: 60 })), fallen: 1, fallenMons: [{ species: "horsea" }] },
+    { team: [{ species: "charmander", level: 50, shiny: true }, { species: "squirtle", level: 50 }], fallen: 0, fallenMons: [], rules: { modes: { hard: true } } },
+  ];
+  assert(backfillChallenges(meta, hof, ctx), "something was added");
+  assert(meta.challenges.includes("team-aqua"), "Team Aqua from the all-Water team (the fallen Horsea is Water too)");
+  assert(meta.challenges.includes("flawless") && meta.challenges.includes("shiny") && meta.challenges.includes("hard-win"), "flawless, shiny and the Hard mode win from the second entry");
+  assert(!meta.challenges.includes("team-magma"), "not Team Magma");
+  assert(!backfillChallenges(meta, hof, ctx), "a second pass adds nothing");
+  const bad = emptyMeta();
+  backfillChallenges(bad, [{ team: [{ species: "squirtle", level: 5 }], fallen: 0, fallenMons: [{ species: "charmander" }] }], ctx);
+  assert(!bad.challenges.includes("team-aqua"), "a fallen Fire type breaks Team Aqua");
+});
+test("Bigger Bag starts the run with random held items", () => {
+  const give = (bag) => Run.newRun(ctx, { gen: 1, pools: [1, 2, 3, 4, 5], seed: 5, perks: { bag } }).bag;
+  eq(Object.keys(give(0)).length, 0, "nothing without the node");
+  eq(Object.values(give(1)).reduce((a, b) => a + b, 0), 1, "level 1: one item");
+  eq(Object.values(give(2)).reduce((a, b) => a + b, 0), 2, "level 2: two items");
+  assert(Object.keys(give(2)).every((id) => ITEMS[id].kind === "held" && !ITEMS[id].retired), "held items only, none retired");
+});
+
+test("Forfeit ends the run as a loss and still pays for the battles you beat", () => {
+  const r = Run.newRun(ctx, { gen: 1, pools: [1, 2, 3, 4, 5], seed: 4 });
+  while (r.offer?.kind === "recruit" && r.offer.picksLeft > 0) Run.pickRecruit(r, ctx, r.offer.options.findIndex((o) => !o.taken));
+  // In the hub before battle 4: three battles are beaten
+  r.screen = "hub"; r.order = 4; r.opponent = r.nextOpponent;
+  Run.forfeit(r);
+  eq(r.screen, "over", "the run is over"); assert(r.lastBattle.forfeited, "marked as forfeited");
+  eq(trainerPointsFor(r, rules), 3, "3 gyms beaten = 3 TP");
+  // On the recruit screen after battle 5 the fifth is already won
+  const r2 = Run.newRun(ctx, { gen: 1, pools: [1, 2, 3, 4, 5], seed: 4 });
+  r2.screen = "recruit"; r2.order = 5; Run.forfeit(r2);
+  eq(trainerPointsFor(r2, rules), 5, "5 gyms beaten = 5 TP");
+  // Mid battle 1: nothing beaten yet
+  const r3 = Run.newRun(ctx, { gen: 1, pools: [1, 2, 3, 4, 5], seed: 4 });
+  r3.screen = "battle"; r3.order = 1; r3.opponent = { name: "Brock" }; Run.forfeit(r3);
+  eq(trainerPointsFor(r3, rules), 0, "forfeiting the first battle pays nothing");
+  const meta = emptyMeta();
+  noteRunEnd(meta, { ...r, fallen: [], lines: [], settings: r.settings, stats: null }, ctx);
+  eq(meta.forfeits, 1, "counted as a forfeit"); eq(meta.battlesLost ?? 0, 0, "…not as a lost battle");
+});
+
+console.log("Evil team paths");
+test("Evil team paths: 14 battles each, handcrafted bosses, no badges, own win counter", () => {
+  for (const g of [1, 2, 3, 4, 5]) {
+    const file = ctx.evil[g];
+    eq(file.opponents.length, 14, `Gen ${g}: 14 battles`);
+    assert(file.opponents.every((o, i) => o.order === i + 1 && o.id && o.name && o.title), `Gen ${g}: orders 1 to 14 in a row`);
+    for (const b of file.opponents.filter((o) => o.order >= 13)) {
+      eq(b.sets[0].team.length, 6, `Gen ${g} battle ${b.order}: a team of six`);
+      assert(b.sets[0].team.every((m) => data.pokemonByKey[m.species] && m.moves.every((mv) => data.moves[mv])), `Gen ${g} battle ${b.order}: real species and moves`);
+    }
+    assert(file.opponents[13].options?.length === 1, `Gen ${g}: the final slot works like the Rival`);
+    for (const o of file.opponents) for (const id of o.sprites ?? [o.id]) assert(fsSync.existsSync(path.join(ROOT, `images/trainers/${id}.png`)), `${id}.png exists`);
+  }
+  // A run on the Gen 4 path
+  const r = Run.newRun(ctx, { gen: 4, pools: [1, 2, 3, 4, 5], seed: 8, path: "evil" });
+  eq(r.settings.path, "evil", "the path is saved in the run");
+  eq(Run.leaderFor(r, ctx, 7).name, "Mars", "battle 7 is Mars");
+  eq(Run.regionOf(r, ctx), "Sinnoh · Team Galactic", "the region is the team's");
+  while (r.offer?.kind === "recruit" && r.offer.picksLeft > 0) Run.pickRecruit(r, ctx, r.offer.options.findIndex((o) => !o.taken));
+  for (const order of [1, 7, 13, 14]) {
+    const run = structuredClone(r); run.order = order; run.opponent = Run.chooseOpponent(run, ctx, order);
+    const team = Run.opponentTeam(run, ctx).team;
+    assert(team.length >= 2 && team.every((m) => data.pokemonByKey[m.species]), `battle ${order}: a team`);
+    if (order === 14) assert(team.some((m) => m.species === "dialga"), "the finale has Dialga");
+    if (order === 1) assert(team.every((m) => ctx.evil[4].opponents[0].pool.some((k) => ctx.dex.lineOf[k] === ctx.dex.lineOf[m.species])), "a grunt brings the team's own Pokémon, whatever their type");
+  }
+  // Winning gym 1 gives no badge on a Team path, and the run pays +25%
+  r.order = 1; r.opponent = Run.chooseOpponent(r, ctx, 1); Run.startBattle(r, ctx); r.battle.winner = 0; Run.finishBattle(r, ctx);
+  eq(r.lastBattle.rewards.badge, null, "no badge on a Team path");
+  eq(trainerPointsFor({ screen: "won", perks: {}, settings: { path: "evil" } }, rules), 24, "a Team path pays the normal 24 TP (no bonus)");
+  // Its wins are counted apart from the normal Challenge Gen wins
+  const meta = emptyMeta();
+  recordRun(meta, { screen: "won", settings: { gen: 4, path: "evil" }, team: [], fallen: [], lastBattle: { order: 14 } }, null);
+  eq(meta.winGens?.[4] ?? 0, 0, "not a normal Gen 4 win"); eq(meta.evilWins[4], 1, "an evil Gen 4 win");
+  // The challenge for the path
+  const c = CHALLENGES.find((x) => x.id === "evil-4");
+  assert(c.check([], { settings: { path: "evil", gen: 4 } }, ctx) && !c.check([], { settings: { path: "evil", gen: 3 } }, ctx) && !c.check([], { settings: { gen: 4 } }, ctx), "the Evil Sinnoh challenge needs that path");
+});
+
+test("Type Magnet: three upgrades, the favoured type turns up on every recruit screen (starter draft and rerolls too)", () => {
+  const m = emptyMeta();
+  m.upgrades = { "type-magnet": 1, "type-magnet-2": 1, "type-magnet-3": 1 };
+  const perks = perksFromMeta(m, rules);
+  eq(perks.typeMagnet, 3, "three upgrades add up to three cards"); assert(perks.unlocked.includes("type-magnet"), "the first one unlocks the Rules card");
+  const typeCount = (offer, type) => offer.options.filter((o) => data.pokemonByKey[o.spec.species].types.includes(type)).length;
+  for (const type of ["steel", "ice", "ghost", "water"]) for (const seed of [1, 2, 3, 4, 5, 6]) {
+    const r = Run.newRun(ctx, { gen: 1, pools: [1, 2, 3, 4, 5], seed, perks, favType: type });
+    assert(typeCount(r.offer, type) >= 3, `${type}, seed ${seed}: 3 cards of the type in the starter draft (got ${typeCount(r.offer, type)})`);
+    eq(r.offer.magnet.type, type, "the offer says which type is favoured");
+    const before = r.offer.options.length;
+    r.offer.rerollsLeft = 1; Run.rerollOffer(r, ctx);
+    assert(typeCount(r.offer, type) >= 3 && r.offer.options.length === before, `${type}: a reroll keeps them`);
+    while (r.offer?.kind === "recruit" && r.offer.picksLeft > 0) Run.pickRecruit(r, ctx, r.offer.options.findIndex((o) => !o.taken && data.pokemonByKey[o.spec.species].types.includes(type)) >= 0 ? r.offer.options.findIndex((o) => !o.taken && data.pokemonByKey[o.spec.species].types.includes(type)) : r.offer.options.findIndex((o) => !o.taken));
+    r.order = 1; r.opponent = r.nextOpponent; Run.startBattle(r, ctx); r.battle.winner = 0; Run.finishBattle(r, ctx);
+    if (r.offer?.kind === "recruit") assert(typeCount(r.offer, type) >= 2, `${type}, seed ${seed}: the recruit screen after battle 1 has the type (got ${typeCount(r.offer, type)})`);
+  }
+  // Off without a favoured type, with fewer upgrades it gives fewer cards, and Mono type already has them all
+  const none = Run.newRun(ctx, { gen: 1, pools: [1, 2, 3, 4, 5], seed: 3, perks });
+  eq(none.offer.magnet, null, "no favoured type, no Magnet");
+  const one = Run.newRun(ctx, { gen: 1, pools: [1, 2, 3, 4, 5], seed: 3, perks: { ...perks, typeMagnet: 1 }, favType: "ghost" });
+  assert(typeCount(one.offer, "ghost") >= 1, "one upgrade: one card");
+  const mono = Run.newRun(ctx, { gen: 1, pools: [1, 2, 3, 4, 5], seed: 3, perks, favType: "ghost", modes: { mono: true }, monoType: "water" });
+  eq(mono.offer.magnet, null, "Mono type needs no Magnet");
+});
+
+test("Run rules open by winning the generation you play (per generation); the Modes nodes are gone and what was spent on them comes back", () => {
+  assert(!rules.upgrades.some((n) => n.id.startsWith("mode-")), "no mode nodes in the tree");
+  eq(Object.keys(rules.ruleUnlocks).length, 7, "seven rules in the unlock table (Mono type opens with challenges)");
+  const open = (meta, gen) => [...unlockedRules({ ...emptyMeta(), ...meta }, rules, gen)].filter((id) => id.startsWith("mode-")).sort();
+  eq(open({}, 1).length, 0, "nothing at the start");
+  eq(open({ winGens: { 1: 1 } }, 1).join(), "mode-hard,mode-levels", "1 win in Gen 1: Hard mode and Random levels");
+  eq(open({ winGens: { 1: 2 } }, 1).length, 4, "2 wins: Random moves and Rainbow too");
+  eq(open({ winGens: { 1: 3 } }, 1).length, 6, "3 wins: No items and Random gyms too");
+  eq(open({ winGens: { 1: 4 } }, 1).length, 6, "4 wins: nothing new");
+  eq(open({ winGens: { 1: 5 } }, 1).length, 7, "5 wins: Fixed Six");
+  const monoIds = MONO_TYPES.map((m) => m.id);
+  assert(!open({ challenges: monoIds.slice(0, MONO_UNLOCK - 1) }, 1).includes("mode-mono"), "one short of half the type challenges: no Mono type");
+  assert(open({ challenges: monoIds.slice(0, MONO_UNLOCK) }, 1).includes("mode-mono"), "half the type challenges: Mono type, in every generation");
+  eq(open({ winGens: { 1: 3 } }, 2).length, 0, "…but Gen 2 has to be won on its own");
+  eq(open({ winGens: { 2: 1 }, evilWins: { 2: 1 } }, 2).length, 4, "an evil path win of that generation counts too");
+  assert(unlockedRules({ ...emptyMeta(), upgrades: { "type-magnet": 1 } }, rules, 1).has("type-magnet"), "Skill Tree unlocks still count");
+  // Respec: every upgrade back for 80% of the TP spent
+  const rm = emptyMeta();
+  rm.upgrades = { "hp-flat": 2, "atk-flat": 1, "type-magnet": 1 };
+  rm.tp = 3;
+  const spent = spentOnTree(rm, rules.upgrades);
+  eq(spent, 3 + 5 + 3 + 40, "the TP spent: HP + (3 and 5), Attack + (3) and Type Magnet (40)");
+  const r = respecTree(rm, rules.upgrades);
+  eq(r.refund, Math.floor(spent * 0.8), "80% comes back"); eq(r.fee, spent - r.refund, "20% is the fee");
+  eq(rm.tp, 3 + r.refund, "added to the TP"); eq(Object.keys(rm.upgrades).length, 0, "the tree is empty again");
+  eq(spentOnTree(rm, rules.upgrades), 0, "nothing left to take back");
+  // A save from version 1 that bought Modes nodes: refunded once
+  const old = { treeVersion: 1, tp: 5, upgrades: { "mode-hard": 1, "mode-mono": 1, "hp-flat": 2, "mode-moves": 1 } };
+  assert(migrateMeta(old), "migrated");
+  eq(old.tp, 5 + 60 + 60 + 40, "the TP of the three mode nodes comes back");
+  assert(!("mode-hard" in old.upgrades) && old.upgrades["hp-flat"] === 2, "only the mode nodes are removed");
+  eq(old.refundNote, 160, "the Skill Tree tells the player");
+  assert(!migrateMeta(old), "only once");
+});
+test("Trainers can unlock after clearing a special mode (Mode win, Evil win)", () => {
+  const meta = { ...emptyMeta(), modeWins: { hard: 1 }, evilWins: { 3: 1, 4: 2 } };
+  const rule = (text) => ({ alts: parseRule(text) });
+  const have = (text) => meetsRule(meta, rule(text));
+  assert(have("Mode win: hard") && !have("Mode win: mono"), "Mode win: hard");
+  assert(have("Evil win Gen 3") && !have("Evil win Gen 5"), "Evil win Gen 3");
+  assert(have("Evil wins: 2") && !have("Evil wins: 3"), "two different evil paths");
+  eq(unlockText(rule("Mode win: noitems")), "Win with No items on", "readable text");
+  const run = { screen: "won", team: [], fallen: [], lines: [], settings: { gen: 2, path: "evil", fixedSix: true, modes: { hard: true, opponents: "mixed" } }, stats: null, lastBattle: { order: 14 } };
+  const m = emptyMeta();
+  noteRunEnd(m, run, ctx);
+  assert(m.modeWins.hard === 1 && m.modeWins.gyms === 1 && m.modeWins.fixed === 1 && m.modeWins.evil === 1, "a win counts for every mode it was won with");
+});
+
 console.log("Stats and profile");
 test("Stats: sections from the meta save and the Hall of Fame; owned species for the favourites", () => {
   const meta = { ...emptyMeta(), runs: 10, wins: 4, best: 14, cleanWins: 1, battlesWon: 80, battleTurns: 400, battleTurnCount: 80, pokemonLost: 12, playMs: 5400000, species: ["charmander", "pikachu"], challenges: ["flawless"], winGens: { 1: 3, 2: 1 }, typeWins: { fire: 3 }, lineWins: { charmander: 2 } };
@@ -438,7 +599,7 @@ test("Stats: sections from the meta save and the Hall of Fame; owned species for
 console.log("Items");
 test("Berries and healing items are retired from offers, the shop and the starting bag; Nature Mint changes a Nature", () => {
   const retired = new Set(Object.entries(ITEMS).filter(([, it]) => it.retired).map(([id]) => id));
-  assert(retired.has("potion") && retired.has("sitrus-berry") && retired.has("full-restore") && !retired.has("leftovers") && !retired.has("x-attack"), "the right items are retired");
+  assert(retired.has("potion") && retired.has("sitrus-berry") && retired.has("full-restore") && !retired.has("leftovers") && retired.has("x-attack") && retired.has("dire-hit") && retired.has("guard-spec"), "the right items are retired (battle items too)");
   for (const seed of [1, 2, 3, 4, 5, 6, 7, 8]) {
     const r = Run.newRun(ctx, { gen: 1, pools: [1, 2, 3, 4, 5], seed });
     assert(Object.keys(r.bag).every((id) => !retired.has(id)), "nothing retired in the starting bag");
@@ -507,10 +668,7 @@ test("Skill tree: every panel builds upwards, milestones gate the late nodes, ef
   eq(perksFromMeta(m, rules).tpPct, 20, "Pay increase: +10% per level");
   const run = { screen: "won", perks: { tpPct: 20 }, settings: {} };
   eq(trainerPointsFor(run, rules), Math.round(24 * 1.2), "a full win pays 24 TP, +20%");
-  eq(trainerPointsFor({ ...run, settings: { modes: { mons: true } } }, rules), Math.round(24 * 1.45), "a Mode run adds 25% on top");
-  eq(trainerPointsFor({ screen: "won", perks: {}, settings: { fixedSix: true } }, rules), 30, "Fixed Six is a challenge run too");
-  eq(trainerPointsFor({ screen: "won", perks: {}, settings: { modes: { opponents: "mixed" } } }, rules), 30, "Random gyms is a challenge run too");
-  assert(perksFromMeta({ ...emptyMeta(), upgrades: { "mode-opponents": 1 } }, rules).unlocked.includes("mode-opponents"), "the Random gyms node unlocks the mode");
+  eq(trainerPointsFor({ ...run, settings: { modes: { rainbow: true }, fixedSix: true, path: "evil" } }, rules), Math.round(24 * 1.2), "modes, Fixed Six and the evil paths pay no extra TP");
 });
 test("The tree only raises stats in battle: no node has a battle effect, and the masteries are stat boosts", () => {
   const nodes = rules.upgrades;
@@ -572,7 +730,7 @@ test("Hard mode, Mono type, No items and Random gyms (modes)", () => {
   const pools = [1, 2, 3, 4, 5];
   const normal = Run.chooseOpponent(Run.newRun(ctx, { gen: 1, pools: [1], seed: 6 }), ctx, 1);
   const hard = Run.chooseOpponent(Run.newRun(ctx, { gen: 1, pools: [1], seed: 6, modes: { hard: true } }), ctx, 1);
-  eq(hard.level, normal.level + 3, "Hard mode: opponents +3 levels");
+  eq(hard.level, normal.level + Run.HARD_MODE_LEVELS, "Hard mode: opponents +2 levels");
   eq(hard.playerLevel, normal.playerLevel, "…your level is unchanged");
   // Mono type
   const mono = Run.newRun(ctx, { gen: 1, pools, seed: 7, modes: { mono: true }, monoType: "water" });
@@ -615,8 +773,72 @@ test("Skill tree stat bonuses reach the battle: flat and percentage, HP too", ()
   eq(boosted.maxHp, Math.floor(plain.maxHp * 1.1) + 20, "max HP");
   eq(boosted.hp, boosted.maxHp, "and the Pokémon starts at full HP");
 });
-test("Run modes: Random mons, levels and moves, and the Skills picks", () => {
-  const r = Run.newRun(ctx, { gen: 1, pools: [1, 2, 3, 4, 5], seed: 9, modes: { levels: true, moves: true, mons: true }, picks: { starter: "charmander" } });
+test("Rainbow: this generation's 8 gyms in a random order", () => {
+  const r = Run.newRun(ctx, { gen: 3, pools: [1, 2, 3, 4, 5], seed: 5, modes: { rainbow: true } });
+  eq(r.gymPlan.length, 8, "8 gyms"); eq(new Set(r.gymPlan.map((g) => g.gen)).size, 1, "all of Gen 3"); eq(new Set(r.gymPlan.map((g) => g.order)).size, 8, "all different");
+});
+test("Mixed Gens: 8 gyms, 4 Elite Four and a Champion of different types from any game", () => {
+  const r = Run.newRun(ctx, { gen: 2, pools: [1, 2, 3, 4, 5], seed: 8, path: "mixed" });
+  eq(r.gymPlan.length, 13, "13 planned battles");
+  const L = (n) => Run.leaderFor(r, ctx, n);
+  eq(new Set([1, 2, 3, 4, 5, 6, 7, 8].map((n) => L(n).theme)).size, 8, "8 gym types, all different");
+  eq(new Set([9, 10, 11, 12].map((n) => L(n).theme)).size, 4, "4 Elite Four types, all different");
+  assert([1, 2, 3, 4, 5, 6, 7, 8].every((n) => L(n).gymOrder >= 1 && L(n).gymOrder <= 8), "gyms are gyms");
+  eq(L(13).title, "Champion", "a Champion at 13"); eq(Run.regionOf(r, ctx), "All regions", "region name");
+  const types = [1, 2, 3, 4, 5, 6, 7, 8].map((n) => L(n).theme);
+  const rb = Run.newRun(ctx, { gen: 2, pools: [1, 2, 3, 4, 5], seed: 8, path: "mixed", modes: { rainbow: true } });
+  eq(rb.gymPlan.length, 13, "Rainbow keeps the plan");
+  assert(types.length === 8, "types listed");
+});
+test("Mixed Gens: every battle can be set up, and a win counts as a Mixed Gens win only", () => {
+  const r = Run.newRun(ctx, { gen: 2, pools: [1, 2, 3, 4, 5], seed: 12, path: "mixed" });
+  for (let n = 1; n <= 14; n++) { const o = Run.chooseOpponent(r, ctx, n); assert(o && o.name, `battle ${n} has an opponent`); }
+  const meta = emptyMeta();
+  recordRun(meta, { screen: "won", team: [], fallen: [], lines: [], settings: { gen: 2, path: "mixed", modes: {} }, playMs: 1 });
+  eq(meta.mixedWins, 1, "counted as a Mixed Gens win"); eq(meta.winGens[2] ?? 0, 0, "…not as a Gen 2 win");
+});
+test("Hard mode: 2 levels, one more Pokémon from battle 3, perfect IVs and a held item", () => {
+  const plain = Run.newRun(ctx, { gen: 1, pools: [1, 2, 3, 4, 5], seed: 21, path: "evil" });
+  const hard = Run.newRun(ctx, { gen: 1, pools: [1, 2, 3, 4, 5], seed: 21, path: "evil", modes: { hard: true } });
+  const a = Run.chooseOpponent(plain, ctx, 5), b = Run.chooseOpponent(hard, ctx, 5);
+  eq(b.level, a.level + Run.HARD_MODE_LEVELS, "level"); eq(Run.HARD_MODE_LEVELS, 2, "2 levels");
+  eq(b.team.length, Math.min(6, a.team.length + 1), "one more Pokémon");
+  assert(b.team.every((m) => m.item && Object.values(m.ivs).every((v) => v === 31)), "item and perfect IVs");
+  assert(a.team.every((m) => !m.item), "a normal run has none");
+  eq(Run.chooseOpponent(hard, ctx, 2).team.length, Run.chooseOpponent(plain, ctx, 2).team.length, "no extra Pokémon in battle 2");
+});
+test("Evil teams bring their own Pokémon: signature first, then the team pool", () => {
+  for (const gen of [1, 2, 3, 4, 5]) {
+    const r = Run.newRun(ctx, { gen, pools: [1, 2, 3, 4, 5], seed: 30 + gen, path: "evil" });
+    for (let n = 1; n <= 12; n++) {
+      const entry = evil[gen].opponents[n - 1];
+      const o = Run.chooseOpponent(r, ctx, n);
+      assert(o.team.length === o.teamSize, `evil ${gen} battle ${n}: full team`);
+      const own = new Set([...entry.pool, ...(entry.signature ?? [])].map((k) => ctx.dex.lineOf[k]));
+      const ownCount = o.team.filter((m) => own.has(ctx.dex.lineOf[m.species])).length;
+      assert(ownCount >= Math.min(o.team.length, 2), `evil ${gen} battle ${n}: mostly the team's own Pokémon (${ownCount} of ${o.team.length})`);
+    }
+  }
+  const p = Run.chooseOpponent(Run.newRun(ctx, { gen: 3, pools: [1, 2, 3, 4, 5], seed: 9, path: "evil" }), ctx, 11);
+  assert(p.team.some((m) => ["numel", "camerupt", "mightyena", "crobat", "poochyena", "golbat", "zubat"].includes(m.species)), "Maxie brings his own");
+});
+test("Evil paths are a step harder: 1 level up, perfect IVs, items for the elite; Mixed Gens pays double plus a bonus", () => {
+  const norm = Run.newRun(ctx, { gen: 1, pools: [1, 2, 3, 4, 5], seed: 40 });
+  const ev = Run.newRun(ctx, { gen: 1, pools: [1, 2, 3, 4, 5], seed: 40, path: "evil" });
+  eq(Run.chooseOpponent(ev, ctx, 3).level, Run.chooseOpponent(norm, ctx, 3).level + Run.EVIL_LEVELS, "+1 level");
+  const e3 = Run.chooseOpponent(ev, ctx, 3), e10 = Run.chooseOpponent(ev, ctx, 10);
+  assert(e3.team.every((m) => Object.values(m.ivs).every((v) => v === 31) && !m.item), "perfect IVs, no items early");
+  assert(e10.team.every((m) => m.item), "items from battle 9");
+  const win = { screen: "won", order: 14, team: [], fallen: [], settings: { path: "mixed", modes: {} } };
+  const plainTp = trainerPointsFor({ ...win, settings: { path: "normal", modes: {} } }, rules);
+  eq(trainerPointsFor(win, rules), plainTp * 2 + 50, "Mixed Gens TP: double, +50 for finishing");
+});
+test("Mono type ignores a pick of another type", () => {
+  const r = Run.newRun(ctx, { gen: 1, pools: [1, 2, 3, 4, 5], seed: 4, modes: { mono: true }, monoType: "water", picks: { starter: "charmander" } });
+  assert(r.offer.options.every((o) => ctx.data.pokemonByKey[o.spec.species].types.includes("water")), "every card is water, the Charmander pick is skipped");
+});
+test("Run modes: Random levels and moves, and the Skills picks", () => {
+  const r = Run.newRun(ctx, { gen: 1, pools: [1, 2, 3, 4, 5], seed: 9, modes: { levels: true, moves: true }, picks: { starter: "charmander" } });
   assert(r.offer.options.some((o) => ctx.dex.lineOf[o.spec.species] === "charmander"), "the picked starter is in the draft");
   const levels = new Set(r.offer.options.map((o) => o.spec.level));
   assert(levels.size > 1, "levels differ between cards");
@@ -654,7 +876,24 @@ test("A won run records the challenges it beat, and a lost run records none", ()
   assert(!magma.check(fire.team, fell, ctx), "…and so does a fallen Water type");
   assert(CHALLENGES.find((c) => c.id === "team-aqua").check(team(["squirtle", "psyduck"]).team, team(["squirtle", "psyduck"]).run, ctx), "Team Aqua: Water types");
   // Tiers show up as you beat challenges
-  assert(isRevealed(CHALLENGES.find((c) => c.tier === 1), 0) && !isRevealed(CHALLENGES.find((c) => c.tier === 2), 1) && isRevealed(CHALLENGES.find((c) => c.tier === 2), 2) && !isRevealed(CHALLENGES.find((c) => c.tier === 4), 7), "tiers reveal at 0, 2, 5 and 8 challenges");
+  // Secret challenges: three super hard ones, listed once you have beaten 80% of the others
+  const secret = CHALLENGES.filter((c) => c.secret);
+  eq(secret.length, 3, "three secret challenges");
+  eq(secretAt(), Math.ceil(CHALLENGES.filter((c) => !c.secret).length * 0.8), "revealed at 80% of the others");
+  assert(!secretRevealed(secretAt() - 1) && secretRevealed(secretAt()), "the secret ones open at that number");
+  const hard = (modes, extra = {}) => ({ fallen: [], settings: { modes, ...extra } });
+  assert(CHALLENGES.find((c) => c.id === "secret-perfect").check([], hard({ hard: true }), ctx) && !CHALLENGES.find((c) => c.id === "secret-perfect").check([], { ...hard({ hard: true }), fallen: [{}] }, ctx), "Perfect champion: Hard mode and nobody falls");
+  assert(CHALLENGES.find((c) => c.id === "secret-iron").check([], hard({ noitems: true, hard: true }, { fixedSix: true }), ctx) && !CHALLENGES.find((c) => c.id === "secret-iron").check([], hard({ hard: true }, { fixedSix: true }), ctx), "Iron trainer needs all three rules");
+  // One challenge per type, and the rarer the type the higher the tier
+  const types = [...new Set(Object.values(ctx.data.pokemonByKey).flatMap((p) => p.types))];
+  eq(MONO_TYPES.length, types.length, "a challenge for every type");
+  assert(types.every((t) => MONO_TYPES.some((m) => m.type === t)), "…each type once");
+  const count = (t) => Object.values(ctx.data.pokemonByKey).filter((p) => p.types.includes(t)).length;
+  for (const m of MONO_TYPES) eq(m.count, count(m.type), `${m.type}: the number in the table is the real count`);
+  for (const a of MONO_TYPES) for (const b of MONO_TYPES) if (a.count > b.count) assert(a.tier <= b.tier, `${a.type} (${a.count}) is not harder than ${b.type} (${b.count})`);
+  assert(MONO_TYPES.every((m) => m.tier >= 3), "mono type challenges start at tier 3");
+  eq(new Set(CHALLENGES.map((c) => c.tier)).size, 5, "five tiers");
+  assert(CHALLENGES.find((c) => c.id === "flawless").tier === 5, "Flawless is one of the hardest");
   assert(new Set(CHALLENGES.map((c) => c.id)).size === CHALLENGES.length, "challenge ids are unique");
 });
 

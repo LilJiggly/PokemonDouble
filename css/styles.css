@@ -1168,6 +1168,10 @@ the 24 px of
 .cmd-grid .bag { background: linear-gradient(180deg, #f8c858, #d8a030);
 }
 
+/* No bag items at all (they are retired): the Pokémon button takes the whole row */
+.cmd-grid:not(:has(.bag)) .party { grid-column: 1 / -1;
+}
+
 .cmd-grid .run { background: linear-gradient(180deg, #78a8f0, #4878c8);
 }
 
@@ -1687,10 +1691,12 @@ the 24 px of
 .title-screen { align-items: center;
   text-align: center;
   gap: 20px;
-  max-width: 636px;
+  /* max-width: 636px; */
+  max-width: 526px;
 }
 
 .title-screen .logo {
+  margin-top: .5rem;
   font-size: clamp(40px, 12vw, 56px);
   font-weight: 700;
   line-height: 1.05;
@@ -1703,28 +1709,30 @@ the 24 px of
   text-align: center;
 }
 
-.title-screen .menu-list { display: grid;
+/* .title-screen { display: grid;
   grid-template-columns: repeat(6, 1fr);
   gap: 6px;
   width: min(100%, 420px);
+} */
+
+.menu-list { display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto;
 }
 
-/* Top row: Continue and New run side by side (New run alone is full width). Then Trainer Upgrades on its own row, and Hall of Fame next to Leaderboards. */
-.title-screen .menu-list .btn[data-act="continue"], .title-screen .menu-list .btn[data-act="new"] { grid-column: span 3;
-  font-size: 17px;
+/* Two columns: New run, Skill Tree / Challenges, Hall of Fame / Profile, Leaderboards. A saved run puts Continue on its own row on top.
+   Without the cloud there is no Leaderboards button: Profile takes the whole last row. */
+.title-screen .menu-list .btn[data-act="continue"] { grid-column: 1 / -1;
 }
 
-.title-screen .menu-list .btn[data-act="new"]:first-child { grid-column: 1 / -1;
+.title-screen .menu-list .btn[data-act="continue"], .title-screen .menu-list .btn[data-act="new"] { font-size: 17px;
 }
 
-.title-screen .menu-list .btn[data-act="upgrades"], .title-screen .menu-list .btn[data-act="profile"] { grid-column: span 3;
-}
-
-.title-screen .menu-list .btn[data-act="hof"], .title-screen .menu-list .btn[data-act="leaderboards"] { grid-column: span 3;
-}
-
-/* Without the cloud there is no Leaderboards button: Hall of Fame takes the full row */
-.title-screen .menu-list .btn[data-act="hof"]:last-child { grid-column: 1 / -1;
+.title-screen .menu-list .btn[data-act="profile"]:last-child { grid-column: 1 / -1;
 }
 
 .title-screen .menu-list .btn { --c: #6a7a96;
@@ -1753,6 +1761,9 @@ the 24 px of
 }
 
 .title-screen .menu-list .btn[data-act="profile"] { --c: #2fa896;
+}
+
+.title-screen .menu-list .btn[data-act="challenges"] { --c: #d0508a;
 }
 
 .title-screen .menu-list .btn[data-act="leaderboards"] { --c: #9a64d0;
@@ -5219,7 +5230,21 @@ img[src*="/sprites/"] { object-fit: contain;
   text-align: center;
 }
 
-.hub.setup-screen .setup-grid { justify-content: center;
+/* Three columns by two rows, every tile the same size */
+.hub.setup-screen .setup-grid { display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-auto-rows: 1fr;
+  gap: 12px;
+  width: min(100%, 580px);
+}
+
+.hub.setup-screen .setup-grid .setup-card { width: 100%;
+  min-width: 0;
+}
+
+@media (max-width: 480px) {
+  .hub.setup-screen .setup-grid { grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 .hub.setup-screen .setup-card { background: var(--surface-sunken);
@@ -5854,7 +5879,7 @@ img[src*="/sprites/"] { object-fit: contain;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  margin: 12px 0;
+  /* margin: 12px 0; */
 }
 
 .account-who { display: flex;
@@ -6933,4 +6958,215 @@ img[src*="/sprites/"] { object-fit: contain;
 
 .pp-team div { display: flex;
   flex-wrap: wrap;
+}
+
+.ch-hint { color: var(--text-soft);
+  font-style: normal;
+  opacity: 0.8;
+}
+
+/* Challenges grouped in tiers */
+.board-list .ch-tier-head { display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 6px 4px 4px;
+  background: none;
+  border-bottom: 2px solid var(--border);
+}
+
+.board-list .ch-tier-head:first-child { margin-top: 0;
+}
+
+.ch-tier-head.closed { opacity: 0.7;
+}
+
+.challenge-row.dev-shown { outline: 2px dashed #ffb454;
+  opacity: 0.8;
+}
+
+/* Forfeit: quiet, a little red */
+.btn.forfeit { background: var(--surface-sunken, #1a2030);
+  border-color: #7a3a3a;
+  color: #ff9a90;
+}
+
+.btn.forfeit:hover { background: #3a2226;
+}
+
+/* Rules: a grid of cards, the Skill Tree ones stay locked until you own their node */
+.rule-grid { display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 10px;
+}
+
+.rule-card { display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-sunken);
+}
+
+.rule-card b { font-size: 13px;
+}
+
+.rule-card small { flex: 1;
+  color: var(--text-soft);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.rule-card.locked { opacity: 0.55;
+  border-style: dashed;
+}
+
+.rule-lock { color: #ffb454;
+  font-size: 11px;
+  line-height: 1.3;
+}
+
+.rule-lock em { font-style: normal;
+  font-weight: 700;
+}
+
+.rule-switch { display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.rule-switch em { color: var(--text-soft);
+  font-style: normal;
+  font-size: 12px;
+}
+
+.rule-select { width: 100%;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  background: var(--surface);
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+}
+
+/* Yes / no questions: the way out on the left (grey), the answer on the right (green, red for a forfeit) */
+.confirm-foot { justify-content: space-between;
+}
+
+.confirm-foot [data-cancel] { background: var(--surface-sunken);
+  border-color: rgba(255, 255, 255, 0.18);
+  color: var(--text-soft);
+}
+
+.confirm-foot .btn.confirm { margin-left: auto;
+  background: #4caf6a;
+  border-color: #2f7a46;
+  color: #fff;
+}
+
+.forfeit-modal .confirm-foot .btn.confirm { background: #d8584e;
+  border-color: #8f2f2a;
+}
+
+/* Evil team path cards */
+.gen-tile.evil { border-color: #7a3a58;
+}
+
+.gen-tile.evil.selected { border-color: var(--accent);
+}
+
+.evil-icon { display: grid;
+  place-items: center;
+  height: 64px;
+}
+
+.evil-sprite { width: 64px;
+  height: 64px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.gen-tile.evil.locked { opacity: 0.5;
+  border-style: dashed;
+  cursor: default;
+}
+
+.gen-tile.evil.locked .evil-sprite { filter: brightness(0) opacity(0.6);
+}
+
+.gen-tile.evil.dev-shown { outline: 2px dashed #ffb454;
+}
+
+.hof-empty { padding: 24px 8px;
+  text-align: center;
+}
+
+.hof-empty b { font-size: 16px;
+  color: var(--text);
+}
+
+.user-pill.clickable { cursor: pointer;
+}
+
+.user-pill.clickable:hover { background: color-mix(in srgb, var(--accent) 35%, rgba(255, 255, 255, 0.1));
+  color: #fff;
+}
+
+.click-note { margin: 0 0 6px;
+}
+
+/* Choose your run (after picking a generation) */
+.run-grid { grid-template-columns: repeat(3, 1fr);
+}
+.opt-tile.run-tile { align-items: flex-start;
+  text-align: left;
+  gap: 6px;
+  padding: 10px;
+  min-height: 96px;
+}
+.opt-tile.run-tile small { color: var(--muted, #9aa6c4);
+  font-size: 11px;
+  line-height: 1.35;
+}
+.opt-tile.run-tile.locked { opacity: 0.5;
+  cursor: default;
+}
+.opt-tile.run-tile .rule-select { margin-top: auto;
+  width: 100%;
+}
+@media (max-width: 560px) {
+  .run-grid {   grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Final paths (Mixed Gens, Gauntlet) */
+.final-grid { grid-template-columns: repeat(2, 1fr);
+}
+
+.gen-tile.final { border-color: #8a6bd0;
+}
+
+.gen-tile.final.selected { border-color: var(--accent);
+}
+
+.gen-tile.final.locked { opacity: 0.5;
+  border-style: dashed;
+  cursor: default;
+}
+
+.gen-tile.final.dev-shown { outline: 2px dashed #ffb454;
+}
+
+.evil-icon.rainbow { font-size: 40px;
+}
+
+.sc-rainbow { font-size: 40px;
+  line-height: 1;
+}
+
+.opt-tile.run-tile.dev-shown { outline: 2px dashed #ffb454;
 }
