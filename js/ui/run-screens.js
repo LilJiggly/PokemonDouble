@@ -22,7 +22,7 @@ import { play as playMusic } from "../game/music.js";
 import { CHALLENGES, MONO_TYPES, PLANNED, secretAt, secretRevealed } from "../game/challenges.js";
 import { VERSION } from "../version.js";
 import * as Run from "../game/run.js";
-import { loadMeta, saveMeta, buyUpgrade, canBuyUpgrade, upgradeLevel, lockReason, nextCost, perksFromMeta, unlockedRules, winsInGen, tpCheck, restoreTp, MONO_TRIALS_NEEDED, monoTrials, monoTrialsDone, spentOnTree, respecTree, RESPEC_FEE, trainerPointsFor, recordRun, noteSave } from "../game/meta.js";
+import { loadMeta, saveMeta, buyUpgrade, canBuyUpgrade, upgradeLevel, lockReason, nextCost, perksFromMeta, unlockedRules, winsInGen, tpCheck, restoreTp, winsCheck, fixWins, MONO_TRIALS_NEEDED, monoTrials, monoTrialsDone, spentOnTree, respecTree, RESPEC_FEE, trainerPointsFor, recordRun, noteSave } from "../game/meta.js";
 import { cloudAvailable, state as cloudState, onCloudChange, signIn, signOutUser, allPlayers, publicName, cleanUsername, cleanTagline, setSyncChooser, setPublicStats } from "../game/cloud.js";
 import { buildStats, ownedSpecies } from "../game/stats.js";
 import { ITEMS, POCKETS, pocketOf, itemInfo, itemSprite } from "../game/item-catalog.js";
@@ -121,6 +121,13 @@ export class RunUI {
     if (!saved || ["over", "won"].includes(saved.screen)) return false;
     this.run = saved;
     this.render();
+    return true;
+  }
+
+  // True the first time a key is seen (a screen's cards animate in once, not on every re-render)
+  animateOnce(key) {
+    if (this.lastAnimated === key) return false;
+    this.lastAnimated = key;
     return true;
   }
 
@@ -233,14 +240,13 @@ export class RunUI {
     };
   }
 
-  // First login on a device that already has progress: use the online save, keep this device, or combine them
+  // First login on a device that already has progress: use the online save or keep this device
   syncChoice(cloud, local) {
     return this.modal({
       title: "Your progress",
       variant: "settings",
       body: `<p class="opt-note">This account already has a save, and this device has one too. What should happen?</p>
         <div class="opt-grid sync-grid">
-          <button class="opt-tile" data-result='"merge"'><b>Combine both</b><small>Adds up runs, wins and TP, keeps the higher upgrade levels and joins badges, unlocks and the Hall of Fame.</small><em>Online: ${cloud}<br>This device: ${local}</em></button>
           <button class="opt-tile" data-result='"cloud"'><b>Use the online save</b><small>Replaces what is on this device.</small><em>${cloud}</em></button>
           <button class="opt-tile" data-result='"local"'><b>Keep this device</b><small>Replaces the online save.</small><em>${local}</em></button>
         </div>`,
@@ -370,12 +376,12 @@ export class RunUI {
         this.boardPlayers.set(p.uid, p);
         const t = (25 - (r.letter.charCodeAt(0) - 65)) / 25; // 0 for Z, 1 for A: from a dull blue to gold
         const colour = `hsl(${Math.round(215 - 165 * t)} ${Math.round(25 + 65 * t)}% ${Math.round(48 + 14 * t)}%)`;
-        const cell = (k, v, small = "") => `<b class="bh-val ${k === key ? "on" : ""}">${v}${small ? `<small>${small}</small>` : ""}</b>`;
+        const cell = (k, v, small = "", label = "") => `<b class="bh-val ${k === key ? "on" : ""}" ${label ? `data-label="${label}"` : ""}>${v}${small ? `<small>${small}</small>` : ""}</b>`;
         return `<li class="rank-card player-row clickable ${p.uid === me ? "me" : ""} ${i < 3 ? `podium p${i + 1}` : ""}" data-uid="${p.uid}" style="--lc:${colour}">
           <span class="rank-pos">${["🥇", "🥈", "🥉"][i] ?? i + 1}</span>
           <span class="rank-letter" style="background:${colour}">${r.letter}</span>
           <span class="pr-player">${avatarOf(p).replace("board-avatar", "rc-avatar")}<span class="rc-main"><b class="rc-name">${escapeHtml(p.name ?? "Trainer")}</b><small>${p.tagline ? escapeHtml(p.tagline) : `${p.score} pts`}</small>${bar}</span>${favs.get(p.uid)}</span>
-          ${cell("score", p.score, " pts")}${cell("wins", p.wins ?? 0)}${cell("trainers", p.trainers ?? 1)}${cell("badges", p.badges ?? 0, " / 40")}</li>`;
+          ${cell("score", p.score, " pts")}<span class="pr-stats">${cell("wins", p.wins ?? 0, "", "Champion wins")}${cell("trainers", p.trainers ?? 1, "", "Trainers")}${cell("badges", p.badges ?? 0, " / 40", "Badges")}</span></li>`;
       }).join("");
       stagger(list);
     };
@@ -426,14 +432,20 @@ export class RunUI {
     const head = `<div class="profile-head">
       <img class="profile-avatar" src="${me.avatar.front}" alt="">
       <div class="profile-who"><h1>${escapeHtml(me.name)}</h1>${me.tagline ? `<p>${escapeHtml(me.tagline)}</p>` : `<p class="empty-note">No tagline yet</p>`}</div>
-      <div class="profile-rank" title="${me.score} points"><b>${me.rank.letter}</b><small>${me.score} pts</small></div>
+      ${(() => {
+        const t = (25 - (me.rank.letter.charCodeAt(0) - 65)) / 25; // 0 for Z, 1 for A: from a dull blue to gold, like the leaderboards
+        const colour = `hsl(${Math.round(215 - 165 * t)} ${Math.round(25 + 65 * t)}% ${Math.round(48 + 14 * t)}%)`;
+        const bar = me.rank.next ? Math.round((me.score - me.rank.from) / (me.rank.next - me.rank.from) * 100) : 100;
+        return `<div class="profile-rank" style="--lc:${colour}"><b>${me.rank.letter}</b>
+          <span class="pr-text"><strong>${me.score} pts</strong><i class="pp-rank-bar"><i style="width:${bar}%;background:${colour}"></i></i><small>${me.rank.next ? `${me.rank.next - me.score} more to climb` : "Top rank"}</small></span></div>`;
+      })()}
       <button class="btn" data-act="title">◀ Title</button></div>`;
     const tabs = `<div class="tabs board-tabs">${[["stats", "Stats"], ["custom", "Customize"]].map(([id, label]) => `<button class="tab ${tab === id ? "active" : ""}" data-act="ptab" data-tab="${id}">${label}</button>`).join("")}</div>`;
     let body;
     if (tab === "stats") {
       const sections = buildStats(meta, me.hof, this.ctx, { trainers: me.trainers, trainersTotal: CHARACTERS.length });
       body = `<div class="stat-sections">${sections.map((sec) => `<section class="stat-section"><h3>${sec.title}</h3>
-        ${sec.action ? `<div class="tp-restore"><p>${sec.action.text}</p><button class="btn" data-act="${sec.action.act}">${sec.action.label}</button></div>` : ""}<div class="stat-grid">${sec.rows.map((r) => `<div class="stat ${r.wide ? "wide" : ""}"><span>${r.label}</span><b>${escapeHtml(String(r.value))}</b>${r.hint ? `<small>${escapeHtml(r.hint)}</small>` : ""}</div>`).join("")}</div></section>`).join("")}</div>`;
+        ${sec.action ? `<div class="tp-restore"><p>${sec.action.text}</p><button class="btn" data-act="${sec.action.act}">${sec.action.label}</button></div>` : ""}<div class="stat-grid">${sec.rows.map((r) => `<div class="stat ${r.wide ? "wide" : ""} ${String(r.value).length > 12 || (r.hint?.length ?? 0) > 26 ? "long" : ""}"><span>${r.label}</span><b>${escapeHtml(String(r.value))}</b>${r.hint ? `<small>${escapeHtml(r.hint)}</small>` : ""}</div>`).join("")}</div></section>`).join("")}</div>`;
     } else {
       body = `<div class="profile-edit">
         <label class="field"><span>Name on the leaderboards</span><input data-field="username" maxlength="16" value="${escapeHtml(meta.username ?? "")}" placeholder="${escapeHtml(me.name)}"><small>Up to 16 characters. Empty uses your Google first name.</small></label>
@@ -466,6 +478,17 @@ export class RunUI {
       if (act === "ptab") { this.renderProfile(el.dataset.tab); return; }
       const m = loadMeta();
       if (act === "avatar") { (m.profile ??= {}).avatar = el.dataset.id; saveMeta(m); this.renderProfile("custom"); }
+      if (act === "fix-wins") {
+        const c = winsCheck(m);
+        const ok = await this.modal({
+          title: "Fix your Champion wins?",
+          body: `<p>Your save says ${c.saved} Champion wins, your records add up to ${c.records}. This sets the wins to ${c.records}, lowers the other totals (runs, Trainer Points earned) by the same share, and works out the Trainer Points you have left again (earned minus what your upgrades cost).</p>`,
+          options: [{ value: true, label: `Fix my numbers` }],
+          cancel: "Not now",
+        });
+        if (ok) { const fresh = loadMeta(); fixWins(fresh, this.ctx.rules.upgrades); saveMeta(fresh); this.renderProfile("stats"); }
+        return;
+      }
       if (act === "restore-tp") {
         const c = tpCheck(m, this.ctx.rules);
         const ok = await this.modal({
@@ -497,8 +520,9 @@ export class RunUI {
     if (!owned.length) return this.modal({ title: "No Pokémon yet", body: `<p class="opt-note">Recruit a Pokémon in a run and it shows up here.</p>`, options: [], cancel: "Close" }).then(() => undefined);
     return this.modal({
       title: "Pick a favourite",
-      wide: true,
-      body: `<input class="species-search" placeholder="Search by name" aria-label="Search by name">
+      variant: "species-modal",
+      body: `<p class="opt-note">Only Pokémon you have recruited in a run (or had on a Hall of Fame team) show up here: ${owned.length} of ${data.pokemon.length} so far. Recruit more Pokémon to fill this list.</p>
+        <input class="species-search" placeholder="Search by name" aria-label="Search by name">
         <div class="species-grid">${owned.map((k) => `<button class="species-pick ${current.includes(k) ? "chosen" : ""}" data-result='${JSON.stringify(k)}' data-name="${data.pokemonByKey[k].name.toLowerCase()}" title="${data.pokemonByKey[k].name}"><img src="${data.pokemonByKey[k].sprites.front}" alt=""><small>${data.pokemonByKey[k].name}</small></button>`).join("")}</div>`,
       options: [],
       cancel: "Cancel",
@@ -586,9 +610,10 @@ export class RunUI {
         const lit = n.requires.length && n.requires.every((r) => upgradeLevel(meta, r.id) >= r.level);
 
         return `<button class="tree-node ${state} ${level ? "owned" : ""} ${lit ? "lit" : ""} ${n.id.startsWith("final-") ? "final" : ""}" data-node="${n.id}" ${stat ? `data-stat="${stat}"` : ""}
-          style="grid-column:${n.pos[0] + 1} / span ${n.span};grid-row:${rows - n.pos[1]}" data-tip="${escapeHtml(this.nodeHint(n, level))}">
+          style="grid-column:${n.pos[0] + 1} / span ${n.span};grid-row:${rows - n.pos[1]};--ord:${n.pos[1] * 100 + n.pos[0]}" data-tip="${escapeHtml(this.nodeHint(n, level))}">
           ${n.icon ? `<img src="${itemSprite(n.icon)}" alt="">` : ""}
           <b>${escapeHtml(n.name)}</b>
+          <em class="node-effect">${escapeHtml(reason ? reason : this.nodeHint(n, level))}</em>
           <span class="foot"><span class="pips">${n.max > 1 ? Array.from({ length: n.max }, (_, i) => `<i class="${i < level ? "on" : ""}"></i>`).join("") : ""}</span><small>${label}</small></span></button>`;
       }).join("");
       return `<section class="tree-panel" data-arm="${arm}" style="--cols:${maxCols}">
@@ -1709,11 +1734,12 @@ export class RunUI {
     const offer = run.offer;
     const starter = offer.starter;
     this.hub.className = "hub";
+    const still = !this.animateOnce(`recruit|${run.screen}|${run.order}|${offer.options.map((o) => o.spec.species).join(",")}`); // (the cards only fly in the first time they are shown)
     const cards = offer.options.map((o, i) => {
       const m = o.spec;
       const nature = m.nature.charAt(0).toUpperCase() + m.nature.slice(1);
       return `
-        <button class="offer-card tier-${o.tier} ${o.taken ? "taken" : ""}" data-act="recruit-open" data-pick="${i}" style="animation-delay:${i * 80}ms"
+        <button class="offer-card tier-${o.tier} ${o.taken ? "taken" : ""} ${still ? "still" : ""}" data-act="recruit-open" data-pick="${i}" style="animation-delay:${i * 80}ms"
           ${o.taken || offer.picksLeft <= 0 ? "disabled" : ""}>
           <span class="tier">${o.tier}${o.taken ? " · picked" : ""}</span>
           <img class="big" src="${this.sprite(m)}" alt="">
@@ -1752,8 +1778,7 @@ export class RunUI {
       if (act === "details") { await this.detailsDialog(Number(e.target.closest("[data-uid]").dataset.uid)); return; }
       if (act === "recruit-open") {
         // The same panel as your team's details, for a Pokémon you could recruit, with a Lock in button
-        await this.recruitDialog(Number(e.target.closest("[data-pick]").dataset.pick));
-        this.render();
+        if (await this.recruitDialog(Number(e.target.closest("[data-pick]").dataset.pick))) this.render(); // (only when you picked someone: looking at the details changes nothing)
         return;
       }
       if (act === "skip") { Run.skipOffer(run, this.ctx); this.render(); return; }
@@ -1995,11 +2020,12 @@ export class RunUI {
     const offer = this.run.offer;
     this.hub.className = "hub";
     const multi = offer.picksLeft > 1;
+    const still = !this.animateOnce(`items|${this.run.order}|${offer.options.map((o) => o.item ?? o.id ?? o.name).join(",")}`);
     const cards = offer.options.map((o, i) => {
       const item = itemInfo(o.id);
       const kind = { held: "Held item", bag: "Bag item", evo: "Evolution item", patch: "Ability item" }[item.kind];
       return `
-        <button class="offer-card tier-${o.tier} ${o.taken ? "taken" : ""}" data-pick="${i}" style="animation-delay:${i * 80}ms"
+        <button class="offer-card tier-${o.tier} ${o.taken ? "taken" : ""} ${still ? "still" : ""}" data-pick="${i}" style="animation-delay:${i * 80}ms"
           role="${multi ? "checkbox" : "radio"}" aria-checked="false" ${o.taken || offer.picksLeft <= 0 ? "disabled" : ""}>
           <span class="select-mark" aria-hidden="true"></span>
           <span class="tier">${o.tier} · ${kind}</span>

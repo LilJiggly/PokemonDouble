@@ -14,7 +14,7 @@ import * as Run from "../js/game/run.js";
 import { Battle } from "../js/engine/battle.js";
 import { ITEMS, pocketOf } from "../js/game/item-catalog.js";
 import { SLOT_UNLOCKS, slotUnlocked, unlockedSlotCount, badgeStatBoost, statOfBadge, unlockBadge, placeBadge, removeBadge, caseOf, caseStrengths, randomZones, validZones, badgeName, setBonus, battleBonus, perkInfo, perkOfBadge, ALL_BADGES } from "../js/game/badges.js";
-import { tpCheck, restoreTp, beatenCount } from "../js/game/meta.js";
+import { tpCheck, restoreTp, beatenCount, recordedWins, winsCheck, fixWins } from "../js/game/meta.js";
 import { emptyMeta, recordRun, migrateMeta, perksFromMeta, unlockedRules, spentOnTree, respecTree, canBuyUpgrade, buyUpgrade, lockReason, trainerPointsFor } from "../js/game/meta.js";
 import { ruleProgressText } from "../js/game/unlocks.js";
 import { grantUnlocks, isUnlocked, meetsRule, unlockText, nextHint, parseRule, setFriendshipSpecies } from "../js/game/unlocks.js";
@@ -23,7 +23,6 @@ import { noteBattleWon, noteRunEnd } from "../js/game/progress.js";
 import { CHALLENGES, MONO_TYPES, secretAt, secretRevealed, backfillChallenges } from "../js/game/challenges.js";
 import { buildStats, ownedSpecies, fmtDuration } from "../js/game/stats.js";
 import { rankOf, rankScore } from "../js/game/ranks.js";
-import { mergeSaves } from "../js/game/cloud.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const readJson = async (p) => JSON.parse(await fs.readFile(path.join(ROOT, p), "utf8"));
@@ -281,16 +280,10 @@ test("Case slots open up as you own more badges", () => {
   eq(caseOf(m)[7], null, "locked slots stay empty");
 });
 
-test("Ranks: everyone starts at Z and climbs; saves combine without losing progress", () => {
+test("Ranks: everyone starts at Z and climbs", () => {
   eq(rankOf(rankScore({})).letter, "Z", "new players are Z");
   assert(rankOf(rankScore({ best: 14, wins: 1 })).letter < "Z", "a first win climbs");
   eq(rankOf(rankScore({ best: 14, wins: 40, cleanWins: 30, badges: 40, trainers: 37 })).letter, "A", "a long career reaches A");
-  const m = mergeSaves({ meta: { treeVersion: 1, runs: 2, wins: 1, best: 9, badges: ["1-1"], upgrades: { scout: 1 } }, hof: [], run: null },
-    { meta: { treeVersion: 1, runs: 4, wins: 2, best: 14, badges: ["1-2"], upgrades: { scout: 2 } }, hof: [], run: null });
-  eq(m.meta.runs, 6, "runs add up");
-  eq(m.meta.best, 14, "best keeps the higher");
-  eq(m.meta.badges.length, 2, "badges are joined");
-  eq(m.meta.upgrades.scout, 2, "upgrades keep the higher level");
 });
 
 test("Trainer perks: start items, extra cards, shop discounts, shiny odds, battle effects", () => {
@@ -395,16 +388,16 @@ test("Locked trainers show their progress", () => {
 });
 
 test("Trainer Points check: earned, spent, left, and a restore up to what the wins pay", () => {
-  const meta = { ...emptyMeta(), wins: 15, earned: 100, tp: 0, upgrades: { "hp-flat": 1 } };
+  const meta = { ...emptyMeta(), wins: 15, winGens: { 1: 15 }, earned: 100, tp: 0, upgrades: { "hp-flat": 1 } };
   const c = tpCheck(meta, rules);
   eq(c.fullRun, 24, "a full run pays 24"); eq(c.floor, 360, "15 wins pay at least 360"); eq(c.missing, 260, "260 below that");
   eq(c.spent, rules.upgrades.find((n) => n.id === "hp-flat").costs[0], "spent on the tree");
   eq(restoreTp(meta, rules), 260, "restores the difference"); eq(meta.earned, 360, "earned is raised"); eq(meta.tp, 260, "and so is the balance");
   eq(restoreTp(meta, rules), 0, "nothing more to restore");
-  const sections = buildStats({ ...emptyMeta(), wins: 3, earned: 80 }, [], ctx, { trainers: 1, trainersTotal: 37 });
+  const sections = buildStats({ ...emptyMeta(), wins: 3, winGens: { 1: 3 }, earned: 80 }, [], ctx, { trainers: 1, trainersTotal: 37 });
   const tp = sections.find((s) => s.title === "Trainer Points");
   assert(tp && !tp.action, "an earned total above the floor shows no restore");
-  assert(buildStats({ ...emptyMeta(), wins: 15, earned: 10 }, [], ctx, {}).find((s) => s.title === "Trainer Points").action, "below the floor: a restore");
+  assert(buildStats({ ...emptyMeta(), wins: 15, winGens: { 1: 15 }, earned: 10 }, [], ctx, {}).find((s) => s.title === "Trainer Points").action, "below the floor: a restore");
 });
 
 test("Hilda, Bianca and Riley perks", () => {
@@ -661,9 +654,6 @@ test("Old upgrades are refunded once; merging two old saves refunds both and nev
   eq(old.refundNote, 20, "the screen can tell the player");
   assert(!migrateMeta(old), "a second pass does nothing");
   eq(old.tp, 24, "…and refunds nothing again");
-  const merged = mergeSaves({ meta: { tp: 1, upgrades: { shiny: 1 } }, hof: [], run: null }, { meta: { tp: 2, upgrades: { shiny: 1 } }, hof: [], run: null });
-  eq(merged.meta.tp, 1 + 5 + 2 + 5, "both sides refunded, TP added up");
-  eq(Object.keys(merged.meta.upgrades).length, 0, "nothing is owned for free");
 });
 test("Skill tree: every panel builds upwards, milestones gate the late nodes, effects reach the run", () => {
   const nodes = rules.upgrades;
@@ -942,6 +932,19 @@ test("Evil battles with a type tag really lean into it", () => {
     }
   }
   assert(checked > 200, "many battles checked");
+});
+test("Wins check: a total above the records (a merge counted wins twice) can be fixed, and cannot pay out TP", () => {
+  const meta = { ...emptyMeta(), wins: 75, cleanWins: 40, winGens: { 1: 5, 2: 4, 3: 3, 4: 2, 5: 1 }, evilWins: { 2: 1 }, mixedWins: 0, earned: 100, tp: 0 };
+  eq(recordedWins(meta), 16, "the records add up to 16"); eq(winsCheck(meta).extra, 59, "59 extra");
+  eq(tpCheck(meta, rules).floor, 16 * 24, "the TP floor uses the records, not the doubled total");
+  meta.runs = 150; meta.earned = 1200; meta.upgrades = { "hp-flat": 1 };
+  const spent = tpCheck(meta, rules).spent;
+  eq(fixWins(meta, rules.upgrades), 59, "59 taken off"); eq(meta.wins, 16, "the total matches"); assert(meta.cleanWins <= meta.wins, "clean wins are not above wins");
+  eq(meta.earned, Math.round(1200 * 16 / 75), "earned is lowered by the same share"); eq(meta.runs, Math.round(150 * 16 / 75), "so are the runs");
+  eq(meta.tp, Math.max(0, meta.earned - spent), "the Trainer Points left are earned minus the upgrades");
+  eq(fixWins(meta), 0, "nothing more to fix");
+  assert(!buildStats({ ...emptyMeta(), wins: 2, winGens: { 1: 2 } }, [], ctx, {}).some((s) => s.title === "Save check"), "an honest save has no check");
+  assert(buildStats({ ...emptyMeta(), wins: 9, winGens: { 1: 2 } }, [], ctx, {}).some((s) => s.title === "Save check"), "a doubled one does");
 });
 test("Mono type ignores a pick of another type", () => {
   const r = Run.newRun(ctx, { gen: 1, pools: [1, 2, 3, 4, 5], seed: 4, modes: { mono: true }, monoType: "water", picks: { starter: "charmander" } });

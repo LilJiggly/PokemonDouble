@@ -10,7 +10,6 @@
 // =====================================================
 
 import { firebaseConfig } from "../firebase-config.js";
-import { migrateMeta } from "./meta.js";
 
 const SDK = "https://www.gstatic.com/firebasejs/10.12.2";
 const KEYS = { meta: "pd.meta", hof: "pd.hallOfFame", run: "pd.run" };
@@ -128,49 +127,7 @@ function applyCloud(d) {
   } finally { paused = false; }
 }
 
-// ---- combining two saves (first login on a device that already has progress) ----
-// Counters of finished runs add up; "best" style numbers and per-key counters keep the higher one;
-// lists (badges, unlocks…) are joined; everything else (character, case layout, settings) stays as on this device.
-const SUMMED = new Set(["tp", "earned", "runs", "wins", "cleanWins", "battlesWon", "battlesLost", "battleTurns", "battleTurnCount", "pokemonLost", "recruited", "shiniesFound", "evolutionsDone", "rerollsDone", "playMs", "forfeits"]);
-function mergeValue(a, b, key, top) {
-  if (a === undefined || a === null) return b;
-  if (b === undefined || b === null) return a;
-  if (typeof a === "number" && typeof b === "number") return top && SUMMED.has(key) ? a + b : Math.max(a, b);
-  if (Array.isArray(a) && Array.isArray(b)) {
-    if (a.every((x) => typeof x !== "object") && b.every((x) => typeof x !== "object")) return [...new Set([...a, ...b])];
-    return a;
-  }
-  if (a && b && typeof a === "object" && typeof b === "object" && !Array.isArray(a) && !Array.isArray(b)) {
-    const out = {};
-    for (const k of new Set([...Object.keys(a), ...Object.keys(b)])) out[k] = mergeValue(a[k], b[k], k, false);
-    return out;
-  }
-  return a;
-}
-export function mergeSaves(local, cloud) {
-  for (const side of [local, cloud]) if (side.meta) migrateMeta(side.meta); // old upgrades are refunded before the saves are combined
-  const meta = {};
-  for (const k of new Set([...Object.keys(local.meta ?? {}), ...Object.keys(cloud.meta ?? {})])) meta[k] = mergeValue(local.meta?.[k], cloud.meta?.[k], k, true);
-  // The two lists keep a case layout that is valid on its own: the one from this device
-  for (const k of ["badgeCase", "badgeLinks", "badgeOff", "setup", "character", "sprites", "cardColor", "username"]) if (local.meta?.[k] !== undefined) meta[k] = local.meta[k];
-  const seen = new Set();
-  const hof = [...(local.hof ?? []), ...(cloud.hof ?? [])].filter((e) => {
-    const id = `${e.date}|${e.gen}|${(e.team ?? []).map((m) => m.species).join(",")}`;
-    return seen.has(id) ? false : seen.add(id);
-  }).sort((x, y) => String(y.date).localeCompare(String(x.date)));
-  return { meta, hof, run: local.run ?? cloud.run ?? null };
-}
-
-function applyMerged(m) {
-  paused = true;
-  try {
-    localStorage.setItem(KEYS.meta, JSON.stringify(m.meta));
-    localStorage.setItem(KEYS.hof, JSON.stringify(m.hof));
-    if (m.run) localStorage.setItem(KEYS.run, JSON.stringify(m.run)); else localStorage.removeItem(KEYS.run);
-  } finally { paused = false; }
-}
-
-// The window that asks what to do (set by the screens). Answers: "cloud" | "local" | "merge"
+// The window that asks what to do (set by the screens). Answers: "cloud" | "local"
 let chooser = null;
 export function setSyncChooser(fn) { chooser = fn; }
 
@@ -198,7 +155,6 @@ export async function syncNow({ first = false } = {}) {
       else {
         const choice = await (chooser ?? defaultAsk)(summary(cloud), summary(local));
         if (choice === "cloud") { applyCloud(d); result = "pulled"; }
-        else if (choice === "merge") { applyMerged(mergeSaves(local, { ...cloud, run: d.run ? JSON.parse(d.run) : null })); await push(); result = "pulled"; }
         else await push();
       }
     }

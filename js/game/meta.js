@@ -185,11 +185,34 @@ export function respecTree(meta, nodes) {
 
 // Trainer Points check (Profile → Stats): what you earned, spent and have left, and the least you must have earned by now.
 // A won run pays at least a full run (every gym, Elite Four member, the Champion and the Hall of Fame), so wins × that is a floor.
+// Champion wins as the records count them: every win is also counted in its generation, evil path, Mixed Gens or Gauntlet counter. Those
+// counters were never added up when two saves were combined (the total was), so a total above this sum counted some wins twice.
+export function recordedWins(meta) {
+  const sum = (o) => Object.values(o ?? {}).reduce((a, n) => a + (Number(n) || 0), 0);
+  return sum(meta.winGens) + sum(meta.evilWins) + (meta.mixedWins ?? 0) + (meta.gauntletWins ?? 0);
+}
+export const winsCheck = (meta) => ({ saved: meta.wins ?? 0, records: recordedWins(meta), extra: Math.max(0, (meta.wins ?? 0) - recordedWins(meta)) });
+// The counters that were added together when two saves were combined (so they were doubled by the same factor as the wins)
+const COMBINED_COUNTERS = ["earned", "runs", "cleanWins", "battlesWon", "battlesLost", "battleTurns", "battleTurnCount", "pokemonLost", "recruited", "shiniesFound", "evolutionsDone", "rerollsDone", "playMs", "forfeits"];
+// Bring the total back to the records, and the counters that were doubled with it by the same share. The Trainer Points are worked out again
+// as earned minus what the Skill Tree upgrades cost (the upgrades were not added together, so they are right). Returns how many wins were taken off.
+export function fixWins(meta, nodes = null) {
+  const { extra, records, saved } = winsCheck(meta);
+  if (extra <= 0) return 0;
+  const share = records / saved;
+  for (const k of COMBINED_COUNTERS) if (typeof meta[k] === "number") meta[k] = Math.round(meta[k] * share);
+  meta.wins = records;
+  meta.runs = Math.max(meta.runs ?? 0, records);
+  meta.cleanWins = Math.min(meta.cleanWins ?? 0, records);
+  if (nodes) meta.tp = Math.max(0, (meta.earned ?? 0) - spentOnTree(meta, nodes) - (meta.respecFees ?? 0));
+  return extra;
+}
+
 export function tpCheck(meta, rules) {
   const t = rules.tp;
   const fullRun = t.gym * 8 + t.elite * 4 + t.champion + t.hallOfFame;
   const earned = meta.earned ?? 0;
-  const floor = (meta.wins ?? 0) * fullRun;
+  const floor = Math.min(meta.wins ?? 0, recordedWins(meta)) * fullRun; // (not more than the records show: a doubled total must not pay out)
   return { earned, spent: spentOnTree(meta, rules.upgrades), left: meta.tp ?? 0, fees: meta.respecFees ?? 0, fullRun, floor, missing: Math.max(0, floor - earned) };
 }
 // If the earned total is below that floor (a save that lost progress), bring earned and the balance up to it. Returns the points added.

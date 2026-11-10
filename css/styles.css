@@ -5909,7 +5909,7 @@ img[src*="/sprites/"] { object-fit: contain;
 .board-list { list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 10px;
   margin: 0;
   padding: 0;
 }
@@ -6760,20 +6760,43 @@ img[src*="/sprites/"] { object-fit: contain;
 .profile-who p, .pp-tagline { margin: 4px 0 0;
 }
 
-.profile-rank { display: grid;
-  place-items: center;
-  min-width: 64px;
-  padding: 6px 10px;
+.profile-rank { display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px 6px 6px;
+  border: 2px solid var(--lc, var(--border-strong));
   border-radius: 12px;
-  background: var(--accent);
-  color: #fff;
+  background: linear-gradient(110deg, color-mix(in srgb, var(--lc, #888) 24%, #1b2133), #1b2133 80%);
 }
 
-.profile-rank b { font-size: 26px;
+.profile-rank b { display: grid;
+  flex: none;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 10px;
+  background: var(--lc, var(--accent));
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.35), inset 0 -3px 0 rgba(0, 0, 0, 0.18);
+  color: #1b1b24;
+  font-size: 26px;
   line-height: 1;
 }
 
-.profile-rank small { font-size: 10px;
+.profile-rank .pr-text { display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 84px;
+}
+
+.profile-rank strong { color: var(--text, #fff);
+  font-size: 14px;
+}
+
+.profile-rank small { color: var(--text-soft);
+  font-size: 10px;
+}
+
+.profile-rank .pp-rank-bar { width: 100%;
 }
 
 .stat-sections { display: flex;
@@ -7771,4 +7794,414 @@ img[src*="/sprites/"] { object-fit: contain;
 }
 
 .unlock-card p { max-width: 42ch;
+}
+
+/* ===============================
+   PHONE FIXES (v0.57.2)
+   =============================== */
+
+/* The three secondary numbers of a player row sit in the table's columns on a wide screen */
+.pr-stats { display: contents;
+}
+
+/* The hub on a tablet or phone: the Team panel no longer sits on top of the opponent card */
+@media (max-width: 860px) {
+  .hub-main > section:last-child { grid-row: auto;
+  }
+
+  .hub-top .row-buttons { flex-wrap: wrap;
+  }
+}
+
+/* The hub top bar on a phone: trainer, then the buttons (wrapping), then the progress track */
+@media (max-width: 560px) {
+  .hub-top { grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "me" "actions" "track";
+  }
+
+  .hub-top .row-buttons { justify-content: flex-start;
+  }
+}
+
+/* The title menu never runs off the screen */
+.menu-list { grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 440px) {
+  .title-screen .menu-list .btn { min-width: 0;
+    padding: 10px 6px;
+    font-size: 12px;
+    line-height: 1.25;
+    flex-wrap: wrap;
+  }
+
+  .title-screen .menu-list .btn[data-act="continue"], .title-screen .menu-list .btn[data-act="new"] { font-size: 15px;
+  }
+}
+
+/* The badge case (a 480 by 340 card) is shrunk to fit the window */
+@media (max-width: 540px) {
+  .case-board { zoom: 0.78;
+  }
+}
+
+@media (max-width: 440px) {
+  .case-board { zoom: 0.66;
+  }
+}
+
+@media (max-width: 380px) {
+  .case-board { zoom: 0.6;
+  }
+}
+
+@media (max-width: 340px) {
+  .case-board { zoom: 0.52;
+  }
+}
+
+/* The Players table on a phone: a card per player, the sort buttons on top */
+@media (max-width: 640px) {
+  .board-list li.board-head { display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 0 0 4px;
+  }
+
+  .board-head > span { display: none;
+  }
+
+  .bh-col { padding: 6px 10px;
+    border: 2px solid var(--border-strong);
+    border-radius: 999px;
+    font-size: 10px;
+    text-align: center;
+  }
+
+  .bh-col.on { border-color: var(--accent);
+  }
+
+  .board-list li.player-row { grid-template-columns: 30px 36px minmax(0, 1fr) auto;
+    grid-template-areas: "pos letter player score" "stats stats stats stats";
+    row-gap: 6px;
+    column-gap: 8px;
+    padding: 10px 12px;
+  }
+
+  .player-row .rank-pos { grid-area: pos;
+  }
+
+  .player-row .rank-letter { grid-area: letter;
+    width: 34px;
+    height: 34px;
+    font-size: 18px;
+  }
+
+  .player-row .pr-player { grid-area: player;
+  }
+
+  .player-row > .bh-val { grid-area: score;
+    font-size: 15px;
+  }
+
+  .player-row .pr-stats { display: flex;
+    grid-area: stats;
+    flex-wrap: wrap;
+    gap: 4px 14px;
+    padding-top: 6px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .player-row .pr-stats .bh-val { display: flex;
+    gap: 5px;
+    align-items: baseline;
+    font-size: 13px;
+  }
+
+  .player-row .pr-stats .bh-val::before { content: attr(data-label);
+    color: var(--text-soft);
+    font-size: 10px;
+    font-weight: 400;
+    text-transform: uppercase;
+  }
+
+  .player-row .bh-val.on { font-size: 16px;
+  }
+}
+
+@media (max-width: 640px) {
+  .player-row .rc-name { overflow: visible;
+    font-size: 14px;
+    text-overflow: clip;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .player-row .pr-player { gap: 6px;
+  }
+
+  .player-row .rc-avatar { width: 34px;
+    height: 34px;
+  }
+
+  .board-list li.player-row { grid-template-columns: 24px 34px minmax(0, 1fr) auto;
+    column-gap: 6px;
+  }
+}
+
+/* ===============================
+   PHONE FIXES (v0.58.0)
+   =============================== */
+@media (max-width: 560px) {
+  /* Dialogs float with a margin all round instead of sitting on the screen edges */
+  .modal-backdrop { place-items: center stretch;
+    padding: 10px 10px max(10px, var(--ios-bottom, 0px));
+  }
+
+  .modal, .modal-backdrop.wide .modal, .modal-backdrop.details .modal, .modal-backdrop.settings .modal {
+    width: 100%;
+    max-height: calc(100vh - 20px);
+    max-height: calc(100dvh - 20px - var(--ios-bottom, 0px));
+    border-width: 3px;
+    border-radius: var(--r-lg);
+  }
+
+  /* New run: less padding at the sides, so the tiles get the room */
+  .hub.setup-screen { min-width: 0;
+    width: 100%;
+    padding: 20px 10px 24px;
+  }
+
+  /* Choosers */
+  .trainer-grid { grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .opt-grid.sprite-grid { display: flex;
+    flex-direction: column;
+  }
+
+  .offer-grid { grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+}
+
+/* Cards that are already on screen do not fly in again when the screen redraws (a pick, a closed window) */
+.offer-card.still { animation: none;
+}
+
+/* Stats table on a phone: five columns of fixed shares, the legend on one line */
+@media (max-width: 560px) {
+  .stats-table { table-layout: fixed;
+  }
+
+  .stats-table th:nth-child(1), .stats-table td:nth-child(1) { width: 31%;
+  }
+
+  .stats-table th:nth-child(2), .stats-table td:nth-child(2) { width: 14%;
+  }
+
+  .stats-table th:nth-child(3), .stats-table td:nth-child(3) { width: 25%;
+  }
+
+  .stats-table th:nth-child(4), .stats-table td:nth-child(4) { width: 14%;
+  }
+
+  .stats-table th:nth-child(5), .stats-table td:nth-child(5) { width: 16%;
+  }
+
+  .stats-table th, .stats-table td { padding: 3px 4px;
+    font-size: 12px;
+  }
+
+  .stats-table thead th { font-size: 10px;
+    white-space: nowrap;
+  }
+
+  .stats-table thead th.bar-legend { font-size: 9px;
+    text-align: center;
+  }
+}
+
+/* The badge case window on a tablet or phone: the Trainer Card on top, the badges below it */
+@media (max-width: 860px) {
+  .case-layout { flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+  }
+
+  .case-left { display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    max-width: 100%;
+  }
+
+  .case-main { width: 100%;
+    max-width: none;
+  }
+
+  .case-tools { grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .case-tools .card-colors { grid-column: 1 / -1;
+    justify-content: center;
+  }
+
+  .shelf-tabs { flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 440px) {
+  .case-board { zoom: 0.62;
+  }
+}
+
+@media (max-width: 560px) {
+  .case-tools .btn { padding: 6px 4px;
+    font-size: 11px;
+    white-space: normal;
+    line-height: 1.2;
+  }
+}
+
+/* ===============================
+   PHONE FIXES (v0.58.1)
+   =============================== */
+@media (max-width: 560px) {
+  /* Dialogs: the viewport already shrinks and grows with the browser bars, so no extra strip at the bottom */
+  .modal-backdrop { padding: 10px 10px max(10px, env(safe-area-inset-bottom, 0px));
+  }
+
+  .modal, .modal-backdrop.wide .modal, .modal-backdrop.details .modal, .modal-backdrop.settings .modal {
+    max-height: calc(100vh - 20px);
+    max-height: calc(100dvh - 20px - env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Details tabs: 2 by 2, icon beside the label */
+  .details-tabs { grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .details-tabs .tab { flex-direction: row;
+    gap: 8px;
+    padding: 8px 6px;
+    font-size: 14px;
+  }
+
+  /* Evolution line: the stages one under the other, every Pokémon full width */
+  .evo-line { flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+
+  .evo-stage { width: 100%;
+  }
+
+  .evo-mon { width: 100%;
+    min-width: 0;
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 12px;
+    text-align: left;
+  }
+
+  .evo-mon small { text-align: left;
+  }
+
+  .evo-arrow { align-self: center;
+    transform: rotate(90deg);
+  }
+}
+
+/* ===============================
+   PHONE FIXES (v0.59.0)
+   =============================== */
+.tree-node .node-effect { display: none;
+}
+
+@media (max-width: 560px) {
+  /* Skill Tree: a list instead of a graph. The nodes of a panel from the bottom row up, the effect (or what is missing) written out */
+  .tree-panel { overflow-x: visible;
+    padding: 12px 10px 14px;
+  }
+
+  .tree-lines, .tree-slot { display: none;
+  }
+
+  .tree-grid { display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .tree-node { order: var(--ord, 0);
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr) auto;
+    grid-template-areas: "icon name foot" "icon effect foot";
+    align-items: center;
+    column-gap: 10px;
+    row-gap: 2px;
+    width: 100%;
+    padding: 8px 10px;
+    text-align: left;
+  }
+
+  .tree-node img { grid-area: icon;
+    width: 40px;
+    height: 40px;
+  }
+
+  .tree-node b { grid-area: name;
+    font-size: 13px;
+  }
+
+  .tree-node .node-effect { display: block;
+    grid-area: effect;
+    color: var(--text-soft);
+    font-size: 11px;
+    font-style: normal;
+    line-height: 1.3;
+  }
+
+  .tree-node.maxed .node-effect { color: #1a1a1a;
+  }
+
+  .tree-node .foot { grid-area: foot;
+    align-items: flex-end;
+    gap: 3px;
+  }
+
+  /* Leaderboards: the panels lose their padding and border, and a row never grows past the screen */
+  .card-panel:has(> .board-list) { padding: 0;
+    border: 0;
+    background: none;
+    box-shadow: none;
+  }
+
+  [data-board-list] > li .who { flex-direction: column;
+    align-items: flex-start;
+    min-width: 0;
+  }
+
+  [data-board-list] > li .user-pills { flex-wrap: wrap;
+  }
+
+  [data-board-list] > li > b { flex: none;
+  }
+
+  /* Profile stats: two cells to a row, a long one gets the whole row */
+  .stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-flow: dense; /* a short cell fills the gap a long one leaves */
+  }
+
+  .stat.long, .stat.wide { grid-column: 1 / -1;
+  }
+}
+
+/* Pick a favourite: room for the grid on a wide screen */
+.modal-backdrop.species-modal .modal { width: min(100%, 780px);
+}
+
+@media (max-width: 560px) {
+  .modal-backdrop.species-modal .modal { width: 100%;
+  }
 }

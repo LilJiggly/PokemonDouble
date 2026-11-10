@@ -6,7 +6,7 @@
 // =====================================================
 
 import { CHALLENGES } from "./challenges.js";
-import { tpCheck } from "./meta.js";
+import { tpCheck, winsCheck } from "./meta.js";
 
 export const fmtDuration = (ms) => {
   const min = Math.floor((ms ?? 0) / 60000);
@@ -51,6 +51,7 @@ export function buildStats(meta, hof, ctx, extra = {}) {
       { label: "Time played", value: fmtDuration(meta.playMs), hint: "Counted for runs finished since v0.37" },
       { label: "Fastest win", value: meta.fastestWin ? fmtDuration(meta.fastestWin) : "–" },
     ] },
+    ...winsSection(meta),
     { title: "Trainer Points", ...tpSection(meta, ctx) },
     { title: "Battles", rows: [
       { label: "Battles won", value: won },
@@ -109,4 +110,14 @@ function tpSection(meta, ctx) {
     { label: "At least earned from wins", value: c.floor, hint: `${meta.wins ?? 0} wins × ${c.fullRun} TP for a full run` },
   ];
   return { rows, action: c.missing > 0 ? { act: "restore-tp", missing: c.missing, text: `Your earned total is ${c.missing} TP below what your ${meta.wins} wins pay. That can happen when a save lost progress.`, label: `Restore ${c.missing} TP` } : null };
+}
+
+// The wins check: the total is above what the per-generation records add up to (two saves that were combined counted some wins twice)
+function winsSection(meta) {
+  const c = winsCheck(meta);
+  if (!c.extra) return [];
+  return [{ title: "Save check", rows: [
+    { label: "Champion wins in your save", value: c.saved },
+    { label: "Wins in your records", value: c.records, hint: "Added up from every generation, evil path and final path" },
+  ], action: { act: "fix-wins", text: `Your save counts ${c.extra} more Champion win${c.extra === 1 ? "" : "s"} than your records show. That happens when two saves were combined and some wins were counted twice. Fixing it sets the wins to your records and lowers the run count, Trainer Points earned and the other totals by the same share. Your Trainer Points left are then worked out again: earned, minus what your Skill Tree upgrades cost. It also corrects your place on the leaderboards.`, label: `Remove ${c.extra} extra win${c.extra === 1 ? "" : "s"}` } }];
 }
